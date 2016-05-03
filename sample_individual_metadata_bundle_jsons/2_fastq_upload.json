@@ -1,0 +1,34 @@
+{
+   "parents" : [
+      "7ca6b5c5-5d3a-46d3-a9c3-8c62896ccf6d"
+   ],
+   "workflow_bundle_url" : "http://foo.bar/tool",
+   "workflow_version" : "1.0.0",
+   "workflow_description" : "This is the upload of the fastq from a sample using the submission script.",
+   "timing_metrics" : {},
+   "workflow_source_url" : "http://foo.bar/tool-src",
+   "host_metrics" : {
+      "vm_location" : "aws",
+      "vm_instance_mem_gb" : 256,
+      "vm_region" : "us-east-1",
+      "vm_instance_type" : "m1.xlarge",
+      "vm_instance_cores" : 4
+   },
+   "workflow_name" : "fastq-submission",
+   "workflow_inputs" : {},
+   "workflow_outputs" : {
+      "foo2.fastq.gz" : {
+         "file_type_label" : "fastq",
+         "file_type_cv_terms" : [
+            "EDAM:123232"
+         ]
+      },
+      "foo1.fastq.gz" : {
+         "file_type_label" : "fastq",
+         "file_type_cv_terms" : [
+            "EDAM:123232"
+         ]
+      }
+   },
+   "qc_metrics" : {}
+}

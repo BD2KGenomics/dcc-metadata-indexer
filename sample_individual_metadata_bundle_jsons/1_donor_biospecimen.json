@@ -1,0 +1,15 @@
+{
+   "center_name" : "WTSI",
+   "submitter_donor_id" : "CGP_donor_1199138",
+   "analysis_attributes" : {
+      "ega_sample_accession" : "EGAN00001000597"
+   },
+   "program" : "ICGC",
+   "workflow_version" : "1.0.0",
+   "submitter_specimen_id" : "PD41189",
+   "workflow_name" : "sample-registration",
+   "submitter_sample_id" : "PD41189-1",
+   "sequencing_strategy" : "WGS",
+   "submitter_specimen_type" : "Primary Tumour - solid tissue",
+   "project" : "BRCA-UK"
+}
