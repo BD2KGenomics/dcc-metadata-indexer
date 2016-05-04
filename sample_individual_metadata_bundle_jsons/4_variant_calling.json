@@ -1,0 +1,77 @@
+{
+   "workflow_name" : "sanger-variant-calling",
+   "workflow_description" : "This is the variant calling for specimen PD41189 from donor CGP_donor_1199138.",
+   "timing_metrics" : {
+      "overall_walltime_seconds" : 60000,
+      "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+      "step_timing" : {
+         "variant_calling" : {
+            "walltime_seconds" : 60000,
+            "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+            "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+         }
+      },
+      "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+   },
+   "workflow_version" : "1.0.0",
+   "workflow_source_url" : "http://foo.bar/sanger-workflow-src",
+   "workflow_inputs" : [
+      {
+         "file_storage_bundle_uri" : "b6525378-d904-4276-b42a-5cf01506ca8a",
+         "file_storage_metadata_json_uri" : "050a0b5b-ba9a-4200-96f8-fc7982f02416",
+         "file_storage_bundle_files" : {
+            "foo.bam.bai" : {
+               "file_storage_uri" : "04731ba6-9d5a-42f8-a25a-bf6416d7f00a",
+               "file_type_label" : "bai",
+               "file_type_cv_terms" : [
+                  "EDAM:123232"
+               ]
+            },
+            "foo.bam" : {
+               "file_type_label" : "bam",
+               "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+               "file_type_cv_terms" : [
+                  "EDAM:1293829"
+               ]
+            }
+         }
+      }
+   ],
+   "workflow_outputs" : {
+      "foo.vcf" : {
+         "file_type_cv_terms" : [
+            "EDAM:12293829"
+         ],
+         "file_type_label" : "vcf"
+      },
+      "foo.vcf.tbi" : {
+         "file_type_cv_terms" : [
+            "EDAM:2783392"
+         ],
+         "file_type_label" : "tbi"
+      }
+   },
+   "qc_metrics" : {
+      "variants_called" : 3456423,
+      "contamination_percent" : 1.2
+   },
+   "host_metrics" : {
+      "vm_instance_mem_gb" : 256,
+      "vm_location" : "aws",
+      "vm_region" : "us-east-1",
+      "vm_instance_cores" : 4,
+      "vm_instance_type" : "m1.xlarge"
+   },
+   "analysis_attributes" : {
+      "use_ctrl" : "PD41189",
+      "assembly_short_name" : "GRCh37"
+   },
+   "workflow_params" : {
+      "param1" : 12121,
+      "param2" : 2389239
+   },
+   "workflow_bundle_url" : "http://foo.bar/sanger-workflow",
+   "parents" : [
+      "80201af2-1537-4098-adce-0f43ffbd1770"
+   ]
+}
