@@ -49,7 +49,6 @@
          "type" : "array",
          "items" : {
             "type" : "string",
-            "format" : "uri",
             "uniqueItems": true
          }
       },
@@ -75,12 +74,10 @@
             "uniqueItems": true,
             "items" : {
                "file_storage_bundle_uri" : {
-                  "type" : "string",
-                  "format" : "uri"
+                  "type" : "string"
                }, 
                "file_storage_metadata_json_uri" : {
-                  "type" : "string",
-                  "format" : "uri"
+                  "type" : "string"
                }, 
                "file_storage_bundle_files" : {
                   "type" : "array",
@@ -96,8 +93,7 @@
                            }
                         },
                         "file_storage_uri" : {
-                           "type" : "string",
-                           "format" : "uri"
+                           "type" : "string"
                         }
                      }
                   }
