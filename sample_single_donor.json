@@ -18,86 +18,276 @@
    "donor_analysis_attributes" : {
       "donor_example_attribute:": "string"
    },
-   
-   "parents" : ["7ca6b5c5-5d3a-46d3-a9c3-8c62896ccf6d"],
-   
-   "workflow_name" : "fastq-submission",
-   "workflow_info" : {
-      "workflow_version" : "1.0.0", 
-      "workflow_source_url" : "http://foo.bar/tool-src",
-      "workflow_bundle_url" : "http://foo.bar/tool",
-      "workflow_description" : "This is the upload of the fastq from a sample using the submission script.",
-      "workflow_inputs" : [ {
-         "file_storage_bundle_uri" : "string",
-         "file_storage_metadata_json_uri" : "string",
-         "file_storage_bundle_files" : {
-            "foo1.fastq.gz" : {
-               "file_type_label" : "fastq",
-               "file_type_cv_terms" : ["EDAM:123232"],
-               "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7"
+      
+   "normal_specimen" : [{
+      "germline_variant_calling" : {
+         "workflows" : [ {
+            "workflow_bundle_url" : "http://foo.bar/tool",
+            "workflow_version" : "1.0.0",
+            "workflow_description" : "This is the upload of the fastq from a sample using the submission script.",
+            "timing_metrics" : {},
+            "workflow_source_url" : "http://foo.bar/tool-src",
+            "host_metrics" : {
+               "vm_location" : "aws",
+               "vm_instance_mem_gb" : 256,
+               "vm_region" : "us-east-1",
+               "vm_instance_type" : "m1.xlarge",
+               "vm_instance_cores" : 4
             },
-            "foo2.fastq.gz" : {
-               "file_type_label" : "fastq",
-               "file_type_cv_terms" : ["EDAM:123232"],
-               "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198"
+            "workflow_name" : "fastq-submission",
+            "workflow_inputs" : [{}],
+            "workflow_outputs" : [ {
+               "foo1.fastq.gz" : {
+                  "file_type_label" : "fastq",
+                  "file_type_cv_terms" : [ "EDAM:123232" ]
+               },
+               "foo2.fastq.gz" : {
+                  "file_type_label" : "fastq",
+                  "file_type_cv_terms" : [ "EDAM:123232" ]
+               }
+            }],
+            "qc_metrics" : {}
+         }]
+      },
+      "alignment" : {
+         "workflows" : [ {
+            "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
+            "workflow_params" : {
+               "param1" : 12121,
+               "param2" : 2389239
             },
-            "foo3.otherfiletype" : {
-               "file_type_label" : "string",
-               "file_type_cv_terms" : ["string"],
-               "file_storage_uri" : "string"
+            "workflow_outputs" : {
+               "foo.bam.bai" : {
+                  "file_type_label" : "bai",
+                  "file_type_cv_terms" : [ "EDAM:278392" ]
+               },
+               "foo.bam" : {
+                  "file_type_label" : "bam",
+                  "file_type_cv_terms" : [ "EDAM:1293829" ]
+               }
+            },
+            "workflow_inputs" : [ {
+               "file_storage_bundle_files" : {
+                  "foo1.fastq.gz" : {
+                     "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                     "file_type_label" : "fastq",
+                     "file_type_cv_terms" : [ "EDAM:123232" ]
+                  },
+                  "foo2.fastq.gz" : {
+                     "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198",
+                     "file_type_label" : "fastq",
+                     "file_type_cv_terms" : [ "EDAM:123232" ]
+                  },
+                  "file_storage_metadata_json_uri" : "153c380c-0bcb-4ee9-abdf-629db73a62e5",
+                  "file_storage_bundle_uri" : "0e99945c-631e-4123-9158-5132a8fe2150"
+               }
+            }],
+            "workflow_version" : "1.0.0",
+            "qc_metrics" : {
+               "insert_size_average" : 10456,
+               "insert_size_sd" : 313,
+               "coverage_average" : 123.4
+            },
+            "timing_metrics" : {
+               "step_timing" : {
+                  "alignment" : {
+                     "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                     "walltime_seconds" : 60000,
+                     "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+                  }
+               },
+               "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+               "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+               "overall_walltime_seconds" : 60000
+            },
+            "workflow_description" : "This is the alignment for specimen PD41189 from donor CGP_donor_1199138.",
+            "workflow_source_url" : "http://foo.bar/bwa-workflow-src",
+            "host_metrics" : {
+               "vm_instance_type" : "m1.xlarge",
+               "vm_region" : "us-east-1",
+               "vm_instance_cores" : 4,
+               "vm_instance_mem_gb" : 256,
+               "vm_location" : "aws"
+            },
+            "workflow_name" : "bwa-mem-alignment"
+         } ]
+      }
+   }],
+
+   "tumour_specimen" : [{
+      "specimen_id" : "askdfdksjfk1T",
+      "fastq_sequencing" : {
+         "workflows" : [ {
+            "workflow_bundle_url" : "http://foo.bar/tool",
+            "workflow_version" : "1.0.0",
+            "workflow_description" : "This is the upload of the fastq from a sample using the submission script.",
+            "timing_metrics" : {},
+            "workflow_source_url" : "http://foo.bar/tool-src",
+            "host_metrics" : {
+               "vm_location" : "aws",
+               "vm_instance_mem_gb" : 256,
+               "vm_region" : "us-east-1",
+               "vm_instance_type" : "m1.xlarge",
+               "vm_instance_cores" : 4
+            },
+            "workflow_name" : "fastq-submission",
+            "workflow_inputs" : {},
+            "workflow_outputs" : {
+               "foo2.fastq.gz" : {
+                  "file_type_label" : "fastq",
+                  "file_type_cv_terms" : [ "EDAM:123232" ]
+               },
+               "foo1.fastq.gz" : {
+                  "file_type_label" : "fastq",
+                  "file_type_cv_terms" : [ "EDAM:123232" ]
+               }
+            },
+            "qc_metrics" : {}
+         }]
+      },
+      "alignment" : {
+         "workflows" : [ {
+            "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
+            "workflow_params" : {
+               "param1" : 12121,
+               "param2" : 2389239
+            },
+            "workflow_outputs" : {
+               "foo.bam.bai" : {
+                  "file_type_label" : "bai",
+                  "file_type_cv_terms" : [ "EDAM:278392" ]
+               },
+               "foo.bam" : {
+                  "file_type_label" : "bam",
+                  "file_type_cv_terms" : [ "EDAM:1293829" ]
+               }
+            },
+            "workflow_inputs" : [ {
+               "file_storage_bundle_files" : {
+                  "foo1.fastq.gz" : {
+                     "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                     "file_type_label" : "fastq",
+                     "file_type_cv_terms" : [ "EDAM:123232" ]
+                  },
+                  "foo2.fastq.gz" : {
+                     "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198",
+                     "file_type_label" : "fastq",
+                     "file_type_cv_terms" : [ "EDAM:123232" ]
+                  },
+                  "file_storage_metadata_json_uri" : "153c380c-0bcb-4ee9-abdf-629db73a62e5",
+                  "file_storage_bundle_uri" : "0e99945c-631e-4123-9158-5132a8fe2150"
+               }
+            }],
+            "workflow_version" : "1.0.0",
+            "qc_metrics" : {
+               "insert_size_average" : 10456,
+               "insert_size_sd" : 313,
+               "coverage_average" : 123.4
+            },
+            "timing_metrics" : {
+               "step_timing" : {
+                  "alignment" : {
+                     "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                     "walltime_seconds" : 60000,
+                     "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+                  }
+               },
+               "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+               "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+               "overall_walltime_seconds" : 60000
+            },
+            "workflow_description" : "This is the alignment for specimen PD41189 from donor CGP_donor_1199138.",
+            "workflow_source_url" : "http://foo.bar/bwa-workflow-src",
+            "host_metrics" : {
+               "vm_instance_type" : "m1.xlarge",
+               "vm_region" : "us-east-1",
+               "vm_instance_cores" : 4,
+               "vm_instance_mem_gb" : 256,
+               "vm_location" : "aws"
+            },
+            "workflow_name" : "bwa-mem-alignment"
+         } ]
+      } 
+   }],
+   
+   "somatic_variant_calling" : [{
+      "workflows" : [ {
+         "workflow_name" : "sanger-variant-calling",
+         "workflow_description" : "This is the variant calling for specimen PD41189 from donor CGP_donor_1199138.",
+         "workflow_version" : "1.0.0",
+         "workflow_source_url" : "http://foo.bar/sanger-workflow-src",
+         "workflow_inputs" : [
+            {
+               "file_storage_bundle_uri" : "b6525378-d904-4276-b42a-5cf01506ca8a",
+               "file_storage_metadata_json_uri" : "050a0b5b-ba9a-4200-96f8-fc7982f02416",
+               "file_storage_bundle_files" : {
+                  "foo.bam.bai" : {
+                     "file_storage_uri" : "04731ba6-9d5a-42f8-a25a-bf6416d7f00a",
+                     "file_type_label" : "bai",
+                     "file_type_cv_terms" : [
+                        "EDAM:123232"
+                     ]
+                  },
+                  "foo.bam" : {
+                     "file_type_label" : "bam",
+                     "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                     "file_type_cv_terms" : [
+                        "EDAM:1293829"
+                     ]
+                  }
+               }
             }
+         ],
+         "workflow_outputs" : {
+            "foo.vcf" : {
+               "file_type_cv_terms" : [
+                  "EDAM:12293829"
+               ],
+               "file_type_label" : "vcf"
+            },
+            "foo.vcf.tbi" : {
+               "file_type_cv_terms" : [
+                  "EDAM:2783392"
+               ],
+               "file_type_label" : "tbi"
+            }
+         },
+         "qc_metrics" : {
+            "variants_called" : 3456423,
+            "contamination_percent" : 1.2
+         },
+         "host_metrics" : {
+            "vm_instance_mem_gb" : 256,
+            "vm_location" : "aws",
+            "vm_region" : "us-east-1",
+            "vm_instance_cores" : 4,
+            "vm_instance_type" : "m1.xlarge"
+         },
+         "analysis_attributes" : {
+            "use_ctrl" : "PD41189",
+            "assembly_short_name" : "GRCh37"
+         },
+         "workflow_params" : {
+            "param1" : 12121,
+            "param2" : 2389239
+         },
+         "workflow_bundle_url" : "http://foo.bar/sanger-workflow",
+         "timing_metrics" : {
+            "overall_walltime_seconds" : 60000,
+            "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+            "step_timing" : {
+               "variant_calling" : {
+                  "walltime_seconds" : 60000,
+                  "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                  "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+               }
+            },
+            "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
          }
-      } ],
-      "workflow_outputs" : [{
-         "foo.fastq.gz" : {
-            "file_type_label" : "fastq",
-            "file_type_cv_terms" : ["EDAM:123232"]
-         },
-         "foo2.fastq.gz" : {
-            "file_type_label" : "fastq",
-            "file_type_cv_terms" : ["EDAM:123232"]
-         },
-         "foo.bam" : {
-            "file_type_label" : "bam",
-            "file_type_cv_terms" : ["EDAM:1293829"]
-         },
-         "foo.bam.bai" : {
-            "file_type_label" : "bai",
-            "file_type_cv_terms" : ["EDAM:278392"]
-         },
-         "foo3.otherfiletype" : {
-            "file_type_label" : "string",
-            "file_type_cv_terms" : ["string"]
-         }
-      }],
-      "workflow_params" : {
-         "param1" : 12121,
-         "param2" : 2389239
-      }
-   },
+      }]
+   }],
    
-   "qc_metrics" : {
-      "coverage_average" : 123.4,
-      "insert_size_average" : 10456,
-      "insert_size_sd": 313
-   },
-   "timing_metrics" : { 
-      "overall_walltime_seconds" : 60000,
-      "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
-      "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
-      "step_timing" : {
-         "alignment" : {
-            "walltime_seconds" : "Thu Apr 14 24:18:30 UTC 2016",
-            "start_time_utc" : 60000,
-            "stop_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
-         } 
-      }
-   },
-   "host_metrics" : {
-      "vm_instance_type" : "m1.xlarge",
-      "vm_instance_cores" : 4,
-      "vm_instance_mem_gb" : 256,
-      "vm_location" : "aws",
-      "vm_region" : "us-east-1"
+   "somatic_rnaseq_differential_expression" : {
+   
    }
 }
