@@ -19,7 +19,7 @@
       "donor_example_attribute:": "string"
    },
       
-   "normal_specimen" : [{
+   "normal_specimen" : {
       "germline_variant_calling" : {
          "workflows" : [ {
             "workflow_bundle_url" : "http://foo.bar/tool",
@@ -112,9 +112,8 @@
             "workflow_name" : "bwa-mem-alignment"
          } ]
       }
-   }],
-
-   "tumour_specimen" : [{
+   },
+   "tumour_specimen" : {
       "specimen_id" : "askdfdksjfk1T",
       "fastq_sequencing" : {
          "workflows" : [ {
@@ -208,9 +207,9 @@
             "workflow_name" : "bwa-mem-alignment"
          } ]
       } 
-   }],
+   },
    
-   "somatic_variant_calling" : [{
+   "somatic_variant_calling" : {
       "workflows" : [ {
          "workflow_name" : "sanger-variant-calling",
          "workflow_description" : "This is the variant calling for specimen PD41189 from donor CGP_donor_1199138.",
@@ -285,9 +284,5 @@
             "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
          }
       }]
-   }],
-   
-   "somatic_rnaseq_differential_expression" : {
-   
    }
 }
