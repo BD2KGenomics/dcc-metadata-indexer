@@ -4,22 +4,21 @@
    "submitter_donor_id" : "CGP_donor_1199138",
    
    "center_name" : "WTSI",
-
-   "analysis_donor_attributes" : {
+   "analysis_donor_attributes" : [ {
       "example_donor_attribute:": "string"
-   },
+   } ],
       
    "normal_specimen" : [ {
       "submitter_specimen_id" : "PD41189",
       "submitter_specimen_type" : "Normal - solid tissue", 
-      "analysis_specimen_attributes" : {
+      "analysis_specimen_attributes" : [ {
          "example_specimen_attribute:" : "string"
-      },
+      } ],
       "normal_sample_attributes" : [ {
          "submitter_sample_id" : "PD41189-1",
-         "analysis_sample_attributes" : {
+         "analysis_sample_attributes" : [ {
             "example_sample_attribute" : "EGAN00001000597" 
-         }
+         } ]
       } ],
       "germline_variant_calling" : {
          "workflows" : [ {
@@ -155,14 +154,14 @@
    "tumour_specimen" : [ {
       "submitter_specimen_id" : "PD41189",
       "submitter_specimen_type" : "Primary tumour - solid tissue", 
-      "analysis_specimen_attributes" : {
+      "analysis_specimen_attributes" : [ {
          "example_specimen_attribute:" : "string"
-      },
+      } ],
       "tumour_sample_attributes" : [ {
          "submitter_sample_id" : "PD41189-1",
-         "analysis_sample_attributes" : {
+         "analysis_sample_attributes" : [ {
             "example_sample_attribute" : "EGAN00001000597" 
-         }
+         } ]
       } ],
       "sequencing_upload" : {
          "workflows" : [ {
