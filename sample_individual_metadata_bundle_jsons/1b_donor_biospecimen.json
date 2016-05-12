@@ -1,0 +1,32 @@
+{
+   "program" : "ICGC",
+   "project" : "BRCA-UK",
+   "center_name" : "WTSI",
+   "submitter_donor_id" : "CGP_donor_1199138",
+   "donor_uuid" : "00d2116c-5640-4f07-b758-2d877470d684",
+   "donor_attributes" : {
+      "ega_sample_accession" : "EGAN00001000597"
+   },
+   "tumour_specimen" : [
+     {
+       "submitter_specimen_id": "PD41189T",
+       "submitter_specimen_type" : "Primary tumour - solid tissue",
+       "specimen_uuid" : "1bc259b7-3d87-4390-ae60-a92130651be4",
+       "specimen_attributes" :
+          {
+             "example_specimen_attribute:" : "string"
+          }
+       ,
+       "samples" : [
+         {
+           "submitter_sample_id": "PD41189-1T",
+           "sample_uuid" : "e1156a51-6265-4d9a-9bc8-ebccf40126b5",
+           "sample_attributes":
+           {
+             "example_sample_attribute": "EGAN00001000597"
+           }
+         }
+       ]
+     }
+   ]
+}
