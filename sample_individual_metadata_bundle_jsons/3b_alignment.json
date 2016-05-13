@@ -1,0 +1,74 @@
+{
+   "parent_uuids" : [
+      "e1156a51-6265-4d9a-9bc8-ebccf40126b5"
+   ],
+   "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
+   "workflow_params" : {
+      "param1" : 12121,
+      "param2" : 2389239
+   },
+   "workflow_outputs" : {
+      "foo.bam.bai" : {
+         "file_type_label" : "bai",
+         "file_type_cv_terms" : [
+            "EDAM:278392"
+         ]
+      },
+      "foo.bam" : {
+         "file_type_label" : "bam",
+         "file_type_cv_terms" : [
+            "EDAM:1293829"
+         ]
+      }
+   },
+   "workflow_inputs" : [
+      {
+         "file_storage_bundle_files" : {
+            "foo1.fastq.gz" : {
+               "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+               "file_type_label" : "fastq",
+               "file_type_cv_terms" : [
+                  "EDAM:123232"
+               ]
+            },
+            "foo2.fastq.gz" : {
+               "file_type_label" : "fastq",
+               "file_type_cv_terms" : [
+                  "EDAM:123232"
+               ],
+               "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198"
+            }
+         },
+         "file_storage_metadata_json_uri" : "153c380c-0bcb-4ee9-abdf-629db73a62e5",
+         "file_storage_bundle_uri" : "0e99945c-631e-4123-9158-5132a8fe2150"
+      }
+   ],
+   "workflow_version" : "1.0.0",
+   "qc_metrics" : {
+      "insert_size_average" : 10456,
+      "insert_size_sd" : 313,
+      "coverage_average" : 123.4
+   },
+   "timing_metrics" : {
+      "step_timing" : {
+         "alignment" : {
+            "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+            "walltime_seconds" : 60000,
+            "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+         }
+      },
+      "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+      "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+      "overall_walltime_seconds" : 60000
+   },
+   "workflow_description" : "This is the alignment for specimen PD41189 from donor CGP_donor_1199138.",
+   "workflow_source_url" : "http://foo.bar/bwa-workflow-src",
+   "host_metrics" : {
+      "vm_instance_type" : "m1.xlarge",
+      "vm_region" : "us-east-1",
+      "vm_instance_cores" : 4,
+      "vm_instance_mem_gb" : 256,
+      "vm_location" : "aws"
+   },
+   "workflow_name" : "bwa-mem-alignment"
+}

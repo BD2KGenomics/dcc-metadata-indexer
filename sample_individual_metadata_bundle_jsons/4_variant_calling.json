@@ -71,7 +71,7 @@
       "param2" : 2389239
    },
    "workflow_bundle_url" : "http://foo.bar/sanger-workflow",
-   "parents" : [
+   "parent_uuids" : [
       "80201af2-1537-4098-adce-0f43ffbd1770"
    ]
 }

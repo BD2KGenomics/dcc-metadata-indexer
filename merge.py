@@ -45,6 +45,43 @@ for specimen in tumor_specimens:
         sample['sequence_upload'] = workflows[sample_uuid]
         pprint(sample)
 
+# now add alignment
+with open('sample_individual_metadata_bundle_jsons/3a_alignment.json') as data_file5:
+    data5 = json.load(data_file5)
+with open('sample_individual_metadata_bundle_jsons/3b_alignment.json') as data_file6:
+    data6 = json.load(data_file6)
+
+workflows={}
+for uuid in data5['parent_uuids']:
+    print ("UUIDs: "+uuid)
+    workflows[uuid] = data5
+for uuid in data6['parent_uuids']:
+    print ("UUIDs: "+uuid)
+    workflows[uuid] = data6
+
+normal_specimens = result['normal_specimen']
+for specimen in normal_specimens:
+    normal_samples = specimen['samples']
+    for sample in normal_samples:
+        sample_uuid = sample['sample_uuid']
+        print(sample_uuid)
+        sample['alignment'] = workflows[sample_uuid]
+        pprint(sample)
+
+tumor_specimens = result['tumor_specimen']
+for specimen in tumor_specimens:
+    tumor_samples = specimen['samples']
+    for sample in tumor_samples:
+        sample_uuid = sample['sample_uuid']
+        print(sample_uuid)
+        sample['alignment'] = workflows[sample_uuid]
+        pprint(sample)
+
+# now for somatic calling
+# now add alignment
+with open('sample_individual_metadata_bundle_jsons/4_variant_calling.json') as data_file6:
+    data5 = json.load(data_file5)
+
 with open('merge.json', 'w') as outfile:
     json.dump(result, outfile)
 

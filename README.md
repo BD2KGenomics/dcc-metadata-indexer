@@ -10,7 +10,7 @@ This repo also contains a merge tool.  The idea is to:
 0. group the related metadata.json documents, all the docs for a given donor are grouped together
 0. use the parent information in each document to understand where in the donor document the sub-documents should be merged
 0. call the merge tool with sub-json documents, generate a per-donor document
-0. load in Elasticsearch 
+0. load in Elasticsearch
 
 ## Install
 
@@ -26,6 +26,10 @@ See https://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/
 This tool takes multiple JSON and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.
 
     python merge.py
+
+In the future, look at adding options here for specifying where files should be merged:
+
+    python merge.py --sample alignment:alignment1.json --sample alignment:alignment2.json --donor somatic_variant_calling:somatic.json
 
 ## Ideas:
 
