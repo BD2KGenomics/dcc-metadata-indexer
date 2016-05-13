@@ -12,5 +12,8 @@ result = merge(data1, data2)
 
 pprint(result)
 
+# now start decorating with other documents
+# start with the sample Fastq upload
+
 with open('merge.json', 'w') as outfile:
     json.dump(result, outfile)
