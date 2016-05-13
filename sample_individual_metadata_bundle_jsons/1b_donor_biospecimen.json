@@ -7,7 +7,7 @@
    "donor_attributes" : {
       "ega_sample_accession" : "EGAN00001000597"
    },
-   "tumour_specimen" : [
+   "tumor_specimen" : [
      {
        "submitter_specimen_id": "PD41189T",
        "submitter_specimen_type" : "Primary tumour - solid tissue",
