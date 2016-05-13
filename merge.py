@@ -15,5 +15,7 @@ pprint(result)
 # now start decorating with other documents
 # start with the sample Fastq upload
 
+pprint(result['normal_specimen']['samples'])
+
 with open('merge.json', 'w') as outfile:
     json.dump(result, outfile)
