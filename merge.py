@@ -78,9 +78,16 @@ for specimen in tumor_specimens:
         pprint(sample)
 
 # now for somatic calling
-# now add alignment
-with open('sample_individual_metadata_bundle_jsons/4_variant_calling.json') as data_file6:
-    data5 = json.load(data_file5)
+with open('sample_individual_metadata_bundle_jsons/4_variant_calling.json') as data_file7:
+    data7 = json.load(data_file7)
+
+workflows={}
+for uuid in data7['parent_uuids']:
+    print ("UUIDs: "+uuid)
+    workflows[uuid] = data7
+
+donor_uuid = result['donor_uuid']
+result['somatic_variant_calling'] = workflows[donor_uuid]
 
 with open('merge.json', 'w') as outfile:
     json.dump(result, outfile)
