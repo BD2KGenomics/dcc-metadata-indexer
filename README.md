@@ -63,7 +63,11 @@ file in Chrome. On a Mac:
 
 ## Data Types
 
-We support the following types:
+We support the following types.  First and foremost, the types below are just intended
+to be an overview. We need to standardize on actual acceptable terms. To do this
+we use the Codelists (controlled vocabularies) from the ICGC.  See http://docs.icgc.org/dictionary/viewer/#?viewMode=codelist
+
+In the future we will validate metadata JSON against these codelists.
 
 ### Sample Types:
 
@@ -74,12 +78,18 @@ We support the following types:
 
 And there are others as well but these are the major ones we'll encounter for now.
 
+The actual values should come from the ICGC Codelist above.  Specifically the
+`specimen.0.specimen_type.v3` codelist.
+
 ### Experimental Design Types
 
 * WXS
 * WGS
 * Gene Panel
 * RNAseq
+
+The actual values should come from the ICGC Codelist above.  Specifically the
+`GLOBAL.0.sequencing_strategy.v1` codelist.
 
 ### File Types/Formats
 
@@ -89,6 +99,9 @@ And there are others as well but these are the major ones we'll encounter for no
 * expression/RSEM(?)
 * variants/VCF
 
+These will all come from the [EDAM Ontology](http://edamontology.org).  They have
+a mechanism to add terms as needed.
+
 ### Analysis Types
 
 * germline_variant_calling -> normal specimen level
@@ -96,7 +109,27 @@ And there are others as well but these are the major ones we'll encounter for no
 * somatic_variant_calling -> tumor specimen level (or donor if called simultaneously for multiple tumors)
 * immuno_target_pipelines -> tumor specimen level
 
+Unfortunately, the CVs from ICGC don't cover the above, see [here](http://docs.icgc.org/dictionary/viewer/#?viewMode=table).
+Look for items like `variation_calling_algorithm` and you'll see they are actually just
+TEXT with a regular expression to validate them.
+
+Take home, I think we use our own CV for these terms and expand it over time here.
+
+I think we also need to support tagging with multiple EDAM terms as well which can,
+together, describe what I'm trying to capture above.  For example:
+
+germline_variant_calling could be:
+
+* [Variant calling](http://edamontology.org/operation_3227): http://edamontology.org/operation_3227
+
+Which isn't very specific and the description sounds closer to somatic calling.
+
+So this argues that we should actually just come up with our own specific terms
+used for the institute since we aren't attempting to capture the whole world's
+possible use cases here.
+
 Over time I think this will expand.  Each are targeted at a distinct biospecimen "level".
+This will need to be incorporated into changes to the index builder.
 
 ## Ideas
 
