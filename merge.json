@@ -1,0 +1,347 @@
+{
+   "tumor_specimen" : [
+      {
+         "submitter_specimen_id" : "PD41189T",
+         "submitter_specimen_type" : "Primary tumour - solid tissue",
+         "specimen_attributes" : {
+            "example_specimen_attribute:" : "string"
+         },
+         "specimen_uuid" : "1bc259b7-3d87-4390-ae60-a92130651be4",
+         "samples" : [
+            {
+               "sample_attributes" : {
+                  "example_sample_attribute" : "EGAN00001000597"
+               },
+               "submitter_sample_id" : "PD41189-1T",
+               "alignment" : {
+                  "host_metrics" : {
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_instance_cores" : 4,
+                     "vm_instance_mem_gb" : 256,
+                     "vm_location" : "aws",
+                     "vm_region" : "us-east-1"
+                  },
+                  "workflow_outputs" : {
+                     "foo.bam" : {
+                        "file_type_cv_terms" : [
+                           "EDAM:1293829"
+                        ],
+                        "file_type_label" : "bam"
+                     },
+                     "foo.bam.bai" : {
+                        "file_type_cv_terms" : [
+                           "EDAM:278392"
+                        ],
+                        "file_type_label" : "bai"
+                     }
+                  },
+                  "workflow_description" : "This is the alignment for specimen PD41189 from donor CGP_donor_1199138.",
+                  "workflow_name" : "bwa-mem-alignment",
+                  "workflow_version" : "1.0.0",
+                  "workflow_inputs" : [
+                     {
+                        "file_storage_metadata_json_uri" : "153c380c-0bcb-4ee9-abdf-629db73a62e5",
+                        "file_storage_bundle_files" : {
+                           "foo2.fastq.gz" : {
+                              "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198",
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ],
+                              "file_type_label" : "fastq"
+                           },
+                           "foo1.fastq.gz" : {
+                              "file_type_label" : "fastq",
+                              "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ]
+                           }
+                        },
+                        "file_storage_bundle_uri" : "0e99945c-631e-4123-9158-5132a8fe2150"
+                     }
+                  ],
+                  "qc_metrics" : {
+                     "insert_size_sd" : 313,
+                     "coverage_average" : 123.4,
+                     "insert_size_average" : 10456
+                  },
+                  "workflow_params" : {
+                     "param1" : 12121,
+                     "param2" : 2389239
+                  },
+                  "workflow_source_url" : "http://foo.bar/bwa-workflow-src",
+                  "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
+                  "parent_uuids" : [
+                     "e1156a51-6265-4d9a-9bc8-ebccf40126b5"
+                  ],
+                  "timing_metrics" : {
+                     "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                     "overall_walltime_seconds" : 60000,
+                     "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                     "step_timing" : {
+                        "alignment" : {
+                           "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                           "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                           "walltime_seconds" : 60000
+                        }
+                     }
+                  }
+               },
+               "sequence_upload" : {
+                  "parent_uuids" : [
+                     "e1156a51-6265-4d9a-9bc8-ebccf40126b5"
+                  ],
+                  "analysis_attributes" : {
+                     "sequencing_strategy" : "WGS"
+                  },
+                  "workflow_bundle_url" : "http://foo.bar/tool",
+                  "workflow_source_url" : "http://foo.bar/tool-src",
+                  "timing_metrics" : {},
+                  "workflow_version" : "1.0.0",
+                  "workflow_description" : "This is the upload of the fastq from a sample using the submission script.",
+                  "workflow_outputs" : {
+                     "foo2b.fastq.gz" : {
+                        "file_type_label" : "fastq",
+                        "file_type_cv_terms" : [
+                           "EDAM:123232"
+                        ]
+                     },
+                     "foo1b.fastq.gz" : {
+                        "file_type_label" : "fastq",
+                        "file_type_cv_terms" : [
+                           "EDAM:123232"
+                        ]
+                     }
+                  },
+                  "workflow_name" : "fastq-submission",
+                  "host_metrics" : {
+                     "vm_region" : "us-east-1",
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_instance_cores" : 4,
+                     "vm_instance_mem_gb" : 256,
+                     "vm_location" : "aws"
+                  },
+                  "qc_metrics" : {},
+                  "workflow_inputs" : {}
+               },
+               "sample_uuid" : "e1156a51-6265-4d9a-9bc8-ebccf40126b5"
+            }
+         ]
+      }
+   ],
+   "somatic_variant_calling" : {
+      "workflow_version" : "1.0.0",
+      "workflow_name" : "sanger-variant-calling",
+      "workflow_description" : "This is the variant calling for specimen PD41189 from donor CGP_donor_1199138.",
+      "workflow_outputs" : {
+         "foo.vcf.tbi" : {
+            "file_type_label" : "tbi",
+            "file_type_cv_terms" : [
+               "EDAM:2783392"
+            ]
+         },
+         "foo.vcf" : {
+            "file_type_cv_terms" : [
+               "EDAM:12293829"
+            ],
+            "file_type_label" : "vcf"
+         }
+      },
+      "host_metrics" : {
+         "vm_region" : "us-east-1",
+         "vm_instance_type" : "m1.xlarge",
+         "vm_location" : "aws",
+         "vm_instance_mem_gb" : 256,
+         "vm_instance_cores" : 4
+      },
+      "qc_metrics" : {
+         "variants_called" : 3456423,
+         "contamination_percent" : 1.2
+      },
+      "workflow_inputs" : [
+         {
+            "file_storage_bundle_uri" : "b6525378-d904-4276-b42a-5cf01506ca8a",
+            "file_storage_bundle_files" : {
+               "foo.bam" : {
+                  "file_type_label" : "bam",
+                  "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                  "file_type_cv_terms" : [
+                     "EDAM:1293829"
+                  ]
+               },
+               "foo.bam.bai" : {
+                  "file_type_label" : "bai",
+                  "file_storage_uri" : "04731ba6-9d5a-42f8-a25a-bf6416d7f00a",
+                  "file_type_cv_terms" : [
+                     "EDAM:123232"
+                  ]
+               }
+            },
+            "file_storage_metadata_json_uri" : "050a0b5b-ba9a-4200-96f8-fc7982f02416"
+         }
+      ],
+      "parent_uuids" : [
+         "00d2116c-5640-4f07-b758-2d877470d684"
+      ],
+      "analysis_attributes" : {
+         "use_ctrl" : "PD41189",
+         "assembly_short_name" : "GRCh37"
+      },
+      "workflow_source_url" : "http://foo.bar/sanger-workflow-src",
+      "workflow_params" : {
+         "param1" : 12121,
+         "param2" : 2389239
+      },
+      "workflow_bundle_url" : "http://foo.bar/sanger-workflow",
+      "timing_metrics" : {
+         "step_timing" : {
+            "variant_calling" : {
+               "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+               "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+               "walltime_seconds" : 60000
+            }
+         },
+         "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+         "overall_walltime_seconds" : 60000,
+         "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+      }
+   },
+   "donor_attributes" : {
+      "ega_sample_accession" : "EGAN00001000597"
+   },
+   "donor_uuid" : "00d2116c-5640-4f07-b758-2d877470d684",
+   "submitter_donor_id" : "CGP_donor_1199138",
+   "program" : "ICGC",
+   "center_name" : "WTSI",
+   "normal_specimen" : [
+      {
+         "submitter_specimen_type" : "Normal - solid tissue",
+         "specimen_attributes" : {
+            "example_specimen_attribute:" : "string"
+         },
+         "samples" : [
+            {
+               "submitter_sample_id" : "PD41189-1",
+               "alignment" : {
+                  "workflow_version" : "1.0.0",
+                  "workflow_description" : "This is the alignment for specimen PD41189 from donor CGP_donor_1199138.",
+                  "workflow_outputs" : {
+                     "foo.bam" : {
+                        "file_type_cv_terms" : [
+                           "EDAM:1293829"
+                        ],
+                        "file_type_label" : "bam"
+                     },
+                     "foo.bam.bai" : {
+                        "file_type_cv_terms" : [
+                           "EDAM:278392"
+                        ],
+                        "file_type_label" : "bai"
+                     }
+                  },
+                  "workflow_name" : "bwa-mem-alignment",
+                  "host_metrics" : {
+                     "vm_region" : "us-east-1",
+                     "vm_instance_cores" : 4,
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_instance_mem_gb" : 256,
+                     "vm_location" : "aws"
+                  },
+                  "qc_metrics" : {
+                     "insert_size_average" : 10456,
+                     "coverage_average" : 123.4,
+                     "insert_size_sd" : 313
+                  },
+                  "workflow_inputs" : [
+                     {
+                        "file_storage_bundle_uri" : "0e99945c-631e-4123-9158-5132a8fe2150",
+                        "file_storage_bundle_files" : {
+                           "foo2.fastq.gz" : {
+                              "file_type_label" : "fastq",
+                              "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198",
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ]
+                           },
+                           "foo1.fastq.gz" : {
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ],
+                              "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                              "file_type_label" : "fastq"
+                           }
+                        },
+                        "file_storage_metadata_json_uri" : "153c380c-0bcb-4ee9-abdf-629db73a62e5"
+                     }
+                  ],
+                  "parent_uuids" : [
+                     "0c653582-4087-41b5-ab51-15fbf5119be6"
+                  ],
+                  "workflow_params" : {
+                     "param2" : 2389239,
+                     "param1" : 12121
+                  },
+                  "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
+                  "workflow_source_url" : "http://foo.bar/bwa-workflow-src",
+                  "timing_metrics" : {
+                     "step_timing" : {
+                        "alignment" : {
+                           "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                           "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                           "walltime_seconds" : 60000
+                        }
+                     },
+                     "overall_walltime_seconds" : 60000,
+                     "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                     "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016"
+                  }
+               },
+               "sample_attributes" : {
+                  "example_sample_attribute" : "EGAN00001000597"
+               },
+               "sequence_upload" : {
+                  "workflow_inputs" : {},
+                  "qc_metrics" : {},
+                  "host_metrics" : {
+                     "vm_region" : "us-east-1",
+                     "vm_instance_cores" : 4,
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_instance_mem_gb" : 256,
+                     "vm_location" : "aws"
+                  },
+                  "workflow_description" : "This is the upload of the fastq from a sample using the submission script.",
+                  "workflow_outputs" : {
+                     "foo1.fastq.gz" : {
+                        "file_type_label" : "fastq",
+                        "file_type_cv_terms" : [
+                           "EDAM:123232"
+                        ]
+                     },
+                     "foo2.fastq.gz" : {
+                        "file_type_label" : "fastq",
+                        "file_type_cv_terms" : [
+                           "EDAM:123232"
+                        ]
+                     }
+                  },
+                  "workflow_name" : "fastq-submission",
+                  "workflow_version" : "1.0.0",
+                  "timing_metrics" : {},
+                  "workflow_bundle_url" : "http://foo.bar/tool",
+                  "workflow_source_url" : "http://foo.bar/tool-src",
+                  "analysis_attributes" : {
+                     "sequencing_strategy" : "WGS"
+                  },
+                  "parent_uuids" : [
+                     "0c653582-4087-41b5-ab51-15fbf5119be6"
+                  ]
+               },
+               "sample_uuid" : "0c653582-4087-41b5-ab51-15fbf5119be6"
+            }
+         ],
+         "specimen_uuid" : "3516639e-d480-415d-90e7-1566b41fd03e",
+         "submitter_specimen_id" : "PD41189"
+      }
+   ],
+   "project" : "BRCA-UK"
+}
