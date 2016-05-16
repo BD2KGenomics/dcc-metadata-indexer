@@ -14,7 +14,7 @@
         "specimen_uuid" : "3516639e-d480-415d-90e7-1566b41fd03e",
         "specimen_attributes" :
            {
-              "example_specimen_attribute:" : "string"
+              "example_specimen_attribute" : "string"
            }
         ,
         "samples" : [
