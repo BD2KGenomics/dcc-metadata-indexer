@@ -2,94 +2,48 @@ from pprint import pprint
 from jsonmerge import merge
 import json
 
-with open('sample_individual_metadata_bundle_jsons/1a_donor_biospecimen.json') as data_file1:
-    data1 = json.load(data_file1)
+files = ['sample_individual_metadata_bundle_jsons/','1a_donor_biospecimen.json','1b_donor_biospecimen.json','2a_fastq_upload.json','2b_fastq_upload.json','3a_alignment.json','3b_alignment.json','4_variant_calling.json']
+data = []
 
-with open('sample_individual_metadata_bundle_jsons/1b_donor_biospecimen.json') as data_file2:
-    data2 = json.load(data_file2)
+for i in range(7):
+   with open(files[0]+files[i+1]) as data_file:
+      data.append(json.load(data_file))
 
-result = merge(data1, data2)
+result = merge(data[0], data[1])
 
-# now start decorating with other documents
-# start with the sample Fastq upload
-with open('sample_individual_metadata_bundle_jsons/2a_fastq_upload.json') as data_file3:
-    data3 = json.load(data_file3)
-with open('sample_individual_metadata_bundle_jsons/2b_fastq_upload.json') as data_file4:
-    data4 = json.load(data_file4)
+specimen_type = ['normal_specimen','tumor_specimen'] 
+type = ['samples','sample_uuid','sequence_upload','alignment']
 
+# finds the uuid in 2a, 2b, 3a, 3b and then adds data to the correct branch
+# j controls the type (normal or tumor). k and i place the data in the correct place
+i=0 
+k=0
+for j in range(2,6):
+   workflows={}
+   for uuid in data[j]['parent_uuids']:
+      print ("UUIDs: "+uuid)
+      workflows[uuid] = data[j]
+   specimens = result[specimen_type[j%2]]
+   for specimen in specimens:
+      samples = specimen[type[0]]
+      for sample in samples:
+         sample_uuid = sample[type[1]]
+         print(sample_uuid)
+         sample[type[2+k]] = workflows[sample_uuid]
+         pprint(sample)
+   i=i+1
+   if (i%2==0):
+      k=1
+#4
 workflows={}
-
-# parse out the UUID of parents
-for uuid in data3['parent_uuids']:
-    print ("UUIDs: "+uuid)
-    workflows[uuid] = data3
-for uuid in data4['parent_uuids']:
-    print ("UUIDs: "+uuid)
-    workflows[uuid] = data4
-
-normal_specimens = result['normal_specimen']
-for specimen in normal_specimens:
-    normal_samples = specimen['samples']
-    for sample in normal_samples:
-        sample_uuid = sample['sample_uuid']
-        print(sample_uuid)
-        sample['sequence_upload'] = workflows[sample_uuid]
-        pprint(sample)
-
-tumor_specimens = result['tumor_specimen']
-for specimen in tumor_specimens:
-    tumor_samples = specimen['samples']
-    for sample in tumor_samples:
-        sample_uuid = sample['sample_uuid']
-        print(sample_uuid)
-        sample['sequence_upload'] = workflows[sample_uuid]
-        pprint(sample)
-
-# now add alignment
-with open('sample_individual_metadata_bundle_jsons/3a_alignment.json') as data_file5:
-    data5 = json.load(data_file5)
-with open('sample_individual_metadata_bundle_jsons/3b_alignment.json') as data_file6:
-    data6 = json.load(data_file6)
-
-workflows={}
-for uuid in data5['parent_uuids']:
-    print ("UUIDs: "+uuid)
-    workflows[uuid] = data5
-for uuid in data6['parent_uuids']:
-    print ("UUIDs: "+uuid)
-    workflows[uuid] = data6
-
-normal_specimens = result['normal_specimen']
-for specimen in normal_specimens:
-    normal_samples = specimen['samples']
-    for sample in normal_samples:
-        sample_uuid = sample['sample_uuid']
-        print(sample_uuid)
-        sample['alignment'] = workflows[sample_uuid]
-        pprint(sample)
-
-tumor_specimens = result['tumor_specimen']
-for specimen in tumor_specimens:
-    tumor_samples = specimen['samples']
-    for sample in tumor_samples:
-        sample_uuid = sample['sample_uuid']
-        print(sample_uuid)
-        sample['alignment'] = workflows[sample_uuid]
-        pprint(sample)
-
-# now for somatic calling
-with open('sample_individual_metadata_bundle_jsons/4_variant_calling.json') as data_file7:
-    data7 = json.load(data_file7)
-
-workflows={}
-for uuid in data7['parent_uuids']:
-    print ("UUIDs: "+uuid)
-    workflows[uuid] = data7
+for uuid in data[6]['parent_uuids']:
+   print ("UUIDs: "+uuid)
+   workflows[uuid] = data[6]
 
 donor_uuid = result['donor_uuid']
 result['somatic_variant_calling'] = workflows[donor_uuid]
 
 with open('merge.json', 'w') as outfile:
-    json.dump(result, outfile)
+   json.dump(result, outfile)
 
 pprint(result)
