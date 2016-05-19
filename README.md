@@ -66,7 +66,7 @@ file in Chrome. On a Mac:
 In the query_on_merge folder, you will find a queryable document, compact_single.json and a sample query, jquery1.
 Start by running Elasticsearch, then to add the compact_single.json to your node by
     
-    curl -XPUT localhost:9200/name_of_index/_bulk --databinary @compact_single.json
+    curl -XPUT http://localhost:9200/name_of_index/_bulk?pretty --data-binary @compact_single.json
 
 Then check to see if index has been created. (Should have five documents).
 
