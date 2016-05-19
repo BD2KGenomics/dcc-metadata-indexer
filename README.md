@@ -61,6 +61,21 @@ file in Chrome. On a Mac:
 
     open -a Google\ Chrome merge.json
 
+## Query using Elasticsearch
+
+In the query_on_merge folder, you will find a queryable document, compact_single.json and a sample query, jquery1.
+Start by running Elasticsearch, then to add the compact_single.json to your node by
+    
+    curl -XPUT localhost:9200/name_of_index/_bulk --databinary @compact_single.json
+
+Then check to see if index has been created. (Should have five documents).
+
+    curl 'localhost:9200/_cat/indices?v'
+
+And query.
+
+    curl -XPOST http://localhost:9200/name_of_index/_search?pretty -d @jquery1
+
 ## Data Types
 
 We support the following types.  First and foremost, the types below are just intended
