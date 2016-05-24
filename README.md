@@ -76,6 +76,20 @@ And query.
 
     curl -XPOST http://localhost:9200/name_of_index/_search?pretty -d @jquery1
 
+Since merge.py now adds flags, you can find a queryable document, mergeflag.json and sample queries, jqueryflag. Add this document in the same fashion to a new index. Then query with:
+
+    curl -XPOST http://localhost:9200/name_of_index/_search?pretty -d @jqueryflag
+
+However, the problem with this method is that only the first query is performed.
+
+esquery.py can perform all of the queries (elasticsearch needs to be installed. pip install elasticsearch). Run using: 
+
+    python3.5 esquery.py
+
+If running esquery.py multiple times, remove the index with:
+
+    curl -XDELETE http://localhost:9200/name_of_index
+
 ## Data Types
 
 We support the following types.  First and foremost, the types below are just intended
