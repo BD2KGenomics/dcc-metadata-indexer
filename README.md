@@ -38,7 +38,7 @@ Alternatively, you may want to use Conda, see http://conda.pydata.org/docs/_down
     source activate schemas-project
     pip install jsonschema jsonmerge openpyxl
 
-## Generate Test Data
+## Generate Test Metadata (& Upload Data)
 
 We need to create a bunch of JSON documents for multiple donors and multiple
 experimental designs and file upload types.  To do that we (Chris) developed a very simple
@@ -52,7 +52,7 @@ that clients will use in the field to prepare their samples.
 
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
-## Run Merge
+## Run Merge & Generate Elasticsearch Index
 
 This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
 using the output from the generate_metadata.py script.
