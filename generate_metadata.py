@@ -14,7 +14,7 @@ import openpyxl
 import json
 import uuid
 from sets import Set
-import re
+# import re
 
 # methods and functions
 
@@ -27,8 +27,10 @@ def getOptions():
 	parser = OptionParser(usage="\n".join(usage_text))
 	parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose", help="Switch for verbose mode.")
 
-	parser.add_option("-b", "--biospecimenSchema", action="store", default="biospecimen_flattened.json", type="string", dest="biospecimenSchemaFileName", help="json schema file for biospecimen")
-	parser.add_option("-a", "--analysisSchema", action="store", default="analysis_flattened.json", type="string", dest="analysisSchemaFileName", help="json schema file for analysis")
+	parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload", help="Switch to skip upload. Metadata files will be generated only.")
+
+	parser.add_option("-b", "--biospecimenSchema", action="store", default="biospecimen_flattened.json", type="string", dest="biospecimenSchemaFileName", help="flattened json schema file for biospecimen")
+	parser.add_option("-a", "--analysisSchema", action="store", default="analysis_flattened.json", type="string", dest="analysisSchemaFileName", help="flattened json schema file for analysis")
 
 	parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
 
@@ -42,10 +44,6 @@ def log(msg, die=False):
 		sys.stderr.write(msg)
 	if die:
 		sys.exit(1)
-		
-def prettyJson(obj):
-	s = json.dumps(obj, sort_keys=True, indent=4, separators=(',', ': '))
-	return s
 		
 def loadJsonSchema(fileName):
 	try:
@@ -173,10 +171,13 @@ def mkdir_p(path):
 	return None
 
 def writeOutput(donorSpecSampleBioMap, donorAnaMap, outputDir):
-	writeBiospecimenOutput(donorSpecSampleBioMap, outputDir)
-	writeAnalysisOutput(donorAnaMap, outputDir)
+	num_files_written = 0
+	num_files_written += writeBiospecimenOutput(donorSpecSampleBioMap, outputDir)
+	num_files_written += writeAnalysisOutput(donorAnaMap, outputDir)
+	return num_files_written
 
 def writeBiospecimenOutput(donorSpecSampleBioMap, outputDir):
+	num_files_written = 0
 	for donor_uuid in donorSpecSampleBioMap.keys():
 		donorDir = os.path.join(outputDir, donor_uuid)
 		mkdir_p(donorDir)
@@ -220,13 +221,16 @@ def writeBiospecimenOutput(donorSpecSampleBioMap, outputDir):
 						specimenObj["samples"].append(sampleObj)
 						
 		# write biospecimen.json
- 		filePath = os.path.join(donorDir, "biospecimen.json")
- 		file = open(filePath, 'w')
- 		file.write(prettyJson(bioOutObj))
- 		file.close()
-	return None
+		filePath = os.path.join(donorDir, "biospecimen.json")
+		file = open(filePath, 'w')
+		json.dump(bioOutObj, file, indent=4, separators=(',', ': '))
+		num_files_written += 1
+		file.close()
+
+	return num_files_written
 
 def writeAnalysisOutput(donorAnaMap, outputDir):
+	num_files_written = 0
 	for donor_uuid in donorAnaMap.keys():
 		donorDir = os.path.join(outputDir, donor_uuid)
 		mkdir_p(donorDir)
@@ -248,12 +252,16 @@ def writeAnalysisOutput(donorAnaMap, outputDir):
 			anaOutObj["analysis_type"] = anaObj["analysis_type"]
 			
 			# write biospecimen.json
-	 		filePath = os.path.join(donorDir, str(idx) + "analysis.json")
-	 		file = open(filePath, 'w')
-	 		file.write(prettyJson(anaOutObj))
-	 		file.close()
-		
-	return None
+			filePath = os.path.join(donorDir, str(idx) + "analysis.json")
+			file = open(filePath, 'w')
+			json.dump(anaOutObj, file, indent=4, separators=(',', ': '))
+			num_files_written += 1
+			file.close()
+	
+	return num_files_written
+
+def uploadFile(fullFilePath):
+	return 1
 
 #:####################################
 
@@ -268,19 +276,19 @@ def main():
 	verbose = options.verbose
 	log('options:\t%s\n' % (str(options)))
 	log('args:\t%s\n' % (str(args)))
-	
+
 	# load bio schema
 	bioSchema = loadJsonSchema(options.biospecimenSchemaFileName)
-	
+
 	# load analysis schema
 	analysisSchema = loadJsonSchema(options.analysisSchemaFileName)
-	
+
 	# map donor_uuid to map of specimen_uuid to map of sample_uuid to list of bioObj
 	donorSpecSampleBioMap = {}
-	
+
 	# map donor_uuid to list of anaObj
 	donorAnaMap = {}
-	
+
 	# iter over input files
 	for fileName in args:
 		try:
@@ -320,7 +328,7 @@ def main():
 			if (not bioSample in donorSpecSampleBioMap[bioDonor][bioSpec].keys()):
 				donorSpecSampleBioMap[bioDonor][bioSpec][bioSample] = Set()
 
-			donorSpecSampleBioMap[bioDonor][bioSpec][bioSample].add(prettyJson(bioObj))
+			donorSpecSampleBioMap[bioDonor][bioSpec][bioSample].add(json.dumps(bioObj))
 			
 			if (not bioDonor in donorAnaMap.keys()):
 				donorAnaMap[bioDonor] = []
@@ -328,8 +336,39 @@ def main():
 			donorAnaMap[bioDonor].append(anaObj)
 
 	# write output
-	writeOutput(donorSpecSampleBioMap, donorAnaMap, options.metadataOutDir)
+	num_files_written = writeOutput(donorSpecSampleBioMap, donorAnaMap, options.metadataOutDir)
+	sys.stderr.write("%s metadata files written to %s\n" % (str(num_files_written), options.metadataOutDir))
+	
+	if (options.skip_upload):
+		return None
 
+	log("Now attempting to upload data.\n")
+
+	num_files_uploaded = 0
+	for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
+		if dirName == options.metadataOutDir:
+			continue
+		log('Found directory: %s\n' % dirName)
+		for fileName in fileList:
+			if (fileName.endswith("biospecimen.json") or fileName.endswith("analysis.json")):
+				log('\t%s\n' % fileName)
+				filePath = os.path.join(dirName, fileName)
+
+				num_files_uploaded += uploadFile(filePath)
+
+				file = open(filePath, "r")
+				metadataObj = json.load(file)
+				file.close()
+				if ("workflow_outputs" in metadataObj.keys()) and (metadataObj["workflow_outputs"].keys() > 0):
+					for dataFileName in metadataObj["workflow_outputs"].keys():
+						log("dataFileName: %s\n" % (dataFileName))
+						dataDir = ""
+						filePath = os.path.join(dataDir, dataFileName)
+						num_files_uploaded += uploadFile(filePath)
+
+	sys.stderr.write("%s files uploaded\n" % (str(num_files_uploaded)))
+	
+	return None
 
 # main program section
 if __name__ == "__main__":
