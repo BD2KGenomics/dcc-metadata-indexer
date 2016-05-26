@@ -2,7 +2,9 @@
 
 ## Introduction
 
-Repo contains sample schemas.
+This repo contains several items relate to metadata JSONs used to describe biospecimen and analysis events for the core.
+
+First, there are JSON schema, see `analysis_flattened.json` and `biospecimen_flattened.json`.
 
 This repo also contains a merge tool.  The idea is to:
 
