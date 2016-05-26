@@ -6,13 +6,15 @@ This repo contains several items relate to metadata JSONs used to describe biosp
 
 First, there are JSON schema, see `analysis_flattened.json` and `biospecimen_flattened.json`.
 
-This repo also contains a merge tool.  The idea is to:
+Second, this repo contains a `generate_metadata.py` script that takes a TSV format and converts it into metadata JSON documents (and also has an option for uploading, we use this for bulk uploads to our system).
+
+This repo also contains a merge tool, `merge.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
 
 1. query the storage system for all metadata.json
 1. group the related metadata.json documents, all the docs for a given donor are grouped together
 1. use the parent information in each document to understand where in the donor document the sub-documents should be merged
-1. call the merge tool with sub-json documents, generate a per-donor document
-1. load in Elasticsearch
+1. call the merge tool with sub-json documents, generate a per-donor JSON document that's suitable for loading in Elasticsearch (this includes adding various "flags" that make queries easier).
+1. load in Elasticsearch, perform queries
 
 ## Install
 
