@@ -39,11 +39,14 @@ Alternatively, you may want to use Conda, see http://conda.pydata.org/docs/_down
 ## Generate Test Data
 
 We need to create a bunch of JSON documents for multiple donors and multiple
-experimental designs and file upload types.  To do that I developed a very simple
+experimental designs and file upload types.  To do that we (Chris) developed a very simple
 TSV to JSON tool and this will ultimately form the basis of our helper applications
 that clients will use in the field to prepare their samples.
 
-TODO
+    python generate_metadata.py -v \
+		--biospecimenSchema biospecimen_flattened.json \
+		--analysisSchema analysis_flattened.json \
+		sample_tsv/sample.tsv
 
 ## Run Merge
 
