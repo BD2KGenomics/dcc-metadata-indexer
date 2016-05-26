@@ -349,12 +349,30 @@ es_queries = [
    #How many tumor RNAseq samples have alignment done but no expression values done?
 ]
 
+def repNum(s):
+    try: 
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 #sample json_docs
 json_docs = []
 with open('merge.json') as f:
-    for line in f:
-      newline = f.read().replace(".","___")
-      json_docs.append(json.loads(newline))
+   for line in f:
+      newline = []
+      words = line.split()
+      for word in words:
+         i = 1
+         if ((word[:i]==":" or word[:-i]=="," or word[:-i]=="]" or word[:-i]==":")==False):
+            i+=1
+         if (repNum(word[:-(i+1)])==False):
+            #NOTE: replacing all periods (except in num) with 3 underscores to work with ElasticSearch 
+            #losing whitespace in strings
+            word = word.replace(".","___")
+         newline.append(word)
+      json_docs.append(json.loads(''.join(newline)))
+      
 
 #loading above json_docs
 for i in json_docs:
