@@ -26,16 +26,13 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema
-    pip install jsonmerge
-    pip install openpyxl 
+    pip install jsonschema jsonmerge openpyxl
 
 Alternatively, you may want to use Conda, see http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html and http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html.
 
     conda create -n schemas-project python
     source activate schemas-project
-    pip install jsonschema
-    pip install jsonmerge
+    pip install jsonschema jsonmerge openpyxl
 
 ## Generate Test Data
 
