@@ -28,6 +28,7 @@ Now to setup:
     source env/bin/activate
     pip install jsonschema
     pip install jsonmerge
+    pip install openpyxl 
 
 Alternatively, you may want to use Conda, see http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html and http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html.
 
@@ -48,11 +49,14 @@ that clients will use in the field to prepare their samples.
 		--analysisSchema analysis_flattened.json \
 		sample_tsv/sample.tsv
 
+Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
+
 ## Run Merge
 
-This tool takes multiple JSON and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.
+This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
+using the output from the generate_metadata.py script.
 
-    python merge.py
+    python merge.py `for i in output_metadata/*; do echo -n "$i "; done`
 
 Now to view the output:
 
