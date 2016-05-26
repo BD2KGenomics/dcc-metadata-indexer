@@ -9,7 +9,7 @@ es = Elasticsearch([es_host])
 
 es_name_query = [
    "donor1 and donor2 exist, no fastq",
-   "all flags are 'true'",
+   "all flags are true. All documents exist.",
    "alignment normal and tumor exist, no somatic",
    "fastq normal and tumor exist, no alignment"
 ]
@@ -391,10 +391,10 @@ for q_index in range(len(es_queries)):
    #print(json.dumps(response, indent=2))
    for p in response['aggregations']['project_f']['project'].get('buckets'):
       count = p.get('doc_count')
-      donors = p.get('donor_id').get('buckets')
+      program = p.get('donor_id').get('buckets')
       project = p.get('key')
    
    print(es_name_query[q_index])
    print("count:",count)
-   print("donors:",donors)
+   print("program:",program)
    print("project: "+project+"\n")
