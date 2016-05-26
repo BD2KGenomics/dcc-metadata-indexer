@@ -55,15 +55,15 @@ using the output from the generate_metadata.py script.
 
     python merge.py `for i in output_metadata/*; do echo -n "$i "; done`
 
-Now to view the output:
+Now to view the output see the directory `output_donor_level_metadata`:
 
-    cat merge.json | json_pp | less -S
+    cat output_donor_level_metadata/Treehouse-CKCC-S123472.json | json_pp | less -S
 
 You can also examine this in Chrome using the JSONView extension.  Make sure you select
 the option to allow viewing of local JSON files before you attempt to load this
 file in Chrome. On a Mac:
 
-    open -a Google\ Chrome merge.json
+    open -a Google\ Chrome output_donor_level_metadata/Treehouse-CKCC-S12347
 
 ## Query using Elasticsearch
 
