@@ -2,15 +2,19 @@
 
 ## Introduction
 
-Repo contains sample schemas.
+This repo contains several items relate to metadata JSONs used to describe biospecimen and analysis events for the core.
 
-This repo also contains a merge tool.  The idea is to:
+First, there are JSON schema, see `analysis_flattened.json` and `biospecimen_flattened.json`.
+
+Second, this repo contains a `generate_metadata.py` script that takes a TSV format and converts it into metadata JSON documents (and also has an option for uploading, we use this for bulk uploads to our system).
+
+This repo also contains a merge tool, `merge.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
 
 1. query the storage system for all metadata.json
 1. group the related metadata.json documents, all the docs for a given donor are grouped together
 1. use the parent information in each document to understand where in the donor document the sub-documents should be merged
-1. call the merge tool with sub-json documents, generate a per-donor document
-1. load in Elasticsearch
+1. call the merge tool with sub-json documents, generate a per-donor JSON document that's suitable for loading in Elasticsearch (this includes adding various "flags" that make queries easier).
+1. load in Elasticsearch, perform queries
 
 ## Install
 
@@ -26,40 +30,44 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema
-    pip install jsonmerge
+    pip install jsonschema jsonmerge openpyxl
 
 Alternatively, you may want to use Conda, see http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html and http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html.
 
     conda create -n schemas-project python
     source activate schemas-project
-    pip install jsonschema
-    pip install jsonmerge
+    pip install jsonschema jsonmerge openpyxl
 
-## Generate Test Data
+## Generate Test Metadata (& Upload Data)
 
 We need to create a bunch of JSON documents for multiple donors and multiple
-experimental designs and file upload types.  To do that I developed a very simple
+experimental designs and file upload types.  To do that we (Chris) developed a very simple
 TSV to JSON tool and this will ultimately form the basis of our helper applications
 that clients will use in the field to prepare their samples.
 
-TODO
+    python generate_metadata.py -v \
+		--biospecimenSchema biospecimen_flattened.json \
+		--analysisSchema analysis_flattened.json \
+		sample_tsv/sample.tsv
 
-## Run Merge
+Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
-This tool takes multiple JSON and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.
+## Run Merge & Generate Elasticsearch Index
 
-    python merge.py
+This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
+using the output from the generate_metadata.py script.
 
-Now to view the output:
+    python merge.py `for i in output_metadata/*; do echo -n "$i "; done`
 
-    cat merge.json | json_pp | less -S
+Now to view the output see the directory `output_donor_level_metadata`:
+
+    cat output_donor_level_metadata/Treehouse-CKCC-S123472.json | json_pp | less -S
 
 You can also examine this in Chrome using the JSONView extension.  Make sure you select
 the option to allow viewing of local JSON files before you attempt to load this
 file in Chrome. On a Mac:
 
-    open -a Google\ Chrome merge.json
+    open -a Google\ Chrome output_donor_level_metadata/Treehouse-CKCC-S12347
 
 ## Query using Elasticsearch
 
