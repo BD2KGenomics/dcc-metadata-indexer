@@ -349,6 +349,7 @@ es_queries = [
    #How many tumor RNAseq samples have alignment done but no expression values done?
 ]
 
+#checking if the word represents a number
 def repNum(s):
     try: 
         float(s)
@@ -371,6 +372,7 @@ with open('merge.json') as f:
             #losing whitespace in strings
             word = word.replace(".","___")
          newline.append(word)
+      #adding document to array to be loaded into Elasticsearch
       json_docs.append(json.loads(''.join(newline)))
       
 
