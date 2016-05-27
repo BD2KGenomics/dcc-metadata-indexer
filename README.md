@@ -18,7 +18,10 @@ This repo also contains a merge tool, `merge.py`, responsible for creating Donor
 
 ## Install
 
-See https://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/
+Use python 2.7.x.
+
+See [here](https://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/) for information on setting
+up a virtual environment for Python.
 
 If you haven't already installed pip and virtualenv, depending on your system you may
 (or may not) need to use `sudo` for these:
@@ -30,13 +33,15 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema jsonmerge openpyxl
+    pip install jsonschema jsonmerge openpyxl sets
 
-Alternatively, you may want to use Conda, see http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html and http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html.
+Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html)
+ [here](http://conda.pydata.org/docs/test-drive.html), and [http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html](here)
+ for more information.
 
-    conda create -n schemas-project python
+    conda create -n schemas-project python=2.7.11
     source activate schemas-project
-    pip install jsonschema jsonmerge openpyxl
+    pip install jsonschema jsonmerge openpyxl sets
 
 ## Generate Test Metadata (& Upload Data)
 
