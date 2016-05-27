@@ -121,8 +121,8 @@ def fileRandom(files):
 # 3) now that things are binned, for each bin, aggregagate the documents based on the parent uuids
 # 4) print out the complete donor documents as JSONL (or individual files if that param is given)
 
-for a in range(10):
-    print(a)
-    files = []
-    fileRandom(files)
-    run(files)
+#for a in range(10):
+#    print(a)
+#    files = []
+#    fileRandom(files)
+#    run(files)
