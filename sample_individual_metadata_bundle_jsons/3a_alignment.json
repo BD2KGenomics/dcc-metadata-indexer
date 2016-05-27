@@ -1,6 +1,6 @@
 {
-   "parents" : [
-      "967bf426-04a7-42da-9717-514fa3ad610e"
+   "parent_uuids" : [
+      "0c653582-4087-41b5-ab51-15fbf5119be6"
    ],
    "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
    "workflow_params" : {
