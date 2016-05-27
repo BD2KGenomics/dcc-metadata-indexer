@@ -36,14 +36,14 @@ Now to setup:
     pip install jsonschema jsonmerge openpyxl sets
 
 Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html)
- [here](http://conda.pydata.org/docs/test-drive.html), and [http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html](here)
+ [here](http://conda.pydata.org/docs/test-drive.html), and [here](http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html)
  for more information.
 
     conda create -n schemas-project python=2.7.11
     source activate schemas-project
     pip install jsonschema jsonmerge openpyxl sets
 
-## Generate Test Metadata (& Upload Data)
+## Generate Test Metadata (and Upload Data)
 
 We need to create a bunch of JSON documents for multiple donors and multiple
 experimental designs and file upload types.  To do that we (Chris) developed a very simple
@@ -57,12 +57,12 @@ that clients will use in the field to prepare their samples.
 
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
-## Run Merge & Generate Elasticsearch Index
+## Run Merge and Generate Elasticsearch Index
 
 This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
 using the output from the generate_metadata.py script.
 
-    python merge.py `for i in output_metadata/*; do echo -n "$i "; done`
+    python merge_generated_metadata.py `for i in output_metadata/*; do echo -n "$i "; done`
 
 Now to view the output see the directory `output_donor_level_metadata`:
 
