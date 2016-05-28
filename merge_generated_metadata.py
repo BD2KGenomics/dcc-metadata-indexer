@@ -8,6 +8,14 @@ from os import listdir
 from os.path import isfile, join
 import pprint
 
+try:
+    FileNotFoundError
+except NameError:
+    #py2
+    FileNotFoundError = IOError
+
+# TODO:
+# * assumes the biospecimen is always the last in the list, this is fragile!!!
 
 # Note: the files must be in this particular order:
 # folderName, donor, donor, fastqNormal, fastqTumor, alignmentNormal, alignmentTumor, variantCalling
@@ -15,11 +23,11 @@ import pprint
 def openFiles(files, data, flags):
     for i in range(len(files) - 1):
         try:
-            with open(files[0] + files[i + 1]) as data_file:
+            with open(files[i]) as data_file:
                 data.append(json.load(data_file))
             flags.append("true")
         except FileNotFoundError:
-            print('File not found: ' + files[i + 1])
+            print('File not found: ' + files[i])
             flags.append("false")
             data.append(0)
 
@@ -31,7 +39,7 @@ def assignBranch(data, flags, result):
     type = ['samples', 'sample_uuid', 'sequence_upload', 'alignment']
     i = 0
     k = 0
-    for j in range(2, 6):
+    for j in range(0, len(data)-1):
         if (flags[j] == "true"):
             workflows = {}
             for uuid in data[j]['parent_uuids']:
@@ -95,7 +103,8 @@ def run(files):
     result = {}
     flagsWithStr = {}
     openFiles(files, data, flags)
-    result = merge(data[0], data[1])
+    #result = merge(data[0], data[1])
+    result = data[len(data)-1]
     assignBranch(data, flags, result)
     assignVariant(data, flags, result)
     validateResult(result)
@@ -186,11 +195,17 @@ for index in range(1, len(sys.argv)):
                         # create a new array in this slot
                         donor_to_files_hash[donor_uuid] = [sys.argv[index] + "/" + f]
 
-
 pp.pprint(donor_to_files_hash)
+
+# now loop over the keys of the donor_to_files_hash and merge the files
+
 
 # at this point we have a hash keyed on donor uuid containing all the JSON files that are related to this donor
 # now we can merge and generate the donor-oriented document
+
+for donor_uuid_key in donor_to_files_hash:
+    file_arr = donor_to_files_hash[donor_uuid_key]
+    run(file_arr)
 
 #for a in range(10):
 #    print(a)
