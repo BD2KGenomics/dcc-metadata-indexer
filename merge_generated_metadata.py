@@ -158,6 +158,7 @@ for index in range(1, len(sys.argv)):
                 for uuid in sample_uuids:
                     to_donor_id_hash[uuid] = donor_uuid
 
+# now group all the files by donor uuid
 for index in range(1, len(sys.argv)):
     for f in listdir(sys.argv[index]):
         if isfile(sys.argv[index] + "/" + f):
@@ -175,8 +176,15 @@ for index in range(1, len(sys.argv)):
                         donor_to_files_hash[to_donor_id_hash[uuid[0]]] = [sys.argv[index] + "/" + f]
             else:
                 donor_uuids = find_values('donor_uuid', json_data)
-                if donor_uuid:
-                    print [sys.argv[index] + "/" + f]
+                if donor_uuids:
+                    donor_uuid = donor_uuids[0]
+                    print "DONOR ID FOUND "+ donor_uuid
+                    if donor_uuid in donor_to_files_hash:
+                        # append the new number to the existing array at this slot
+                        donor_to_files_hash[donor_uuid].append(sys.argv[index] + "/" + f)
+                    else:
+                        # create a new array in this slot
+                        donor_to_files_hash[donor_uuid] = [sys.argv[index] + "/" + f]
 
 
 pp.pprint(donor_to_files_hash)
