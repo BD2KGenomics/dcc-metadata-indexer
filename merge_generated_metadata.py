@@ -16,6 +16,7 @@ except NameError:
 
 # TODO:
 # * assumes the biospecimen is always the last in the list, this is fragile!!!
+# * assignBranch makes assumptions about the ordering of files... can't do that
 
 # Note: the files must be in this particular order:
 # folderName, donor, donor, fastqNormal, fastqTumor, alignmentNormal, alignmentTumor, variantCalling
@@ -31,7 +32,7 @@ def openFiles(files, data, flags):
             flags.append("false")
             data.append(0)
 
-
+# FIXME: This makes assumptions about the ordering of files... can't do that
 def assignBranch(data, flags, result):
     # finds the uuid in 2a, 2b, 3a, 3b and then adds data to the correct branch
     # j controls the type (normal or tumor). k and i place the data in the correct place
@@ -105,6 +106,8 @@ def run(files):
     openFiles(files, data, flags)
     #result = merge(data[0], data[1])
     result = data[len(data)-1]
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint (result)
     assignBranch(data, flags, result)
     assignVariant(data, flags, result)
     validateResult(result)
