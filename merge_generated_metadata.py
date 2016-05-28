@@ -14,15 +14,19 @@ except NameError:
     #py2
     FileNotFoundError = IOError
 
+first_write = True
+
 # TODO:
 # * assumes the biospecimen is always the last in the list, this is fragile!!!
 # * assignBranch makes assumptions about the ordering of files... can't do that
+# * we should design a new version of this tool that actually assumes any document can have biospecimen info in it and correctly merge as needed (it's tough to do this)
 
 # Note: the files must be in this particular order:
 # folderName, donor, donor, fastqNormal, fastqTumor, alignmentNormal, alignmentTumor, variantCalling
 
 def openFiles(files, data, flags):
-    for i in range(len(files) - 1):
+    #for i in range(len(files) - 1):
+    for i in range(len(files)):
         try:
             with open(files[i]) as data_file:
                 data.append(json.load(data_file))
@@ -36,27 +40,44 @@ def openFiles(files, data, flags):
 def assignBranch(data, flags, result):
     # finds the uuid in 2a, 2b, 3a, 3b and then adds data to the correct branch
     # j controls the type (normal or tumor). k and i place the data in the correct place
-    specimen_type = ['normal_specimen', 'tumor_specimen']
+    # FIXME: Chris has a single specimen array, Emily has two, one for tumor, one for normal, need to harmonize this
+    #specimen_type = ['normal_specimen', 'tumor_specimen']
+    specimen_type = ['specimen']
     type = ['samples', 'sample_uuid', 'sequence_upload', 'alignment']
     i = 0
     k = 0
-    for j in range(0, len(data)-1):
+
+    # FIXME: this assumes the last one is always the biospecimen structure!  That's not necessarily true!
+    for j in range(len(data)-1):
         if (flags[j] == "true"):
             workflows = {}
             for uuid in data[j]['parent_uuids']:
                 # print ("UUIDs: "+uuid)
                 workflows[uuid] = data[j]
-            specimens = result[specimen_type[j % 2]]
-            for specimen in specimens:
-                samples = specimen[type[0]]
-                for sample in samples:
-                    sample_uuid = sample[type[1]]
-                    # print(sample_uuid)
-                    sample[type[2 + k]] = workflows[sample_uuid]
-                    # pprint(sample)
-        i = i + 1
-        if (i % 2 == 0):
-            k = 1
+                # now look for a match with specimens
+                if result['donor_uuid'] == uuid:
+                    result[data[j]['workflow_name']] = data[j]
+                else:
+                    for specimen_type_str in specimen_type:
+                        for specimen in result[specimen_type_str]:
+                            if specimen['specimen_uuid'] == uuid:
+                                result[data[j]['workflow_name']] = data[j]
+                            # now look for a match with samples
+                            else:
+                                for sample in specimen['samples']:
+                                    if sample['sample_uuid'] == uuid:
+                                        result[data[j]['workflow_name']] = data[j]
+#            specimens = result[specimen_type[j % 2]]
+#            for specimen in specimens:
+#                samples = specimen[type[0]]
+#                for sample in samples:
+#                    sample_uuid = sample[type[1]]
+#                    # print(sample_uuid)
+#                    sample[type[2 + k]] = workflows[sample_uuid]
+#                    # pprint(sample)
+#        i = i + 1
+#        if (i % 2 == 0):
+#            k = 1
 
 
 def assignVariant(data, flags, result):
@@ -70,13 +91,24 @@ def assignVariant(data, flags, result):
 
 
 def dumpResult(result):
-    with open('merge.json', 'a') as outfile:
-        # newidtype = dict(_id=1, _type='meta') #could use this for elasticsearch bulk queries
-        # newindex = dict(index = newidtype)
-        # json.dump(newindex, outfile)
-        # outfile.write('\n')
-        json.dump(result, outfile)
-        outfile.write('\n')
+    global first_write
+    if first_write :
+        with open('merge.json', 'w') as outfile:
+            # newidtype = dict(_id=1, _type='meta') #could use this for elasticsearch bulk queries
+            # newindex = dict(index = newidtype)
+            # json.dump(newindex, outfile)
+            # outfile.write('\n')
+            json.dump(result, outfile)
+            outfile.write('\n')
+        first_write = False
+    else:
+        with open('merge.json', 'a') as outfile:
+            # newidtype = dict(_id=1, _type='meta') #could use this for elasticsearch bulk queries
+            # newindex = dict(index = newidtype)
+            # json.dump(newindex, outfile)
+            # outfile.write('\n')
+            json.dump(result, outfile)
+            outfile.write('\n')
 
 
 def createFlags(flags, result):
@@ -109,9 +141,11 @@ def run(files):
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint (result)
     assignBranch(data, flags, result)
-    assignVariant(data, flags, result)
-    validateResult(result)
-    createFlags(flags, result)
+    pp.pprint(result)
+    #assignVariant(data, flags, result)
+    #pp.pprint(result)
+    #validateResult(result)
+    #createFlags(flags, result)
     dumpResult(result)
     # pprint(result)
 
