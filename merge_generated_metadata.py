@@ -3,6 +3,10 @@ from jsonmerge import merge
 from jsonspec.validators import load  # for validation
 import json
 import random
+import sys
+from os import listdir
+from os.path import isfile, join
+import pprint
 
 
 # Note: the files must be in this particular order:
@@ -114,12 +118,63 @@ def fileRandom(files):
         else:
             files.append("no" + file[f])
 
+def find_values(id, json_repr):
+    results = []
+
+    def _decode_dict(a_dict):
+        try:
+            results.append(a_dict[id])
+        except KeyError:
+            pass
+        return a_dict
+
+    json.loads(json_repr, object_hook=_decode_dict)  # return value ignored
+    return results
+
 
 # here's where I need to customize
 # 1) need to parse all files and look for specimen/sample to donor mapping
 # 2) parse all files again, binning them based on parent UUIDs
 # 3) now that things are binned, for each bin, aggregagate the documents based on the parent uuids
 # 4) print out the complete donor documents as JSONL (or individual files if that param is given)
+pp = pprint.PrettyPrinter(indent=4)
+to_donor_id_hash = dict()
+donor_to_files_hash = dict()
+
+for index in range(1, len(sys.argv)):
+    for f in listdir(sys.argv[index]):
+        if isfile(sys.argv[index] + "/" + f):
+            print "FILE! "+sys.argv[index] + "/" + f
+            json_data = open(sys.argv[index] + "/" + f).read()
+            donor_uuid_arr = find_values('donor_uuid', json_data)
+            if donor_uuid_arr:
+                donor_uuid = donor_uuid_arr[0]
+                print "DONOR ID: " + donor_uuid
+                specimen_uuids = find_values('specimen_uuid', json_data)
+                for uuid in specimen_uuids:
+                    to_donor_id_hash[uuid] = donor_uuid
+                sample_uuids = find_values('sample_uuid', json_data)
+                for uuid in sample_uuids:
+                    to_donor_id_hash[uuid] = donor_uuid
+
+for index in range(1, len(sys.argv)):
+    for f in listdir(sys.argv[index]):
+        if isfile(sys.argv[index] + "/" + f):
+            print "FILE! " + sys.argv[index] + "/" + f
+            json_data = open(sys.argv[index] + "/" + f).read()
+            parent_uuids = find_values('parent_uuids', json_data)
+            for uuid in parent_uuids:
+                pp.pprint ("UUID: " + uuid[0] + " to DONOR ID: " + to_donor_id_hash[uuid[0]])
+                if to_donor_id_hash[uuid[0]] in donor_to_files_hash:
+                    # append the new number to the existing array at this slot
+                    donor_to_files_hash[to_donor_id_hash[uuid[0]]].append(sys.argv[index] + "/" + f)
+                else:
+                    # create a new array in this slot
+                    donor_to_files_hash[to_donor_id_hash[uuid[0]]] = [sys.argv[index] + "/" + f]
+
+pp.pprint(donor_to_files_hash)
+
+g
 
 #for a in range(10):
 #    print(a)
