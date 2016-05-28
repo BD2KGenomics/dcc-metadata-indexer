@@ -141,6 +141,7 @@ pp = pprint.PrettyPrinter(indent=4)
 to_donor_id_hash = dict()
 donor_to_files_hash = dict()
 
+# this finds all the sample and specimen UUIDs and maps them to donor ID
 for index in range(1, len(sys.argv)):
     for f in listdir(sys.argv[index]):
         if isfile(sys.argv[index] + "/" + f):
@@ -163,18 +164,25 @@ for index in range(1, len(sys.argv)):
             print "FILE! " + sys.argv[index] + "/" + f
             json_data = open(sys.argv[index] + "/" + f).read()
             parent_uuids = find_values('parent_uuids', json_data)
-            for uuid in parent_uuids:
-                pp.pprint ("UUID: " + uuid[0] + " to DONOR ID: " + to_donor_id_hash[uuid[0]])
-                if to_donor_id_hash[uuid[0]] in donor_to_files_hash:
-                    # append the new number to the existing array at this slot
-                    donor_to_files_hash[to_donor_id_hash[uuid[0]]].append(sys.argv[index] + "/" + f)
-                else:
-                    # create a new array in this slot
-                    donor_to_files_hash[to_donor_id_hash[uuid[0]]] = [sys.argv[index] + "/" + f]
+            if len(parent_uuids):
+                for uuid in parent_uuids:
+                    pp.pprint ("UUID: " + uuid[0] + " to DONOR ID: " + to_donor_id_hash[uuid[0]])
+                    if to_donor_id_hash[uuid[0]] in donor_to_files_hash:
+                        # append the new number to the existing array at this slot
+                        donor_to_files_hash[to_donor_id_hash[uuid[0]]].append(sys.argv[index] + "/" + f)
+                    else:
+                        # create a new array in this slot
+                        donor_to_files_hash[to_donor_id_hash[uuid[0]]] = [sys.argv[index] + "/" + f]
+            else:
+                donor_uuids = find_values('donor_uuid', json_data)
+                if donor_uuid:
+                    print [sys.argv[index] + "/" + f]
+
 
 pp.pprint(donor_to_files_hash)
 
-g
+# at this point we have a hash keyed on donor uuid containing all the JSON files that are related to this donor
+# now we can merge and generate the donor-oriented document
 
 #for a in range(10):
 #    print(a)
