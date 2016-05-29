@@ -49,24 +49,24 @@ def assignBranch(data, flags, result):
 
     # FIXME: this assumes the last one is always the biospecimen structure!  That's not necessarily true!
     for j in range(len(data)-1):
-        if (flags[j] == "true"):
-            workflows = {}
-            for uuid in data[j]['parent_uuids']:
-                # print ("UUIDs: "+uuid)
-                workflows[uuid] = data[j]
-                # now look for a match with specimens
-                if result['donor_uuid'] == uuid:
-                    result[data[j]['workflow_name']] = data[j]
-                else:
-                    for specimen_type_str in specimen_type:
-                        for specimen in result[specimen_type_str]:
-                            if specimen['specimen_uuid'] == uuid:
-                                result[data[j]['workflow_name']] = data[j]
-                            # now look for a match with samples
-                            else:
-                                for sample in specimen['samples']:
-                                    if sample['sample_uuid'] == uuid:
-                                        result[data[j]['workflow_name']] = data[j]
+        #if (flags[j] == "true"):
+        workflows = {}
+        for uuid in data[j]['parent_uuids']:
+            # print ("UUIDs: "+uuid)
+            workflows[uuid] = data[j]
+            # now look for a match with specimens
+            if result['donor_uuid'] == uuid:
+                result[data[j]['workflow_name']] = data[j]
+            else:
+                for specimen_type_str in specimen_type:
+                    for specimen in result[specimen_type_str]:
+                        if specimen['specimen_uuid'] == uuid:
+                            specimen[data[j]['workflow_name']] = data[j]
+                        # now look for a match with samples
+                        else:
+                            for sample in specimen['samples']:
+                                if sample['sample_uuid'] == uuid:
+                                    sample[data[j]['workflow_name']] = data[j]
 #            specimens = result[specimen_type[j % 2]]
 #            for specimen in specimens:
 #                samples = specimen[type[0]]
@@ -93,7 +93,7 @@ def assignVariant(data, flags, result):
 def dumpResult(result):
     global first_write
     if first_write :
-        with open('merge.json', 'w') as outfile:
+        with open('merge.jsonl', 'w') as outfile:
             # newidtype = dict(_id=1, _type='meta') #could use this for elasticsearch bulk queries
             # newindex = dict(index = newidtype)
             # json.dump(newindex, outfile)
@@ -102,7 +102,7 @@ def dumpResult(result):
             outfile.write('\n')
         first_write = False
     else:
-        with open('merge.json', 'a') as outfile:
+        with open('merge.jsonl', 'a') as outfile:
             # newidtype = dict(_id=1, _type='meta') #could use this for elasticsearch bulk queries
             # newindex = dict(index = newidtype)
             # json.dump(newindex, outfile)
