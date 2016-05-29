@@ -20,6 +20,7 @@ first_write = True
 # * assumes the biospecimen is always the last in the list, this is fragile!!!
 # * assignBranch makes assumptions about the ordering of files... can't do that
 # * we should design a new version of this tool that actually assumes any document can have biospecimen info in it and correctly merge as needed (it's tough to do this)
+# * the flags don't support multiple tumors, it assumes a normal and tumor
 
 # Note: the files must be in this particular order:
 # folderName, donor, donor, fastqNormal, fastqTumor, alignmentNormal, alignmentTumor, variantCalling
@@ -65,16 +66,6 @@ def assignBranch(data, flags, result):
                                 if sample['sample_uuid'] == uuid:
                                     sample[data[j]['analysis_type']] = data[j]
 
-def assignVariant(data, flags, result):
-    if (flags[6] == "true"):
-        workflows = {}
-        for uuid in data[6]['parent_uuids']:
-            # print ("UUIDs: "+uuid)
-            workflows[uuid] = data[6]
-        donor_uuid = result['donor_uuid']
-        result['somatic_variant_calling'] = workflows[donor_uuid]
-
-
 def dumpResult(result):
     global first_write
     if first_write :
@@ -97,9 +88,11 @@ def dumpResult(result):
 
 
 def createFlags(flags, result):
+    # LEFT OFF HERE
     flagsWithStr = dict(zip(
-        ['donor1_exists', 'donor2_exists', 'fastqNormal_exists', 'fastqTumor_exists', 'alignmentNormal_exists',
+        ['fastqNormal_exists', 'fastqTumor_exists', 'alignmentNormal_exists',
          'alignmentTumor_exists', 'variantCalling_exists'], flags))
+
     result['flags'] = flagsWithStr
 
 
@@ -127,9 +120,7 @@ def run(files):
     pp.pprint (result)
     assignBranch(data, flags, result)
     pp.pprint(result)
-    #assignVariant(data, flags, result)
-    #pp.pprint(result)
-    #validateResult(result)
+    validateResult(result)
     #createFlags(flags, result)
     dumpResult(result)
     # pprint(result)
