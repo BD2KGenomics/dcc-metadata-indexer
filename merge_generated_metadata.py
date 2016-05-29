@@ -89,9 +89,12 @@ def dumpResult(result):
 
 def createFlags(flags, result):
     # LEFT OFF HERE
-    flagsWithStr = dict(zip(
-        ['fastqNormal_exists', 'fastqTumor_exists', 'alignmentNormal_exists',
-         'alignmentTumor_exists', 'variantCalling_exists'], flags))
+    flagsWithStr = [{'all_normal_sequence_exists_flag' : 0},
+                    {'all_tumor_sequences_exists_flag': 0},
+                    {'normal_sequence_missing_array' : [] },
+                    {'tumor_sequences_missing_array' : [] },
+        'alignmentNormal_exists',
+        'alignmentTumor_exists', 'variantCalling_exists']
 
     result['flags'] = flagsWithStr
 
