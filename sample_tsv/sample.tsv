@@ -26,7 +26,7 @@ Treehouse	CKCC	Stanford	S176411		S176411b		Primary tumour - solid tissue	S176411
 Treehouse	CKCC	Stanford	S917367		S917367a		Normal - blood derived	S917367a1		sequence_upload	Sequence Uploader	1.0.0	fastq	normal.fastq.gz
 Treehouse	CKCC	Stanford	S917367		S917367b		Primary tumour - solid tissue	S917367b1		sequence_upload	Sequence Uploader	1.0.0	fastq	tumor.fastq.gz
 Treehouse	CKCC	Stanford	S917367		S917367a		Normal - blood derived	S917367a1		alignment	bwa-mem-aligner	1.2.1	bam	normal.bam
-Treehouse	CKCC	Stanford	S917367		S917367a		Primary tumour - solid tissue	S917367b1		alignment	bwa-mem-aligner	1.2.1	bam	tumor.bam
+Treehouse	CKCC	Stanford	S917367		S917367b		Primary tumour - solid tissue	S917367b1		alignment	bwa-mem-aligner	1.2.1	bam	tumor.bam
 Treehouse	CKCC	Stanford	S917367		S917367a		Normal - blood derived	S917367a1		germline_variant_calling	germline-gatk	2.1.1	vcf	germline.vcf
 Treehouse	CKCC	Stanford	S917367		S917367b		Primary tumour - solid tissue	S917367b1		somatic_variant_calling	pcawg_sanger_workflow	2.9.9	vcf	somatic.snv.vcf
 Treehouse	CKCC	Stanford	S917367		S917367b		Primary tumour - solid tissue	S917367b1		somatic_variant_calling	pcawg_sanger_workflow	2.9.9	vcf	somatic.indel.vcf

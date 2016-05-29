@@ -43,9 +43,6 @@ def assignBranch(data, flags, result):
     # FIXME: Chris has a single specimen array, Emily has two, one for tumor, one for normal, need to harmonize this
     #specimen_type = ['normal_specimen', 'tumor_specimen']
     specimen_type = ['specimen']
-    type = ['samples', 'sample_uuid', 'sequence_upload', 'alignment']
-    i = 0
-    k = 0
 
     # FIXME: this assumes the last one is always the biospecimen structure!  That's not necessarily true!
     for j in range(len(data)-1):
@@ -56,29 +53,17 @@ def assignBranch(data, flags, result):
             workflows[uuid] = data[j]
             # now look for a match with specimens
             if result['donor_uuid'] == uuid:
-                result[data[j]['workflow_name']] = data[j]
+                result[data[j]['analysis_type']] = data[j]
             else:
                 for specimen_type_str in specimen_type:
                     for specimen in result[specimen_type_str]:
                         if specimen['specimen_uuid'] == uuid:
-                            specimen[data[j]['workflow_name']] = data[j]
+                            specimen[data[j]['analysis_type']] = data[j]
                         # now look for a match with samples
                         else:
                             for sample in specimen['samples']:
                                 if sample['sample_uuid'] == uuid:
-                                    sample[data[j]['workflow_name']] = data[j]
-#            specimens = result[specimen_type[j % 2]]
-#            for specimen in specimens:
-#                samples = specimen[type[0]]
-#                for sample in samples:
-#                    sample_uuid = sample[type[1]]
-#                    # print(sample_uuid)
-#                    sample[type[2 + k]] = workflows[sample_uuid]
-#                    # pprint(sample)
-#        i = i + 1
-#        if (i % 2 == 0):
-#            k = 1
-
+                                    sample[data[j]['analysis_type']] = data[j]
 
 def assignVariant(data, flags, result):
     if (flags[6] == "true"):
