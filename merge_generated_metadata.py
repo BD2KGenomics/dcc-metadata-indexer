@@ -7,6 +7,7 @@ import sys
 from os import listdir
 from os.path import isfile, join
 import pprint
+import re
 
 try:
     FileNotFoundError
@@ -21,6 +22,8 @@ first_write = True
 # * assignBranch makes assumptions about the ordering of files... can't do that
 # * we should design a new version of this tool that actually assumes any document can have biospecimen info in it and correctly merge as needed (it's tough to do this)
 # * the flags don't support multiple tumors, it assumes a normal and tumor
+# * this code doesn't evaluate multiple versions of each of the analysis types e.g. it doesn't replace older results with newer results for the same workflow, just does the last one to be parsed.  This is wrong.
+# * eventually the code will need to apply rules about re-running if the inputs are incomplete, e.g. variant calling re-done if all BAMs weren't used for input
 
 # Note: the files must be in this particular order:
 # folderName, donor, donor, fastqNormal, fastqTumor, alignmentNormal, alignmentTumor, variantCalling
@@ -70,34 +73,54 @@ def dumpResult(result):
     global first_write
     if first_write :
         with open('merge.jsonl', 'w') as outfile:
-            # newidtype = dict(_id=1, _type='meta') #could use this for elasticsearch bulk queries
-            # newindex = dict(index = newidtype)
-            # json.dump(newindex, outfile)
-            # outfile.write('\n')
             json.dump(result, outfile)
             outfile.write('\n')
         first_write = False
     else:
         with open('merge.jsonl', 'a') as outfile:
-            # newidtype = dict(_id=1, _type='meta') #could use this for elasticsearch bulk queries
-            # newindex = dict(index = newidtype)
-            # json.dump(newindex, outfile)
-            # outfile.write('\n')
             json.dump(result, outfile)
             outfile.write('\n')
 
 
-def createFlags(flags, result):
-    # LEFT OFF HERE
-    flagsWithStr = [{'all_normal_sequence_exists_flag' : 0},
-                    {'all_tumor_sequences_exists_flag': 0},
-                    {'normal_sequence_missing_array' : [] },
-                    {'tumor_sequences_missing_array' : [] },
-        'alignmentNormal_exists',
-        'alignmentTumor_exists', 'variantCalling_exists']
+def allHaveItems(itemsName, regex, items):
+    total_samples = 0
+    matching_samples = 0
+    for specimen in items['specimen']:
+        if re.search(regex, specimen['submitter_specimen_type']):
+            for sample in specimen['samples']:
+                total_samples += 1
+                if itemsName in sample:
+                    matching_samples += 1
+    return(total_samples == matching_samples)
 
+def arrayMissingItems(itemsName, regex, items):
+    results = []
+    for specimen in items['specimen']:
+        if re.search(regex, specimen['submitter_specimen_type']):
+            for sample in specimen['samples']:
+                if itemsName not in sample:
+                    results.append(sample['submitter_sample_id'])
+    return(results)
+
+def createFlags(result):
+    flagsWithStr = [{'all_normal_sequence_exists_flag' : allHaveItems('sequence_upload', "^Normal - ", result)},
+                    {'all_tumor_sequences_exists_flag': allHaveItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
+                    {'all_normal_alignment_exists_flag': allHaveItems('alignment', "^Normal - ", result)},
+                    {'all_tumor_alignment_exists_flag': allHaveItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
+                    {'all_normal_germline_variants_exists_flag': allHaveItems('germline_variant_calling', "^Normal - ", result)},
+                    {'all_tumor_somatic_variants_exists_flag': allHaveItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
+                    {'all_normal_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Normal - ", result)},
+                    {'all_tumor_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}]
+    flagsWithArrs = [{'normal_sequence_missing_array' : arrayMissingItems('sequence_upload', "^Normal - ", result) },
+                    {'tumor_sequences_missing_array' : arrayMissingItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result) },
+                    {'normal_alignment_missing_array': arrayMissingItems('alignment', "^Normal - ", result)},
+                    {'tumor_alignment_missing_array': arrayMissingItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
+                    {'normal_germline_variants_missing_array': arrayMissingItems('germline_variant_calling', "^Normal - ", result)},
+                    {'tumor_somatic_variants_missing_array': arrayMissingItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
+                    {'normal_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Normal - ", result)},
+                    {'tumor_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}]
     result['flags'] = flagsWithStr
-
+    result['missing_items'] = flagsWithArrs
 
 def validateResult(result):
     # data will validate against this schema
@@ -124,24 +147,10 @@ def run(files):
     assignBranch(data, flags, result)
     pp.pprint(result)
     validateResult(result)
-    #createFlags(flags, result)
+    createFlags(result)
     dumpResult(result)
     # pprint(result)
 
-
-def fileRandom(files):
-    file = ['sample_individual_metadata_bundle_jsons/', '1a_donor_biospecimen.json', '1b_donor_biospecimen.json',
-            '2a_fastq_upload.json', '2b_fastq_upload.json', '3a_alignment.json', '3b_alignment.json',
-            '4_variant_calling.json']
-    files.append(file[0])
-    files.append(file[1])
-    files.append(file[2])
-    for f in range(3, 8):
-        x = random.randint(1, 10)
-        if (x >= 5):
-            files.append(file[f])
-        else:
-            files.append("no" + file[f])
 
 def find_values(id, json_repr):
     results = []
@@ -213,18 +222,9 @@ for index in range(1, len(sys.argv)):
 
 pp.pprint(donor_to_files_hash)
 
-# now loop over the keys of the donor_to_files_hash and merge the files
-
-
 # at this point we have a hash keyed on donor uuid containing all the JSON files that are related to this donor
 # now we can merge and generate the donor-oriented document
-
 for donor_uuid_key in donor_to_files_hash:
     file_arr = donor_to_files_hash[donor_uuid_key]
     run(file_arr)
 
-#for a in range(10):
-#    print(a)
-#    files = []
-#    fileRandom(files)
-#    run(files)
