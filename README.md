@@ -113,33 +113,20 @@ If running esquery.py multiple times, remove the index with:
 
 Goal: create sample single donor documents and perform queries on them.
 
-Install the needed packages.
-    
-    pip install jsonmerge
-    pip install json-spec
-    pip install elasticsearch
-    
-Create single donor documents using:
+1. Install the needed packages as described above.
+1. Generate metadata for multiple donors using `generate_metadata.py`, see command above
+1. Create single donor documents using `merge_generated_metadata.py`, see command above
+1. Load into ES index, see `curl -XPUT` command above
+1. Run the queries using `esquery.py`, see command above
+1. Optionally, deleted the index using the `curl -XDELETE` command above
 
-	python merge.py
-
-Produces 10 single donor documents in one file called merge.json. However, merge.py will only add documents to the existing file. Therefore, if you would like to search on a larger data set, you could run merge.py multiple times.
-
-Run queries using:
-	
-	python esquery.py
-
-The first line prints the number of documents searched upon.
+The query script, `esquery.py`, produces output whose first line prints the number of documents searched upon.
 The next few lines are center, program and project.
 Following those lines, are the queries, which give information on:
 * specifications of the query
 * number of documents that fit the query
 * number of documents that fit this query for a particular program
 * project name
-
-To remove documents from the Elasticsearch index, delete using:
-
-	curl -XDELETE http://localhost:9200/es-index
 
 ## Data Types
 
