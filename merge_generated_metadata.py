@@ -15,7 +15,8 @@ except NameError:
     #py2
     FileNotFoundError = IOError
 
-first_write = True
+first_write = dict()
+index_index = 0
 
 # TODO:
 # * assumes the biospecimen is always the last in the list, this is fragile!!!
@@ -24,6 +25,8 @@ first_write = True
 # * the flags don't support multiple tumors, it assumes a normal and tumor
 # * this code doesn't evaluate multiple versions of each of the analysis types e.g. it doesn't replace older results with newer results for the same workflow, just does the last one to be parsed.  This is wrong.
 # * eventually the code will need to apply rules about re-running if the inputs are incomplete, e.g. variant calling re-done if all BAMs weren't used for input
+# * need a mode to pull all the metadata from the Storage Service and not local files
+# * should produce an updated TSV that contains the assigned UUIDs and upload UUIDs
 
 # Note: the files must be in this particular order:
 # folderName, donor, donor, fastqNormal, fastqTumor, alignmentNormal, alignmentTumor, variantCalling
@@ -69,17 +72,22 @@ def assignBranch(data, flags, result):
                                 if sample['sample_uuid'] == uuid:
                                     sample[data[j]['analysis_type']] = data[j]
 
-def dumpResult(result):
-    global first_write
-    if first_write :
-        with open('merge.jsonl', 'w') as outfile:
+def dumpResult(result, filename):
+    global index_index
+    if filename not in first_write :
+        with open(filename, 'w') as outfile:
+            if filename == "elasticsearch.jsonl":
+                outfile.write('{"index":{"_id":"'+str(index_index)+'","_type":"meta"}}\n')
             json.dump(result, outfile)
             outfile.write('\n')
-        first_write = False
+        first_write[filename] = "true"
     else:
-        with open('merge.jsonl', 'a') as outfile:
+        with open(filename, 'a') as outfile:
+            if filename == "elasticsearch.jsonl":
+                outfile.write('{"index":{"_id":"' +str(index_index)+ '","_type":"meta"}}\n')
             json.dump(result, outfile)
             outfile.write('\n')
+    index_index += 1
 
 
 def allHaveItems(itemsName, regex, items):
@@ -148,7 +156,8 @@ def run(files):
     pp.pprint(result)
     validateResult(result)
     createFlags(result)
-    dumpResult(result)
+    dumpResult(result, 'merge.jsonl')
+    dumpResult(result, 'elasticsearch.jsonl')
     # pprint(result)
 
 

@@ -8,10 +8,10 @@ es_type = "meta"
 es = Elasticsearch([es_host])
 
 es_name_query = [
-   "donor1 and donor2 exist, no fastq",
-   "all flags are true. All documents exist.",
-   "alignment normal and tumor exist, no somatic",
-   "fastq normal and tumor exist, no alignment"
+   "All normal and tumor fastq exist.",
+   "All flags are true. All documents exist.",
+   "Alignment normal and tumor exist, no somatic.",
+   "Fastq normal and tumor exist, no alignment."
 ]
 
 #sample queries
@@ -53,30 +53,14 @@ es_queries = [
                            "must": [
                               {
                                  "terms": {
-                                    "flags.donor1_exists": [
+                                    "flags.all_normal_sequence_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.donor2_exists": [
-                                       'true'
-                                    ]
-                                 }
-                              }
-                           ],
-                           "must_not": [
-                              {
-                                 "terms": {
-                                    "flags.fastqNormal_exists": [
-                                       'true'
-                                    ]
-                                 }
-                              },
-                              {
-                                 "terms": {
-                                    "flags.fastqtumor_exists": [
+                                    "flags.all_tumor_sequences_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -132,49 +116,56 @@ es_queries = [
                            "must": [
                               {
                                  "terms": {
-                                    "flags.alignmentNormal_exists": [
+                                    "flags.all_normal_sequence_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.alignmentTumor_exists": [
+                                    "flags.all_tumor_sequences_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.fastqNormal_exists": [
+                                    "flags.all_normal_alignment_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.fastqTumor_exists": [
+                                    "flags.all_tumor_alignment_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.donor1_exists": [
+                                    "flags.all_normal_germline_variants_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.donor2_exists": [
+                                    "flags.all_tumor_somatic_variants_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.variantCalling_exists": [
+                                    "flags.all_normal_rnaseq_variants_exists_flag": [
+                                       'true'
+                                    ]
+                                 }
+                              },
+                              {
+                                 "terms": {
+                                    "flags.all_tumor_rnaseq_variants_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -230,14 +221,14 @@ es_queries = [
                            "must": [
                               {
                                  "terms": {
-                                    "flags.alignmentNormal_exists": [
+                                    "flags.all_normal_alignment_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.alignmentTumor_exists": [
+                                    "flags.all_tumor_alignment_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -246,7 +237,7 @@ es_queries = [
                            "must_not": [
                               {
                                  "terms": {
-                                    "flags.variantCalling_exists": [
+                                    "flags.all_tumor_somatic_variants_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -303,14 +294,14 @@ es_queries = [
                            "must": [
                               {
                                  "terms": {
-                                    "flags.fastqNormal_exists": [
+                                    "flags.all_normal_sequence_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.fastqTumor_exists": [
+                                    "flags.all_tumor_sequences_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -319,14 +310,14 @@ es_queries = [
                            "must_not": [
                               {
                                  "terms": {
-                                    "flags.alignmentNormal_exists": [
+                                    "flags.all_normal_alignment_exists_flag": [
                                        'true'
                                     ]
                                  }
                               },
                               {
                                  "terms": {
-                                    "flags.alignmentTumor_exists": [
+                                    "flags.all_tumor_alignment_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -342,11 +333,6 @@ es_queries = [
    },
       "size": 0
    }
-   #fastq normal and tumor exist
-   #alignment does not exist
-   #How many samples have fastq uploaded but don’t have alignment?
-
-   #How many tumor RNAseq samples have alignment done but no expression values done?
 ]
 
 #checking if the word represents a number
@@ -358,39 +344,39 @@ def repNum(s):
         return False
 
 #sample json_docs
-json_docs = []
-with open('merge.json') as f:
-   for line in f:
-      newline = []
-      words = line.split()
-      for word in words:
-         i = 1
-         if ((word[:i]==":" or word[:-i]=="," or word[:-i]=="]" or word[:-i]==":")==False):
-            i+=1
-         if (repNum(word[:-(i+1)])==False):
-            #NOTE: replacing all periods (except in num) with 3 underscores to work with ElasticSearch 
-            #losing whitespace in strings
-            word = word.replace(".","___")
-         newline.append(word)
-      #adding document to array to be loaded into Elasticsearch
-      json_docs.append(json.loads(''.join(newline)))
-      
-
-#loading above json_docs
-for i in json_docs:
-   res = es.index("es-index", es_type, i)
-   es.indices.refresh(index="es-index")
+# json_docs = []
+# with open('merge.json') as f:
+#    for line in f:
+#       newline = []
+#       words = line.split()
+#       for word in words:
+#          i = 1
+#          if ((word[:i]==":" or word[:-i]=="," or word[:-i]=="]" or word[:-i]==":")==False):
+#             i+=1
+#          if (repNum(word[:-(i+1)])==False):
+#             #NOTE: replacing all periods (except in num) with 3 underscores to work with ElasticSearch
+#             #losing whitespace in strings
+#             word = word.replace(".","___")
+#          newline.append(word)
+#       #adding document to array to be loaded into Elasticsearch
+#       json_docs.append(json.loads(''.join(newline)))
+#
+#
+# #loading above json_docs
+# for i in json_docs:
+#    res = es.index("es-index", es_type, i)
+#    es.indices.refresh(index="es-index")
 
 #checking the number of documents
-res = es.search(index="es-index", body={"query": {"match_all": {}}})
+res = es.search(index="analysis_index", body={"query": {"match_all": {}}})
 print("Got %d Hits:" % res['hits']['total'])
 for hit in res['hits']['hits']:
-   print("%(center_name)s %(program)s: %(project)s" % hit["_source"])
+   print("CENTER: %(center_name)s PROGRAM: %(program)s PROJECT: %(project)s DONOR ID: %(submitter_donor_id)s" % hit["_source"])
 
 #querying documents using queries above
 for q_index in range(len(es_queries)):
-   response = es.search(index="es-index", body=es_queries[q_index])
-   #print(json.dumps(response, indent=2))
+   response = es.search(index="analysis_index", body=es_queries[q_index])
+   print(json.dumps(response, indent=2))
    for p in response['aggregations']['project_f']['project'].get('buckets'):
       count = p.get('doc_count')
       program = p.get('donor_id').get('buckets')

@@ -33,7 +33,7 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema jsonmerge openpyxl sets json-spec
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch
 
 Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html)
  [here](http://conda.pydata.org/docs/test-drive.html), and [here](http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html)
@@ -41,9 +41,9 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
 
     conda create -n schemas-project python=2.7.11
     source activate schemas-project
-    pip install jsonschema jsonmerge openpyxl sets json-spec
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch
 
-## Generate Test Metadata (and Upload Data)
+## Generate Test Metadata (and Optionally Upload Data to Storage Service)
 
 We need to create a bunch of JSON documents for multiple donors and multiple
 experimental designs and file upload types.  To do that we (Chris) developed a very simple
@@ -76,24 +76,28 @@ file in Chrome.  The commands below will display the second JSON document. On a 
     cat merge.jsonl | head -2 | tail -1 | json_pp > temp.json
     open -a Google\ Chrome temp.json
 
-## Query using Elasticsearch
+## Load and Query Elasticsearch
 
 In the query_on_merge folder, you will find a queryable document, compact_single.json and a sample query, jquery1.
 Start by running Elasticsearch, then to add the compact_single.json to your node by
     
-    curl -XPUT http://localhost:9200/name_of_index/_bulk?pretty --data-binary @compact_single.json
+    curl -XPUT http://localhost:9200/analysis_index/_bulk?pretty --data-binary @elasticsearch.jsonl
 
 Then check to see if index has been created. (Should have five documents).
 
     curl 'localhost:9200/_cat/indices?v'
 
+Query everything.
+
+    curl -XGET http://localhost:9200/analysis_index/_search?pretty
+
 And query.
 
-    curl -XPOST http://localhost:9200/name_of_index/_search?pretty -d @jquery1
+    curl -XPOST http://localhost:9200/analysis_index/_search?pretty -d @query_on_merge/jquery1
 
 Since merge.py now adds flags, you can find a queryable document, mergeflag.json and sample queries, jqueryflag. Add this document in the same fashion to a new index. Then query with:
 
-    curl -XPOST http://localhost:9200/name_of_index/_search?pretty -d @jqueryflag
+    curl -XPOST http://localhost:9200/analysis_index/_search?pretty -d @query_on_merge/jqueryflag
 
 However, the problem with this method is that only the first query is performed.
 
@@ -103,7 +107,7 @@ esquery.py can perform all of the queries (elasticsearch needs to be installed. 
 
 If running esquery.py multiple times, remove the index with:
 
-    curl -XDELETE http://localhost:9200/name_of_index
+    curl -XDELETE http://localhost:9200/analysis_index
 
 ## Demo
 

@@ -266,9 +266,13 @@ def writeAnalysisOutput(donorAnaMap, outputDir):
             anaOutObj["workflow_version"] = anaObj["workflow_version"]
 
             anaOutObj["workflow_outputs"] = {}
-            anaOutObj["workflow_outputs"][anaObj["file_path"]] = {}
 
-            anaOutObj["workflow_outputs"][anaObj["file_path"]]["file_type_label"] = anaObj["file_type"]
+            underscore_filename = anaObj["file_path"].replace('.', '_')
+
+            anaOutObj["workflow_outputs"][underscore_filename] = {}
+
+            anaOutObj["workflow_outputs"][underscore_filename]["file_type_label"] = anaObj["file_type"]
+            anaOutObj["workflow_outputs"][underscore_filename]["file_path"] = anaObj["file_path"]
 
             anaOutObj["analysis_type"] = anaObj["analysis_type"]
 
