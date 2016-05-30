@@ -111,22 +111,22 @@ def arrayMissingItems(itemsName, regex, items):
     return(results)
 
 def createFlags(result):
-    flagsWithStr = [{'all_normal_sequence_exists_flag' : allHaveItems('sequence_upload', "^Normal - ", result)},
-                    {'all_tumor_sequences_exists_flag': allHaveItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
-                    {'all_normal_alignment_exists_flag': allHaveItems('alignment', "^Normal - ", result)},
-                    {'all_tumor_alignment_exists_flag': allHaveItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
-                    {'all_normal_germline_variants_exists_flag': allHaveItems('germline_variant_calling', "^Normal - ", result)},
-                    {'all_tumor_somatic_variants_exists_flag': allHaveItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
-                    {'all_normal_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Normal - ", result)},
-                    {'all_tumor_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}]
-    flagsWithArrs = [{'normal_sequence_missing_array' : arrayMissingItems('sequence_upload', "^Normal - ", result) },
-                    {'tumor_sequences_missing_array' : arrayMissingItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result) },
-                    {'normal_alignment_missing_array': arrayMissingItems('alignment', "^Normal - ", result)},
-                    {'tumor_alignment_missing_array': arrayMissingItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
-                    {'normal_germline_variants_missing_array': arrayMissingItems('germline_variant_calling', "^Normal - ", result)},
-                    {'tumor_somatic_variants_missing_array': arrayMissingItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)},
-                    {'normal_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Normal - ", result)},
-                    {'tumor_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}]
+    flagsWithStr = {'all_normal_sequence_exists_flag' : allHaveItems('sequence_upload', "^Normal - ", result),
+                    'all_tumor_sequences_exists_flag': allHaveItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                    'all_normal_alignment_exists_flag': allHaveItems('alignment', "^Normal - ", result),
+                    'all_tumor_alignment_exists_flag': allHaveItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                    'all_normal_germline_variants_exists_flag': allHaveItems('germline_variant_calling', "^Normal - ", result),
+                    'all_tumor_somatic_variants_exists_flag': allHaveItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                    'all_normal_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Normal - ", result),
+                    'all_tumor_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
+    flagsWithArrs = {'normal_sequence_missing_array' : arrayMissingItems('sequence_upload', "^Normal - ", result) ,
+                    'tumor_sequences_missing_array' : arrayMissingItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result) ,
+                    'normal_alignment_missing_array': arrayMissingItems('alignment', "^Normal - ", result),
+                    'tumor_alignment_missing_array': arrayMissingItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                    'normal_germline_variants_missing_array': arrayMissingItems('germline_variant_calling', "^Normal - ", result),
+                    'tumor_somatic_variants_missing_array': arrayMissingItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                    'normal_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Normal - ", result),
+                    'tumor_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
     result['flags'] = flagsWithStr
     result['missing_items'] = flagsWithArrs
 

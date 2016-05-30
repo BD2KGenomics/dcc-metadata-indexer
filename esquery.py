@@ -369,20 +369,26 @@ def repNum(s):
 
 #checking the number of documents
 res = es.search(index="analysis_index", body={"query": {"match_all": {}}})
-print("Got %d Hits:" % res['hits']['total'])
+print("For search for everything, got %d hits:" % res['hits']['total'])
 for hit in res['hits']['hits']:
    print("CENTER: %(center_name)s PROGRAM: %(program)s PROJECT: %(project)s DONOR ID: %(submitter_donor_id)s" % hit["_source"])
+
+print "\n"
 
 #querying documents using queries above
 for q_index in range(len(es_queries)):
    response = es.search(index="analysis_index", body=es_queries[q_index])
-   print(json.dumps(response, indent=2))
+   #print(json.dumps(response, indent=2))
+   count = 0
+   program = "NA"
+   project = "NA"
    for p in response['aggregations']['project_f']['project'].get('buckets'):
       count = p.get('doc_count')
       program = p.get('donor_id').get('buckets')
       project = p.get('key')
    
    print(es_name_query[q_index])
-   print("count:",count)
-   print("program:",program)
-   print("project: "+project+"\n")
+   print("count: "+str(count))
+   print("program: ", program)
+   print("project: ", project)
+   print("\n")

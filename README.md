@@ -103,7 +103,7 @@ However, the problem with this method is that only the first query is performed.
 
 esquery.py can perform all of the queries (elasticsearch needs to be installed. pip install elasticsearch). Run using: 
 
-    python3.5 esquery.py
+    python esquery.py
 
 If running esquery.py multiple times, remove the index with:
 
