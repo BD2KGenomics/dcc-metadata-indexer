@@ -198,8 +198,11 @@ possible use cases here.
 Over time I think this will expand.  Each are targeted at a distinct biospecimen "level".
 This will need to be incorporated into changes to the index builder.
 
-## Ideas
+## TODO
 
+* need to add upload to Chris' script
+* need to download all the metadata from the storage service
+* use the above two to show end-to-end process, develop very simple cgi script to display table 
 * each workflow JSON needs a timestamp
 * command line tool would merge the docs, taking the "level" at which each document will be merged in at
     * donor, sample, specimen
