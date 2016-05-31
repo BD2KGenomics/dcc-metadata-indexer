@@ -57,6 +57,18 @@ that clients will use in the field to prepare their samples.
 
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
+### Enabling Upload
+
+By default the upload won't take place if the directory `ucsc-storage-client` is not present in the `dcc-storage-schema`
+directory.  In order to get the client, you need to be given the tarball since it contains sensitive
+information and an access key.  See our private [S3 bucket](https://s3-us-west-2.amazonaws.com/beni-dcc-storage-dev/ucsc-storage-client.tar.gz)
+for the tarball.
+
+If you have the directory setup and don't pass in `--skip-upload` the upload will take place.  Keep this in
+mind if you're just testing the metadata components and don't want to create a ton of uploads.  If you upload
+the fact data linked to from the `sample.tsv` the program and project will both be TEST which should make
+it easy to avoid in the future.
+
 ## Run Merge and Generate Elasticsearch Index
 
 This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
@@ -202,7 +214,7 @@ This will need to be incorporated into changes to the index builder.
 
 * need to add upload to Chris' script
 * need to download all the metadata from the storage service
-* use the above two to show end-to-end process, develop very simple cgi script to display table 
+* use the above two to show end-to-end process, develop very simple cgi script to display table
 * each workflow JSON needs a timestamp
 * command line tool would merge the docs, taking the "level" at which each document will be merged in at
     * donor, sample, specimen
