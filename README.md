@@ -18,7 +18,10 @@ This repo also contains a merge tool, `merge.py`, responsible for creating Donor
 
 ## Install
 
-See https://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/
+Use python 2.7.x.
+
+See [here](https://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/) for information on setting
+up a virtual environment for Python.
 
 If you haven't already installed pip and virtualenv, depending on your system you may
 (or may not) need to use `sudo` for these:
@@ -30,15 +33,17 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema jsonmerge openpyxl
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch
 
-Alternatively, you may want to use Conda, see http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html and http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html.
+Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html)
+ [here](http://conda.pydata.org/docs/test-drive.html), and [here](http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html)
+ for more information.
 
-    conda create -n schemas-project python
+    conda create -n schemas-project python=2.7.11
     source activate schemas-project
-    pip install jsonschema jsonmerge openpyxl
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch
 
-## Generate Test Metadata (& Upload Data)
+## Generate Test Metadata (and Optionally Upload Data to Storage Service)
 
 We need to create a bunch of JSON documents for multiple donors and multiple
 experimental designs and file upload types.  To do that we (Chris) developed a very simple
@@ -52,83 +57,88 @@ that clients will use in the field to prepare their samples.
 
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
-## Run Merge & Generate Elasticsearch Index
+### Enabling Upload
+
+By default the upload won't take place if the directory `ucsc-storage-client` is not present in the `dcc-storage-schema`
+directory.  In order to get the client, you need to be given the tarball since it contains sensitive
+information and an access key.  See our private [S3 bucket](https://s3-us-west-2.amazonaws.com/beni-dcc-storage-dev/ucsc-storage-client.tar.gz)
+for the tarball.
+
+If you have the directory setup and don't pass in `--skip-upload` the upload will take place.  Keep this in
+mind if you're just testing the metadata components and don't want to create a ton of uploads.  If you upload
+the fact data linked to from the `sample.tsv` the program and project will both be TEST which should make
+it easy to avoid in the future.
+
+## Run Merge and Generate Elasticsearch Index
 
 This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
 using the output from the generate_metadata.py script.
 
-    python merge.py `for i in output_metadata/*; do echo -n "$i "; done`
+    python merge_generated_metadata.py `for i in output_metadata/*; do echo -n "$i "; done`
 
-Now to view the output see the directory `output_donor_level_metadata`:
+This produces a `merge.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
+Now to view the output for the first line use the following:
 
-    cat output_donor_level_metadata/Treehouse-CKCC-S123472.json | json_pp | less -S
+    cat merge.jsonl | head -1 | json_pp | less -S
 
 You can also examine this in Chrome using the JSONView extension.  Make sure you select
 the option to allow viewing of local JSON files before you attempt to load this
-file in Chrome. On a Mac:
+file in Chrome.  The commands below will display the second JSON document. On a Mac:
 
-    open -a Google\ Chrome output_donor_level_metadata/Treehouse-CKCC-S12347
+    cat merge.jsonl | head -2 | tail -1 | json_pp > temp.json
+    open -a Google\ Chrome temp.json
 
-## Query using Elasticsearch
+## Load and Query Elasticsearch
 
 In the query_on_merge folder, you will find a queryable document, compact_single.json and a sample query, jquery1.
 Start by running Elasticsearch, then to add the compact_single.json to your node by
     
-    curl -XPUT http://localhost:9200/name_of_index/_bulk?pretty --data-binary @compact_single.json
+    curl -XPUT http://localhost:9200/analysis_index/_bulk?pretty --data-binary @elasticsearch.jsonl
 
 Then check to see if index has been created. (Should have five documents).
 
     curl 'localhost:9200/_cat/indices?v'
 
+Query everything.
+
+    curl -XGET http://localhost:9200/analysis_index/_search?pretty
+
 And query.
 
-    curl -XPOST http://localhost:9200/name_of_index/_search?pretty -d @jquery1
+    curl -XPOST http://localhost:9200/analysis_index/_search?pretty -d @query_on_merge/jquery1
 
 Since merge.py now adds flags, you can find a queryable document, mergeflag.json and sample queries, jqueryflag. Add this document in the same fashion to a new index. Then query with:
 
-    curl -XPOST http://localhost:9200/name_of_index/_search?pretty -d @jqueryflag
+    curl -XPOST http://localhost:9200/analysis_index/_search?pretty -d @query_on_merge/jqueryflag
 
 However, the problem with this method is that only the first query is performed.
 
 esquery.py can perform all of the queries (elasticsearch needs to be installed. pip install elasticsearch). Run using: 
 
-    python3.5 esquery.py
+    python esquery.py
 
 If running esquery.py multiple times, remove the index with:
 
-    curl -XDELETE http://localhost:9200/name_of_index
+    curl -XDELETE http://localhost:9200/analysis_index
 
 ## Demo
 
 Goal: create sample single donor documents and perform queries on them.
 
-Install the needed packages.
-    
-    pip install jsonmerge
-    pip install json-spec
-    pip install elasticsearch
-    
-Create single donor documents using:
+1. Install the needed packages as described above.
+1. Generate metadata for multiple donors using `generate_metadata.py`, see command above
+1. Create single donor documents using `merge_generated_metadata.py`, see command above
+1. Load into ES index, see `curl -XPUT` command above
+1. Run the queries using `esquery.py`, see command above
+1. Optionally, deleted the index using the `curl -XDELETE` command above
 
-	python merge.py
-
-Produces 10 single donor documents in one file called merge.json. However, merge.py will only add documents to the existing file. Therefore, if you would like to search on a larger data set, you could run merge.py multiple times.
-
-Run queries using:
-	
-	python esquery.py
-
-The first line prints the number of documents searched upon.
+The query script, `esquery.py`, produces output whose first line prints the number of documents searched upon.
 The next few lines are center, program and project.
 Following those lines, are the queries, which give information on:
 * specifications of the query
 * number of documents that fit the query
 * number of documents that fit this query for a particular program
 * project name
-
-To remove documents from the Elasticsearch index, delete using:
-
-	curl -XDELETE http://localhost:9200/es-index
 
 ## Data Types
 
@@ -200,8 +210,11 @@ possible use cases here.
 Over time I think this will expand.  Each are targeted at a distinct biospecimen "level".
 This will need to be incorporated into changes to the index builder.
 
-## Ideas
+## TODO
 
+* need to add upload to Chris' script
+* need to download all the metadata from the storage service
+* use the above two to show end-to-end process, develop very simple cgi script to display table
 * each workflow JSON needs a timestamp
 * command line tool would merge the docs, taking the "level" at which each document will be merged in at
     * donor, sample, specimen
