@@ -31,3 +31,19 @@ Treehouse	CKCC	Stanford	S917367		S917367a		Normal - blood derived	S917367a1		ger
 Treehouse	CKCC	Stanford	S917367		S917367b		Primary tumour - solid tissue	S917367b1		somatic_variant_calling	pcawg_sanger_workflow	2.9.9	vcf	somatic.snv.vcf
 Treehouse	CKCC	Stanford	S917367		S917367b		Primary tumour - solid tissue	S917367b1		somatic_variant_calling	pcawg_sanger_workflow	2.9.9	vcf	somatic.indel.vcf
 Treehouse	CKCC	Stanford	S917367		S917367b		Primary tumour - solid tissue	S917367b1		rna_seq_quantification	rnaseq-cgl	3.2.1	rsem	gene_expression.rsem
+Treehouse	CKCC	Stanford	S627291		S627291a		Normal - blood derived	S627291a1		sequence_upload	Sequence Uploader	1.0.0	fastq	normal.fastq.gz
+Treehouse	CKCC	Stanford	S627291		S627291b		Primary tumour - solid tissue	S627291b1		sequence_upload	Sequence Uploader	1.0.0	fastq	tumor.fastq.gz
+Treehouse	CKCC	Stanford	S627291		S627291a		Normal - blood derived	S627291a1		alignment	bwa-mem-aligner	1.2.1	bam	normal.bam
+Treehouse	CKCC	Stanford	S627291		S627291b		Primary tumour - solid tissue	S627291b1		alignment	bwa-mem-aligner	1.2.1	bam	tumor.bam
+Treehouse	CKCC	Stanford	S627291		S627291a		Normal - blood derived	S627291a1		germline_variant_calling	germline-gatk	2.1.1	vcf	germline.vcf
+Treehouse	CKCC	Stanford	S627291		S627291b		Primary tumour - solid tissue	S627291b1		somatic_variant_calling	pcawg_sanger_workflow	2.9.9	vcf	somatic.snv.vcf
+Treehouse	CKCC	Stanford	S627291		S627291b		Primary tumour - solid tissue	S627291b1		somatic_variant_calling	pcawg_sanger_workflow	2.9.9	vcf	somatic.indel.vcf
+Treehouse	CKCC	Stanford	S627291		S627291b		Primary tumour - solid tissue	S627291b1		rna_seq_quantification	rnaseq-cgl	3.2.1	rsem	gene_expression.rsem
+Treehouse	CKCC	Stanford	S627291		S627291a		Normal - blood derived	S627291a1		rna_seq_quantification	rnaseq-cgl	3.2.1	rsem	gene_expression.rsem
+Treehouse	CKCC	Stanford	S368291		S368291a		Normal - blood derived	S368291a1		sequence_upload	Sequence Uploader	1.0.0	fastq	normal.fastq.gz
+Treehouse	CKCC	Stanford	S368291		S368291b		Primary tumour - solid tissue	S368291b1		sequence_upload	Sequence Uploader	1.0.0	fastq	tumor.fastq.gz
+Treehouse	CKCC	Stanford	S368291		S368291a		Normal - blood derived	S368291a1		alignment	bwa-mem-aligner	1.2.1	bam	normal.bam
+Treehouse	CKCC	Stanford	S368291		S368291b		Primary tumour - solid tissue	S368291b1		alignment	bwa-mem-aligner	1.2.1	bam	tumor.bam
+Treehouse	CKCC	Stanford	S368291		S368291a		Normal - blood derived	S368291a1		germline_variant_calling	germline-gatk	2.1.1	vcf	germline.vcf
+Treehouse	CKCC	Stanford	S019289		S019289a		Normal - blood derived	S019289a1		sequence_upload	Sequence Uploader	1.0.0	fastq	normal.fastq.gz
+Treehouse	CKCC	Stanford	S019289		S019289b		Primary tumour - solid tissue	S019289b1		sequence_upload	Sequence Uploader	1.0.0	fastq	tumor.fastq.gz
