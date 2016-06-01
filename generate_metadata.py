@@ -14,6 +14,8 @@ import openpyxl
 import json
 import uuid
 from sets import Set
+import shutil
+
 
 
 # import re
@@ -286,10 +288,6 @@ def writeAnalysisOutput(donorAnaMap, outputDir):
     return num_files_written
 
 
-def uploadFile(fullFilePath):
-    return 1
-
-
 #:####################################
 
 def main():
@@ -371,27 +369,56 @@ def main():
 
     log("Now attempting to upload data.\n")
 
+    # TODO: so this upload mechanism is not great, need to cleanup, need to use symlinks since cp will take a long time on big files
     num_files_uploaded = 0
     for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
         if dirName == options.metadataOutDir:
             continue
         log('Found directory: %s\n' % dirName)
         for fileName in fileList:
-            if (fileName.endswith("biospecimen.json") or fileName.endswith("analysis.json")):
+            if (fileName.endswith("analysis.json")):
                 log('\t%s\n' % fileName)
                 filePath = os.path.join(dirName, fileName)
 
-                num_files_uploaded += uploadFile(filePath)
+                # steps
+                # 1) make an upload dir
+                # 2) read this JSON
+                # 3) copy each of the files in the JSON to upload dir
+                # 4) modify JSON and write out to upload dir
+                # 5) perform upload
+                # 6) clean upload dir
 
                 file = open(filePath, "r")
                 metadataObj = json.load(file)
                 file.close()
                 if ("workflow_outputs" in metadataObj.keys()) and (metadataObj["workflow_outputs"].keys() > 0):
+                    # make temp dir
+                    upload_uuid = uuid.uuid4()
+                    os.makedirs("uploads/"+str(upload_uuid))
                     for dataFileName in metadataObj["workflow_outputs"].keys():
-                        log("dataFileName: %s\n" % (dataFileName))
-                        dataDir = ""
-                        filePath = os.path.join(dataDir, dataFileName)
-                        num_files_uploaded += uploadFile(filePath)
+                        log("dataFileName: %s\n" % (metadataObj["workflow_outputs"][dataFileName]["file_path"]))
+                        file_basename = os.path.basename(metadataObj["workflow_outputs"][dataFileName]["file_path"])
+                        file_full_path = metadataObj["workflow_outputs"][dataFileName]["file_path"]
+                        # probably want to symlink in the future
+                        shutil.copyfile(file_full_path, "uploads/"+str(upload_uuid)+"/"+file_basename)
+                        metadataObj["workflow_outputs"][dataFileName]["file_path"] = file_basename
+                        num_files_written += 1
+                        #filePath = os.path.join(dataDir, metadataObj["workflow_outputs"])
+                        num_files_uploaded += 1
+                    afile = open( "uploads/"+str(upload_uuid)+"/analysis.json", "w")
+                    json.dump(metadataObj, afile, indent=4, separators=(',', ': '))
+                    afile.close()
+                    num_files_uploaded += 1
+                    # TODO: assumes the upload client is here, not a safe assumption
+                    # TODO: Emily, need to capture output here so I know the ID and Data Bundle ID
+                    # TODO: directly use the tools in the future, the script below actually copies the inputs again!!
+                    if os.path.isfile("ucsc-storage-client/ucsc-upload.sh"):
+                        exit_code = os.system("cd ucsc-storage-client; bash ucsc-upload.sh ../uploads/"+str(upload_uuid)+"/*")
+                        if exit_code != 0:
+                            print "ERROR UPLOADING!!!!"
+                            return None
+                        else:
+                            shutil.rmtree("uploads/"+str(upload_uuid))
 
     sys.stderr.write("%s files uploaded\n" % (str(num_files_uploaded)))
 
