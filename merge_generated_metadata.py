@@ -28,9 +28,6 @@ index_index = 0
 # * need a mode to pull all the metadata from the Storage Service and not local files
 # * should produce an updated TSV that contains the assigned UUIDs and upload UUIDs
 
-# Note: the files must be in this particular order:
-# folderName, donor, donor, fastqNormal, fastqTumor, alignmentNormal, alignmentTumor, variantCalling
-
 def openFiles(files, data, flags):
     #for i in range(len(files) - 1):
     for i in range(len(files)):
