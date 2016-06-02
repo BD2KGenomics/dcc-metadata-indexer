@@ -259,6 +259,7 @@ def writeAnalysisOutput(donorAnaMap, outputDir):
         mkdir_p(donorDir)
 
         anaObjs = donorAnaMap[donor_uuid]
+        sampleNameVersionMapping = {}
         for idx in xrange(len(anaObjs)):
             anaObj = anaObjs[idx]
             anaOutObj = {}
@@ -266,19 +267,28 @@ def writeAnalysisOutput(donorAnaMap, outputDir):
             anaOutObj["parent_uuids"].append(anaObj["sample_uuid"])
             anaOutObj["workflow_name"] = anaObj["workflow_name"]
             anaOutObj["workflow_version"] = anaObj["workflow_version"]
-
+            anaOutObj["analysis_type"] = anaObj["analysis_type"]
             anaOutObj["workflow_outputs"] = {}
 
             underscore_filename = anaObj["file_path"].replace('.', '_')
+            file_type = anaObj["file_type"]
+            file_path = anaObj["file_path"]
 
-            anaOutObj["workflow_outputs"][underscore_filename] = {}
+            key = json.dumps(anaOutObj)
+            if not key in sampleNameVersionMapping.keys():
+                sampleNameVersionMapping[key] = anaOutObj
 
-            anaOutObj["workflow_outputs"][underscore_filename]["file_type_label"] = anaObj["file_type"]
-            anaOutObj["workflow_outputs"][underscore_filename]["file_path"] = anaObj["file_path"]
+            workflow_outputs = sampleNameVersionMapping[key]["workflow_outputs"]
+            workflow_outputs[underscore_filename] = {}
+            workflow_outputs[underscore_filename]["file_type_label"] = file_type
+            workflow_outputs[underscore_filename]["file_path"] = file_path
 
-            anaOutObj["analysis_type"] = anaObj["analysis_type"]
+            keys = sampleNameVersionMapping.keys()
+        for idx in xrange(len(keys)):
+            key = keys[idx]
+            anaOutObj = sampleNameVersionMapping[key]
 
-            # write biospecimen.json
+            # write analysis.json
             filePath = os.path.join(donorDir, str(idx) + "analysis.json")
             file = open(filePath, 'w')
             json.dump(anaOutObj, file, indent=4, separators=(',', ': '))
@@ -394,18 +404,18 @@ def main():
                 if ("workflow_outputs" in metadataObj.keys()) and (metadataObj["workflow_outputs"].keys() > 0):
                     # make temp dir
                     upload_uuid = uuid.uuid4()
-                    os.makedirs("uploads/"+str(upload_uuid))
+                    os.makedirs("uploads/" + str(upload_uuid))
                     for dataFileName in metadataObj["workflow_outputs"].keys():
                         log("dataFileName: %s\n" % (metadataObj["workflow_outputs"][dataFileName]["file_path"]))
                         file_basename = os.path.basename(metadataObj["workflow_outputs"][dataFileName]["file_path"])
                         file_full_path = metadataObj["workflow_outputs"][dataFileName]["file_path"]
                         # probably want to symlink in the future
-                        shutil.copyfile(file_full_path, "uploads/"+str(upload_uuid)+"/"+file_basename)
+                        shutil.copyfile(file_full_path, "uploads/" + str(upload_uuid) + "/" + file_basename)
                         metadataObj["workflow_outputs"][dataFileName]["file_path"] = file_basename
                         num_files_written += 1
-                        #filePath = os.path.join(dataDir, metadataObj["workflow_outputs"])
+                        # filePath = os.path.join(dataDir, metadataObj["workflow_outputs"])
                         num_files_uploaded += 1
-                    afile = open( "uploads/"+str(upload_uuid)+"/analysis.json", "w")
+                    afile = open("uploads/" + str(upload_uuid) + "/analysis.json", "w")
                     json.dump(metadataObj, afile, indent=4, separators=(',', ': '))
                     afile.close()
                     num_files_uploaded += 1
@@ -413,12 +423,12 @@ def main():
                     # TODO: Emily, need to capture output here so I know the ID and Data Bundle ID
                     # TODO: directly use the tools in the future, the script below actually copies the inputs again!!
                     if os.path.isfile("ucsc-storage-client/ucsc-upload.sh"):
-                        exit_code = os.system("cd ucsc-storage-client; bash ucsc-upload.sh ../uploads/"+str(upload_uuid)+"/*")
+                        exit_code = os.system("cd ucsc-storage-client; bash ucsc-upload.sh ../uploads/" + str(upload_uuid) + "/*")
                         if exit_code != 0:
                             print "ERROR UPLOADING!!!!"
                             return None
                         else:
-                            shutil.rmtree("uploads/"+str(upload_uuid))
+                            shutil.rmtree("uploads/" + str(upload_uuid))
 
     sys.stderr.write("%s files uploaded\n" % (str(num_files_uploaded)))
 

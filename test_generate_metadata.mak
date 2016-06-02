@@ -8,6 +8,7 @@ test2:
 		-v \
 		--biospecimenSchema biospecimen_flattened.json \
 		--analysisSchema analysis_flattened.json \
+		--skip-upload \
 		$(XL_FILE) \
 	;
 
@@ -19,6 +20,7 @@ test:
 		-v \
 		--biospecimenSchema biospecimen_flattened.json \
 		--analysisSchema analysis_flattened.json \
+		--skip-upload \
 		1.tmp $(XL_FILE) \
 	;
 	\
