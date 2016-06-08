@@ -22,6 +22,10 @@ import shutil
 
 # methods and functions
 
+def prettyJson(obj):
+    s = json.dumps(obj, sort_keys=True, indent=4, separators=(',', ': '))
+    return s
+
 def getOptions():
     "parse options"
     usage_text = []
@@ -35,10 +39,8 @@ def getOptions():
     parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload",
                       help="Switch to skip upload. Metadata files will be generated only.")
 
-    parser.add_option("-b", "--biospecimenSchema", action="store", default="biospecimen_flattened.json", type="string",
-                      dest="biospecimenSchemaFileName", help="flattened json schema file for biospecimen")
-    parser.add_option("-a", "--analysisSchema", action="store", default="analysis_flattened.json", type="string",
-                      dest="analysisSchemaFileName", help="flattened json schema file for analysis")
+    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_flattened.json", type="string",
+                      dest="metadataSchemaFileName", help="flattened json schema file for metadata")
 
     parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string",
                       dest="metadataOutDir",
@@ -123,6 +125,8 @@ def setUuids(dataObj):
     for uuidName in keyFieldsMapping.keys():
         keyList = []
         for field in keyFieldsMapping[uuidName]:
+            if dataObj[field] is None:
+                return None
             keyList.append(dataObj[field])
         # was having some trouble with data coming out of openpyxl not being ascii
         s = "".join(keyList).encode('ascii', 'ignore').lower()
@@ -143,7 +147,8 @@ def getDataObj(dict, schema):
     if (isValid):
         return dataObj
     else:
-        sys.exit(1)
+        sys.stderr.write("validation FAILED for \t%s\n" % (json.dumps(dataObj, sort_keys=True, indent=4, separators=(',', ': '))))
+        return None
 
 
 def getDataDictFromXls(fileName):
@@ -190,113 +195,99 @@ def mkdir_p(path):
             raise
     return None
 
+def getObj(dataObjs, queryObj):
+    for dataObj in dataObjs:
+        foundMismatch = False
+        for key in queryObj.keys():
+            queryVal = queryObj[key]
+            dataVal = dataObj[key]
+            if queryVal != dataVal:
+                foundMismatch = True
+                break
+        if foundMismatch == True:
+            continue
+        else:
+            return dataObj
+    
+    return None
 
-def writeOutput(donorSpecSampleBioMap, donorAnaMap, outputDir):
+def writeOutput(metadataObjs, outputDir):
     num_files_written = 0
-    num_files_written += writeBiospecimenOutput(donorSpecSampleBioMap, outputDir)
-    num_files_written += writeAnalysisOutput(donorAnaMap, outputDir)
-    return num_files_written
 
+    commonObjMap = {}
+    for metaObj in metadataObjs:
+        commonObj = {}
+        commonObj["program"] = metaObj["program"]
+        commonObj["project"] = metaObj["project"]
+        commonObj["center_name"] = metaObj["center_name"]
+        commonObj["submitter_donor_id"] = metaObj["submitter_donor_id"]
+        commonObj["donor_uuid"] = metaObj["donor_uuid"]
+        commonObj["specimen"] = []
 
-def writeBiospecimenOutput(donorSpecSampleBioMap, outputDir):
-    num_files_written = 0
-    for donor_uuid in donorSpecSampleBioMap.keys():
+        # get donor level obj
+        commonObjS = json.dumps(commonObj, sort_keys=True)
+        if not commonObjS in commonObjMap.keys():
+            commonObjMap[commonObjS] = commonObj
+
+        # add specimen
+        specObj = {}
+        specObj["submitter_specimen_id"] = metaObj["submitter_specimen_id"]
+        specObj["submitter_specimen_type"] = metaObj["submitter_specimen_type"]
+        specObj["specimen_uuid"] = metaObj["specimen_uuid"]
+        
+        storedSpecObj = getObj(commonObjMap[commonObjS]["specimen"], specObj)
+
+        if storedSpecObj == None:
+            commonObjMap[commonObjS]["specimen"].append(specObj)
+            storedSpecObj = getObj(commonObjMap[commonObjS]["specimen"], specObj)
+            storedSpecObj["samples"] = []
+
+        # add sample
+        sampleObj = {}
+        sampleObj["submitter_sample_id"] = metaObj["submitter_sample_id"]
+        sampleObj["sample_uuid"] = metaObj["sample_uuid"]
+
+        storedSampleObj = getObj(storedSpecObj["samples"], sampleObj)
+        if storedSampleObj == None:
+            storedSpecObj["samples"].append(sampleObj)
+            storedSampleObj = getObj(storedSpecObj["samples"], sampleObj)
+            storedSampleObj["workflows"] = []
+
+        # add workflow
+        workFlowObj = {}
+        workFlowObj["workflow_name"] = metaObj["workflow_name"]
+        workFlowObj["workflow_version"] = metaObj["workflow_version"]
+        workFlowObj["analysis_type"] = metaObj["analysis_type"]
+
+        storedWorkFlowObj = getObj(storedSampleObj["workflows"], workFlowObj)
+        if storedWorkFlowObj == None:
+            storedSampleObj["workflows"].append(workFlowObj)
+            storedWorkFlowObj = getObj(storedSampleObj["workflows"], workFlowObj)
+            storedWorkFlowObj["workflow_outputs"] = []
+
+        # add file info
+        fileInfoObj = {}
+        fileInfoObj["file_type"] = metaObj["file_type"]
+        fileInfoObj["file_path"] = metaObj["file_path"]
+
+        storedFileInfoObj = getObj(storedWorkFlowObj["workflow_outputs"], fileInfoObj)
+        if storedFileInfoObj == None:
+            storedWorkFlowObj["workflow_outputs"].append(fileInfoObj)
+
+    # write files
+    for metaObj in commonObjMap.values():
+        donor_uuid = metaObj["donor_uuid"]
         donorDir = os.path.join(outputDir, donor_uuid)
         mkdir_p(donorDir)
 
-        bioOutObj = {}
-
-        specSampleBioMap = donorSpecSampleBioMap[donor_uuid]
-        for specimen_uuid in specSampleBioMap.keys():
-            sampleBioMap = specSampleBioMap[specimen_uuid]
-
-            specimenObj = {}
-
-            for sample_uuid in sampleBioMap.keys():
-                bioObjStrings = sampleBioMap[sample_uuid]
-
-                sampleObj = {}
-
-                for bioObjString in bioObjStrings:
-                    bioObj = json.loads(bioObjString)
-                    specimen_uuid = bioObj["specimen_uuid"]
-
-                    if bioOutObj == {}:
-                        bioOutObj["program"] = bioObj["program"]
-                        bioOutObj["project"] = bioObj["project"]
-                        bioOutObj["center_name"] = bioObj["center_name"]
-                        bioOutObj["submitter_donor_id"] = bioObj["submitter_donor_id"]
-                        bioOutObj["donor_uuid"] = bioObj["donor_uuid"]
-                        bioOutObj["specimen"] = []
-
-                    if (specimenObj == {}):
-                        specimenObj["submitter_specimen_id"] = bioObj["submitter_specimen_id"]
-                        specimenObj["submitter_specimen_type"] = bioObj["submitter_specimen_type"]
-                        specimenObj["specimen_uuid"] = bioObj["specimen_uuid"]
-                        specimenObj["samples"] = []
-
-                        bioOutObj["specimen"].append(specimenObj)
-
-                    if (sampleObj == {}):
-                        sampleObj["submitter_sample_id"] = bioObj["submitter_sample_id"]
-                        sampleObj["sample_uuid"] = bioObj["sample_uuid"]
-                        specimenObj["samples"].append(sampleObj)
-
-        # write biospecimen.json
-        filePath = os.path.join(donorDir, "biospecimen.json")
+        # write metadata.json
+        filePath = os.path.join(donorDir, "metadata.json")
         file = open(filePath, 'w')
-        json.dump(bioOutObj, file, indent=4, separators=(',', ': '))
+        json.dump(metaObj, file, indent=4, separators=(',', ': '))
         num_files_written += 1
         file.close()
 
     return num_files_written
-
-
-def writeAnalysisOutput(donorAnaMap, outputDir):
-    num_files_written = 0
-    for donor_uuid in donorAnaMap.keys():
-        donorDir = os.path.join(outputDir, donor_uuid)
-        mkdir_p(donorDir)
-
-        anaObjs = donorAnaMap[donor_uuid]
-        sampleNameVersionMapping = {}
-        for idx in xrange(len(anaObjs)):
-            anaObj = anaObjs[idx]
-            anaOutObj = {}
-            anaOutObj["parent_uuids"] = []
-            anaOutObj["parent_uuids"].append(anaObj["sample_uuid"])
-            anaOutObj["workflow_name"] = anaObj["workflow_name"]
-            anaOutObj["workflow_version"] = anaObj["workflow_version"]
-            anaOutObj["analysis_type"] = anaObj["analysis_type"]
-            anaOutObj["workflow_outputs"] = {}
-
-            underscore_filename = anaObj["file_path"].replace('.', '_')
-            file_type = anaObj["file_type"]
-            file_path = anaObj["file_path"]
-
-            key = json.dumps(anaOutObj)
-            if not key in sampleNameVersionMapping.keys():
-                sampleNameVersionMapping[key] = anaOutObj
-
-            workflow_outputs = sampleNameVersionMapping[key]["workflow_outputs"]
-            workflow_outputs[underscore_filename] = {}
-            workflow_outputs[underscore_filename]["file_type_label"] = file_type
-            workflow_outputs[underscore_filename]["file_path"] = file_path
-
-            keys = sampleNameVersionMapping.keys()
-        for idx in xrange(len(keys)):
-            key = keys[idx]
-            anaOutObj = sampleNameVersionMapping[key]
-
-            # write analysis.json
-            filePath = os.path.join(donorDir, str(idx) + "analysis.json")
-            file = open(filePath, 'w')
-            json.dump(anaOutObj, file, indent=4, separators=(',', ': '))
-            num_files_written += 1
-            file.close()
-
-    return num_files_written
-
 
 #:####################################
 
@@ -312,17 +303,10 @@ def main():
     log('options:\t%s\n' % (str(options)))
     log('args:\t%s\n' % (str(args)))
 
-    # load bio schema
-    bioSchema = loadJsonSchema(options.biospecimenSchemaFileName)
+    # load flattened metadata schema
+    metadataSchema = loadJsonSchema(options.metadataSchemaFileName)
 
-    # load analysis schema
-    analysisSchema = loadJsonSchema(options.analysisSchemaFileName)
-
-    # map donor_uuid to map of specimen_uuid to map of sample_uuid to list of bioObj
-    donorSpecSampleBioMap = {}
-
-    # map donor_uuid to list of anaObj
-    donorAnaMap = {}
+    metadataObjs = []
 
     # iter over input files
     for fileName in args:
@@ -338,40 +322,15 @@ def main():
             fileDataList = processFieldNames(reader)
 
         for data in fileDataList:
-            # build and validate bio obj
-            bioObj = getDataObj(data, bioSchema)
-
-            # build and validate analysis obj
-            anaObj = getDataObj(data, analysisSchema)
-
-            # organize the data for assembling output objects
-            bioDonor = bioObj["donor_uuid"]
-            bioSpec = bioObj["specimen_uuid"]
-            bioSample = bioObj["sample_uuid"]
-            anaSample = anaObj["sample_uuid"]
-
-            if (bioSample != anaSample):
-                sys.stderr.write("sample_uuid mismatch: %s != %s\n" % (bioSample, anaSample))
+            metaObj = getDataObj(data, metadataSchema)
+            
+            if metaObj == None:
                 continue
 
-            if (not bioDonor in donorSpecSampleBioMap.keys()):
-                donorSpecSampleBioMap[bioDonor] = {}
-
-            if (not bioSpec in donorSpecSampleBioMap[bioDonor].keys()):
-                donorSpecSampleBioMap[bioDonor][bioSpec] = {}
-
-            if (not bioSample in donorSpecSampleBioMap[bioDonor][bioSpec].keys()):
-                donorSpecSampleBioMap[bioDonor][bioSpec][bioSample] = Set()
-
-            donorSpecSampleBioMap[bioDonor][bioSpec][bioSample].add(json.dumps(bioObj))
-
-            if (not bioDonor in donorAnaMap.keys()):
-                donorAnaMap[bioDonor] = []
-
-            donorAnaMap[bioDonor].append(anaObj)
+            metadataObjs.append(metaObj)
 
     # write output
-    num_files_written = writeOutput(donorSpecSampleBioMap, donorAnaMap, options.metadataOutDir)
+    num_files_written = writeOutput(metadataObjs, options.metadataOutDir)
     sys.stderr.write("%s metadata files written to %s\n" % (str(num_files_written), options.metadataOutDir))
 
     if (options.skip_upload):
