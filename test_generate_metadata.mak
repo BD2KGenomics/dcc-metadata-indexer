@@ -7,7 +7,6 @@ test2:
 	python ./generate_metadata.py \
 		-v \
 		--metadataSchema metadata_flattened.json \
-		--skip-upload \
 		$(XL_FILE) \
 	;
 
@@ -22,4 +21,5 @@ test:
 		1.tmp $(XL_FILE) \
 	;
 	\
-
+	rm -f 1.tmp ;
+	\
