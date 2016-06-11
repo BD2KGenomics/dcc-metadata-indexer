@@ -313,6 +313,7 @@ def uploadViaScript(uploadFilePath):
 
     previous_wd = os.getcwd()
     os.chdir("ucsc-storage-client")
+    log("now in %s\n" % (os.getcwd()))
 
     fullFilePath = os.path.join(previous_wd, uploadFilePath)
 
@@ -323,8 +324,10 @@ def uploadViaScript(uploadFilePath):
         log("missing file: %s\n" % ("ucsc-upload.sh"))
 
     command = ["bash", "ucsc-upload.sh", str(fullFilePath)]
+    command = " ".join(command)
+    log("command:\t%s\n" % (command))
     try:
-        output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=False)
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
 #         output = "Uploading object: '/private/var/folders/0_/6dtmmwcx7x16sdjhxshdcjrh0000gn/T/tmp.19jNUYs0/upload/61569BEE-7AFE-42C6-8EA4-00714D29027C/normal.bam' using the object id 92bd77fb-18bf-5db6-8b9f-611cb3df0dd4"
         log("output:%s\n" % (str(output)))
     except Exception as exc:
