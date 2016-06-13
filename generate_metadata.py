@@ -22,12 +22,10 @@ import subprocess
 
 # methods and functions
 
-def prettyJson(obj):
-    s = json.dumps(obj, sort_keys=True, indent=4, separators=(',', ': '))
-    return s
-
 def getOptions():
-    "parse options"
+    """
+    parse options
+    """
     usage_text = []
     usage_text.append("%prog [options] [input Excel or tsv files]")
     usage_text.append("Data will be read from 'Sheet1' in the case of Excel file.")
@@ -52,23 +50,37 @@ def getOptions():
 
 
 def log(msg, die=False):
+    """
+    Simple logger.
+    """
     if (verbose | die):
         sys.stderr.write(msg)
     if die:
         sys.exit(1)
 
-
-def loadJsonSchema(fileName):
+def loadJsonObj(fileName):
+    """
+    Load a json object from a file.
+    """
     try:
         file = open(fileName, "r")
-        schema = json.load(file)
+        object = json.load(file)
         file.close()
     except Exception as exc:
         log("Exception:%s\n" % (str(exc)), die=True)
+    return object
+
+def loadJsonSchema(fileName):
+    """
+    Load a json schema (actually just an object) from a file.
+    """
+    schema = loadJsonObj(fileName)
     return schema
 
-
 def validateObjAgainstJsonSchema(obj, schema):
+    """
+    Validate an object against a schema.
+    """
     try:
         jsonschema.validate(obj, schema)
     except Exception as exc:
@@ -78,6 +90,9 @@ def validateObjAgainstJsonSchema(obj, schema):
 
 
 def readFileLines(filename, strip=True):
+    """
+    Convenience method for getting an array of fileLines from a file.
+    """
     fileLines = []
     file = open(filename, 'r')
     for line in file.readlines():
@@ -89,19 +104,26 @@ def readFileLines(filename, strip=True):
 
 
 def readTsv(fileLines, d="\t"):
+    """
+    convenience method for reading TSV file lines into csv.DictReader obj.
+    """
     reader = csv.DictReader(fileLines, delimiter=d)
     return reader
 
 
 def normalizePropertyName(inputStr):
-    "field names in the schema are all lower-snake-case"
+    """
+    field names in the schema are all lower-snake-case
+    """
     newStr = inputStr.lower()
     newStr = newStr.replace(" ", "_")
     return newStr
 
 
 def processFieldNames(dictReaderObj):
-    "normalize the field names in a DictReader obj"
+    """
+    normalize the field names in a DictReader obj
+    """
     newDataList = []
     for dict in dictReaderObj:
         newDict = {}
@@ -113,6 +135,9 @@ def processFieldNames(dictReaderObj):
 
 
 def setUuids(dataObj):
+    """
+    Set donor_uuid, specimen_uuid, and sample_uuid for dataObj. Uses uuid.uuid5().
+    """
     keyFieldsMapping = {}
     keyFieldsMapping["donor_uuid"] = ["center_name", "submitter_donor_id"]
 
@@ -134,7 +159,10 @@ def setUuids(dataObj):
 
 
 def getDataObj(dict, schema):
-    "Pull data out from dict. Use the flattened schema to get the key names as well as validate."
+    """
+    Pull data out from dict. Use the flattened schema to get the key names as well as validate.
+    If validation fails, return None.
+    """
     setUuids(dict)
 
     propNames = schema["properties"].keys()
@@ -152,7 +180,10 @@ def getDataObj(dict, schema):
 
 
 def getDataDictFromXls(fileName):
-    "can open .xlsx,.xlsm,.xltx,.xltm"
+    """
+    Get list of dict objects from .xlsx,.xlsm,.xltx,.xltm.
+    Looks in "Sheet1".
+    """
     log("attempt to read %s as xls file\n" % (fileName))
     workbook = openpyxl.load_workbook(fileName)
     sheetNames = workbook.get_sheet_names()
@@ -186,6 +217,9 @@ def getDataDictFromXls(fileName):
 
 
 def mkdir_p(path):
+    """
+    mkdir -p
+    """
     try:
         os.makedirs(path)
     except OSError as exc:  # Python >2.5
@@ -196,6 +230,11 @@ def mkdir_p(path):
     return None
 
 def getObj(dataObjs, queryObj):
+    """
+    Check to see if queryObj is contained in some object in dataObjs by checking for identical key:value pairs.
+    If match is found, return the matched object in dataObjs.
+    If no match is found, return None.
+    """
     for dataObj in dataObjs:
         foundMismatch = False
         for key in queryObj.keys():
@@ -212,6 +251,12 @@ def getObj(dataObjs, queryObj):
     return None
 
 def writeOutput(metadataObjs, outputDir):
+    """
+    For each flattened metadata object:
+       1. Build up a metadataObj with correct structure.
+       2. Write metadataObj to metadata.json file.
+       3. Return number of files written.
+    """
     num_files_written = 0
 
     commonObjMap = {}
@@ -283,6 +328,9 @@ def writeOutput(metadataObjs, outputDir):
     return num_files_written
 
 def writeJson(directory, fileName, jsonObj):
+    """
+    Dump a json object to the specified directory/fileName. Creates directory if necessary.
+    """
     success = None
     # write metadata.json:
     try:
@@ -300,15 +348,24 @@ def writeJson(directory, fileName, jsonObj):
 
 # parse output to retrieve "object id"
 def parseUploadOutputForObjectIds(output):
+    """
+    1. Parse the output from ucsc-upload.sh to get the object id of the upload.
+    2. Return the discovered object ids.
+    """
     ids = []
     for outputLine in output.split("\n"):
-        fields = outputLine.split("object id")
+        fields = outputLine.split("using the object id")
         if len(fields) == 2:
             objectId = fields[1].strip()
             ids.append(objectId)
     return ids
 
 def uploadSingleFileViaScript(uploadFilePath):
+    """
+    1. Upload a single file with the ucsc-storage-client/ucsc-upload.sh script.
+    2. Parse the output from ucsc-upload.sh to get the object id of the upload.
+    3. Return the object id.
+    """
     upload_uuid = None
 
     fullFilePath = os.path.join(os.getcwd(), uploadFilePath)
@@ -349,6 +406,11 @@ def uploadSingleFileViaScript(uploadFilePath):
     return upload_uuid
 
 def uploadWorkflowOutputFiles(metadataObj, dirName):
+    """
+    1. Find workflow_outputs.
+    2. Upload each output file
+    3. Update metadataObj with file_uuid of upload
+    """
     num_uploads = 0
     for specimen in metadataObj["specimen"]:
         specimen_uuid = specimen["specimen_uuid"]
@@ -426,9 +488,7 @@ def main():
             if (fileName == "metadata.json"):
                 log('\tfound %s\n' % fileName)
                 filePath = os.path.join(dirName, fileName)
-                file = open(filePath, "r")
-                metadataObj = json.load(file)
-                file.close()
+                metadataObj = loadJsonObj(filePath)
 
                 uploadCounts["workflowOutputs"] += uploadWorkflowOutputFiles(metadataObj, dirName)
                 uploadCounts["metadataJson"] += writeJson(dirName, fileName, metadataObj)
