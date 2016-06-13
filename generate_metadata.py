@@ -308,14 +308,10 @@ def parseUploadOutputForObjectIds(output):
             ids.append(objectId)
     return ids
 
-def uploadViaScript(uploadFilePath):
+def uploadSingleFileViaScript(uploadFilePath):
     upload_uuid = None
 
-    previous_wd = os.getcwd()
-    os.chdir("ucsc-storage-client")
-    log("now in %s\n" % (os.getcwd()))
-
-    fullFilePath = os.path.join(previous_wd, uploadFilePath)
+    fullFilePath = os.path.join(os.getcwd(), uploadFilePath)
 
     # check correct file paths
     if not os.path.isfile(fullFilePath):
@@ -323,18 +319,23 @@ def uploadViaScript(uploadFilePath):
     if not os.path.isfile("ucsc-upload.sh"):
         log("missing file: %s\n" % ("ucsc-upload.sh"))
 
-    command = ["bash", "ucsc-upload.sh", str(fullFilePath)]
+    command = ["/bin/bash", "ucsc-upload.sh", str(fullFilePath)]
     command = " ".join(command)
     log("command:\t%s\n" % (command))
     try:
-        output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
-#         output = "Uploading object: '/private/var/folders/0_/6dtmmwcx7x16sdjhxshdcjrh0000gn/T/tmp.19jNUYs0/upload/61569BEE-7AFE-42C6-8EA4-00714D29027C/normal.bam' using the object id 92bd77fb-18bf-5db6-8b9f-611cb3df0dd4"
+        # subprocess.check_output captures output
+#         output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
+        # subprocess.check_call captures return code only
+        returnCode = subprocess.check_call(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
+        log("returnCode: %s\n" % (returnCode))
+        # faking some return output
+        output = "Uploading object: '/private/var/folders/0_/6dtmmwcx7x16sdjhxshdcjrh0000gn/T/tmp.19jNUYs0/upload/61569BEE-7AFE-42C6-8EA4-00714D29027C/normal.bam' using the object id 92bd77fb-18bf-5db6-8b9f-611cb3df0dd4"
         log("output:%s\n" % (str(output)))
     except Exception as exc:
         sys.stderr.write("ERROR while uploading %s: %s\n" % (uploadFilePath, str(exc)))
         output = ""
     finally:
-        os.chdir(previous_wd)
+        log("done uploading %s\n" % (uploadFilePath))
 
     ids = parseUploadOutputForObjectIds(output)
     log("ids:%s\n" % (str(ids)))
@@ -357,7 +358,7 @@ def uploadWorkflowOutputFiles(metadataObj, dirName):
                 workflow_name = workflow["workflow_name"]
                 workflow_version = workflow["workflow_version"]
                 for workflow_output in workflow["workflow_outputs"]:
-                    file_uuid = uploadViaScript(workflow_output["file_path"])
+                    file_uuid = uploadSingleFileViaScript(workflow_output["file_path"])
                     if (file_uuid != None):
                         # upload failed
                         num_uploads += 1
