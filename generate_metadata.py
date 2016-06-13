@@ -4,6 +4,7 @@
 # MAY2016	chrisw
 
 # imports
+import logging
 from optparse import OptionParser
 import sys
 import csv
@@ -48,16 +49,6 @@ def getOptions():
 
     return (options, args, parser)
 
-
-def log(msg, die=False):
-    """
-    Simple logger.
-    """
-    if (verbose | die):
-        sys.stderr.write(msg)
-    if die:
-        sys.exit(1)
-
 def loadJsonObj(fileName):
     """
     Load a json object from a file.
@@ -67,7 +58,7 @@ def loadJsonObj(fileName):
         object = json.load(file)
         file.close()
     except Exception as exc:
-        log("Exception:%s\n" % (str(exc)), die=True)
+        logging.exception("loadJsonObj")
     return object
 
 def loadJsonSchema(fileName):
@@ -84,7 +75,7 @@ def validateObjAgainstJsonSchema(obj, schema):
     try:
         jsonschema.validate(obj, schema)
     except Exception as exc:
-        sys.stderr.write("Exception:%s\n" % (str(exc)))
+        logging.error("jsonschema.validate FAILED in validateObjAgainstJsonSchema: %s" % (str(exc)))
         return False
     return True
 
@@ -175,7 +166,7 @@ def getDataObj(dict, schema):
     if (isValid):
         return dataObj
     else:
-        sys.stderr.write("validation FAILED for \t%s\n" % (json.dumps(dataObj, sort_keys=True, indent=4, separators=(',', ': '))))
+        logging.error("validation FAILED for \t%s\n" % (json.dumps(dataObj, sort_keys=True, indent=4, separators=(',', ': '))))
         return None
 
 
@@ -184,10 +175,10 @@ def getDataDictFromXls(fileName):
     Get list of dict objects from .xlsx,.xlsm,.xltx,.xltm.
     Looks in "Sheet1".
     """
-    log("attempt to read %s as xls file\n" % (fileName))
+    logging.debug("attempt to read %s as xls file\n" % (fileName))
     workbook = openpyxl.load_workbook(fileName)
     sheetNames = workbook.get_sheet_names()
-    log("sheetNames:\t%s\n" % (str(sheetNames)))
+    logging.debug("sheetNames:\t%s\n" % (str(sheetNames)))
 
     # Hopefully, it will always be "Sheet1" !
     worksheet = workbook.get_sheet_by_name("Sheet1")
@@ -340,7 +331,7 @@ def writeJson(directory, fileName, jsonObj):
         json.dump(jsonObj, file, indent=4, separators=(',', ': '), sort_keys=True)
         success = 1
     except Exception as exc:
-        sys.stderr.write("ERROR writing %s/%s\n" % (directory, fileName))
+        logging.exception("ERROR writing %s/%s\n" % (directory, fileName))
         success = 0
     finally:
         file.close()
@@ -372,34 +363,34 @@ def uploadSingleFileViaScript(uploadFilePath):
 
     # check correct file paths
     if not os.path.isfile(fullFilePath):
-        log("missing file: %s\n" % (fullFilePath))
+        logging.error("missing file: %s\n" % (fullFilePath))
     if not os.path.isfile("ucsc-upload.sh"):
-        log("missing file: %s\n" % ("ucsc-upload.sh"))
+        logging.critical("missing file: %s\n" % ("ucsc-upload.sh"))
 
     command = ["/bin/bash", "ucsc-upload.sh", str(fullFilePath)]
     command = " ".join(command)
-    log("command:\t%s\n" % (command))
+    logging.debug("command:\t%s\n" % (command))
     try:
         # subprocess.check_output captures output
 #         output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
         # subprocess.check_call captures return code only
         returnCode = subprocess.check_call(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
-        log("returnCode: %s\n" % (returnCode))
+        logging.debug("returnCode: %s\n" % (returnCode))
         # faking some return output
         output = "Uploading object: '/private/var/folders/0_/6dtmmwcx7x16sdjhxshdcjrh0000gn/T/tmp.19jNUYs0/upload/61569BEE-7AFE-42C6-8EA4-00714D29027C/normal.bam' using the object id 92bd77fb-18bf-5db6-8b9f-611cb3df0dd4"
-        log("output:%s\n" % (str(output)))
+        logging.debug("output:%s\n" % (str(output)))
     except Exception as exc:
-        sys.stderr.write("ERROR while uploading %s: %s\n" % (uploadFilePath, str(exc)))
+        logging.exception("ERROR while uploading %s: %s\n" % (uploadFilePath, str(exc)))
         output = ""
     finally:
-        log("done uploading %s\n" % (uploadFilePath))
+        logging.info("done uploading %s\n" % (uploadFilePath))
 
     ids = parseUploadOutputForObjectIds(output)
-    log("ids:%s\n" % (str(ids)))
+    logging.info("ids:%s\n" % (str(ids)))
     if (len(ids) == 0):
-        sys.stderr.write("didn't get any object id for %s\n" % (fullFilePath))
+        logging.error("didn't get any object id for %s\n" % (fullFilePath))
     elif (len(ids) > 1):
-        sys.stderr.write("got multiple object ids for %s: %s\n" % (fullFilePath, str(ids)))
+        logging.error("got multiple object ids for %s: %s\n" % (fullFilePath, str(ids)))
     elif len(ids) == 1:
         upload_uuid = ids[0]
 
@@ -430,7 +421,6 @@ def uploadWorkflowOutputFiles(metadataObj, dirName):
 #:####################################
 
 def main():
-    global verbose
     (options, args, parser) = getOptions()
 
     if len(args) == 0:
@@ -438,8 +428,10 @@ def main():
         sys.exit(1)
 
     verbose = options.verbose
-    log('options:\t%s\n' % (str(options)))
-    log('args:\t%s\n' % (str(args)))
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    logging.debug('options:\t%s\n' % (str(options)))
+    logging.debug('args:\t%s\n' % (str(args)))
 
     # load flattened metadata schema
     metadataSchema = loadJsonSchema(options.metadataSchemaFileName)
@@ -453,8 +445,8 @@ def main():
             fileDataList = getDataDictFromXls(fileName)
         except Exception as exc:
             # attempt to process as tsv file
-            sys.stderr.write("couldn't read %s as excel file\n" % fileName)
-            sys.stderr.write("---now trying to read as tsv file\n")
+            logging.info("couldn't read %s as excel file\n" % fileName)
+            logging.info("---now trying to read as tsv file\n")
             fileLines = readFileLines(fileName)
             reader = readTsv(fileLines)
             fileDataList = processFieldNames(reader)
@@ -474,7 +466,7 @@ def main():
     if (options.skip_upload):
         return None
 
-    log("Now attempting to upload data.\n")
+    sys.stderr.write("Now attempting to upload data.\n")
 
     # TODO: so this upload mechanism is not great, need to cleanup, need to use symlinks since cp will take a long time on big files
     uploadCounts = {}
@@ -483,10 +475,10 @@ def main():
     for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
         if dirName == options.metadataOutDir:
             continue
-        log('looking in directory: %s\n' % dirName)
+        sys.stderr.write('looking in directory: %s\n' % dirName)
         for fileName in fileList:
             if (fileName == "metadata.json"):
-                log('\tfound %s\n' % fileName)
+                sys.stderr.write('\tfound %s\n' % fileName)
                 filePath = os.path.join(dirName, fileName)
                 metadataObj = loadJsonObj(filePath)
 
