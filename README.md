@@ -70,7 +70,7 @@ for the tarball.
 If you have the directory setup and don't pass in `--skip-upload` the upload will take place.  Keep this in
 mind if you're just testing the metadata components and don't want to create a ton of uploads.  If you upload
 the fact data linked to from the `sample.tsv` the program and project will both be TEST which should make
-it easy to avoid in the future.
+it easy to avoid in the future. The file is based on [this](https://docs.google.com/spreadsheets/d/13fqil92C-Evi-4cy_GTnzNMmrD0ssuSCx3-cveZ4k70/edit?usp=sharing) google doc.
 
 ## Run Merge and Generate Elasticsearch Index
 
