@@ -51,9 +51,12 @@ TSV to JSON tool and this will ultimately form the basis of our helper applicati
 that clients will use in the field to prepare their samples.
 
     python generate_metadata.py -v \
+                --skip-upload \
 		--biospecimenSchema biospecimen_flattened.json \
 		--analysisSchema analysis_flattened.json \
 		sample_tsv/sample.tsv
+
+Take out `--skip-upload` if you want to perform upload, see below for more details.
 
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
