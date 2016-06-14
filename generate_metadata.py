@@ -364,8 +364,8 @@ def uploadSingleFileViaScript(uploadFilePath):
     # check correct file paths
     if not os.path.isfile(fullFilePath):
         logging.error("missing file: %s\n" % (fullFilePath))
-    if not os.path.isfile("ucsc-upload.sh"):
-        logging.critical("missing file: %s\n" % ("ucsc-upload.sh"))
+    if not os.path.isfile("ucsc-storage-client/ucsc-upload.sh"):
+        logging.critical("missing file: %s\n" % ("ucsc-storage-client/ucsc-upload.sh"))
 
     command = ["/bin/bash", "ucsc-upload.sh", str(fullFilePath)]
     command = " ".join(command)
@@ -424,7 +424,7 @@ def main():
     (options, args, parser) = getOptions()
 
     if len(args) == 0:
-        sys.stderr.write("no input files\n")
+        logging.critical("no input files\n")
         sys.exit(1)
 
     verbose = options.verbose
