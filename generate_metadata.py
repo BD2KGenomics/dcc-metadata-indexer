@@ -551,6 +551,9 @@ def main():
 
     if (options.skip_upload):
         return None
+    else:
+        logging.critical("UPLOADING DISABLED")
+        return None
 
     sys.stderr.write("Now attempting to upload data.\n")
 
