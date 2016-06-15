@@ -379,7 +379,7 @@ def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
         timestamp = donorLevelObj["timestamp"]
         schema_version = donorLevelObj["schema_version"]
         donorPath = os.path.join(outputDir, donorLevelObj["donor_uuid"])
-        numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
+#         numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
         specimens = donorLevelObj["specimen"]
         for specimen in donorLevelObj["specimen"]:
            for sample in specimen["samples"]:
