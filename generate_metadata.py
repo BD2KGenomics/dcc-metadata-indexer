@@ -305,18 +305,18 @@ def getDonorLevelObjects(metadataObjs):
             analysis_type = metaObj["analysis_type"]
             storedSampleObj[analysis_type] = workFlowObj
             storedWorkFlowObj = getObj(storedSampleObj.values(), workFlowObj)
-            storedWorkFlowObj["workflow_outputs"] = {}
+            storedWorkFlowObj["workflow_outputs"] = []
 
         # add file info
-        underscore_filename = metaObj["file_path"].replace('.', '_')
+        fileInfoObj = {}
+        fileInfoObj["file_type"] = metaObj["file_type"]
+        fileInfoObj["file_path"] = metaObj["file_path"]
 
-        if underscore_filename in storedWorkFlowObj["workflow_outputs"].keys():
-            logging.warning("skipping duplicate workflow_output for %s" % (json.dumps(metaObj, indent=4, separators=(',', ': '), sort_keys=True)))
-            continue
+        storedFileInfoObj = getObj(storedWorkFlowObj["workflow_outputs"] , fileInfoObj)
+        if storedFileInfoObj == None:
+            storedWorkFlowObj["workflow_outputs"].append(fileInfoObj)
         else:
-            storedWorkFlowObj["workflow_outputs"][underscore_filename] = {}
-            storedWorkFlowObj["workflow_outputs"][underscore_filename]["file_type"] = metaObj["file_type"]
-            storedWorkFlowObj["workflow_outputs"][underscore_filename]["file_path"] = metaObj["file_path"]
+            logging.warning("skipping duplicate workflow_output for %s" % (json.dumps(metaObj, indent=4, separators=(',', ': '), sort_keys=True)))
 
     return commonObjMap.values()
 
