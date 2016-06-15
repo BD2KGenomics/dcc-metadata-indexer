@@ -153,6 +153,17 @@ def setUuids(dataObj):
         s = "".join(keyList).encode('ascii', 'ignore').lower()
         dataObj[uuidName] = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
 
+def getWorkflowUuid(sample_uuid, workflow_name, workflow_version):
+    """
+    Get a workflowUuid for use in this script.
+    """
+    keyList = []
+    keyList.append(sample_uuid)
+    keyList.append(workflow_name)
+    keyList.append(workflow_version)
+    s = "".join(keyList).encode('ascii', 'ignore').lower()
+    workflowUuid = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
+    return workflowUuid
 
 def getDataObj(dict, schema):
     """
@@ -175,18 +186,16 @@ def getDataObj(dict, schema):
         return None
 
 
-def getDataDictFromXls(fileName):
+def getDataDictFromXls(fileName, sheetName="Sheet1"):
     """
     Get list of dict objects from .xlsx,.xlsm,.xltx,.xltm.
-    Looks in "Sheet1".
     """
     logging.debug("attempt to read %s as xls file\n" % (fileName))
     workbook = openpyxl.load_workbook(fileName)
     sheetNames = workbook.get_sheet_names()
     logging.debug("sheetNames:\t%s\n" % (str(sheetNames)))
 
-    # Hopefully, it will always be "Sheet1" !
-    worksheet = workbook.get_sheet_by_name("Sheet1")
+    worksheet = workbook.get_sheet_by_name(sheetName)
 
     headerRow = worksheet.rows[0]
     dataRows = worksheet.rows[1:]
@@ -221,11 +230,11 @@ def ln_s(file_path, link_path):
     except OSError as exc:
         if exc.errno == errno.EEXIST:
             if os.path.isdir(link_path):
-                logging.error("ln_s\t%s is an existing directory" % (link_path))
+                logging.error("ln_s\t linking failed -> %s is an existing directory" % (link_path))
             elif os.path.isfile(link_path):
-                logging.error("ln_s\t%s is an existing file" % (link_path))
+                logging.error("ln_s\t linking failed -> %s is an existing file" % (link_path))
             elif os.path.islink(link_path):
-                logging.error("ln_s\t%s is an existing link" % (link_path))
+                logging.error("ln_s\t linking failed -> %s is an existing link" % (link_path))
         else:
             logging.error("raising error")
             raise
@@ -360,7 +369,6 @@ def writeJson(directory, fileName, jsonObj):
 
 def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
     """
-    TODO
     For each structuredDonorLevelObj...
       1. extract and write the biospecimen.json
       2. extract and write the metadata.json files for each workflow
@@ -371,7 +379,7 @@ def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
         timestamp = donorLevelObj["timestamp"]
         schema_version = donorLevelObj["schema_version"]
         donorPath = os.path.join(outputDir, donorLevelObj["donor_uuid"])
-#         numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
+        numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
         specimens = donorLevelObj["specimen"]
         for specimen in donorLevelObj["specimen"]:
            for sample in specimen["samples"]:
@@ -396,14 +404,15 @@ def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
                        # link data file(s)
                        for file_info in workflowObj["workflow_outputs"]:
                            file_path = file_info["file_path"]
-                           full_file_path = os.path.join(os.getcwd(), file_path)
-                           file_name = os.path.basename(file_path)
-                           link_path = os.path.join(donorPath, file_name)
+                           fullFilePath = os.path.join(os.getcwd(), file_path)
+                           filename = os.path.basename(file_path)
+                           linkPath = os.path.join(donorPath, filename)
                            mkdir_p(donorPath)
-                           ln_s(full_file_path, link_path)
+                           ln_s(fullFilePath, linkPath)
 
                        # write json file
-                       numFilesWritten += writeJson(donorPath, analysis_type + ".json", workflowObj)
+                       workflowUuid = getWorkflowUuid(sample_uuid, workflowObj["workflow_name"], workflowObj["workflow_version"])
+                       numFilesWritten += writeJson(donorPath, workflowUuid + "_" + analysis_type + ".json", workflowObj)
                    else:
                        continue
 
