@@ -17,6 +17,7 @@ import uuid
 from sets import Set
 # import shutil
 import subprocess
+import time
 
 
 # import re
@@ -48,6 +49,10 @@ def getOptions():
     (options, args) = parser.parse_args()
 
     return (options, args, parser)
+
+def getTimestamp():
+    stamp = time.time()
+    return stamp
 
 def loadJsonObj(fileName):
     """
@@ -228,6 +233,8 @@ def getObj(dataObjs, queryObj):
     """
     for dataObj in dataObjs:
         foundMismatch = False
+        if not isinstance(dataObj, dict):
+            continue
         for key in queryObj.keys():
             queryVal = queryObj[key]
             dataVal = dataObj[key]
@@ -241,12 +248,9 @@ def getObj(dataObjs, queryObj):
     
     return None
 
-def writeOutput(metadataObjs, outputDir):
+def getDonorLevelObjects(metadataObjs):
     """
-    For each flattened metadata object:
-       1. Build up a metadataObj with correct structure.
-       2. Write metadataObj to metadata.json file.
-       3. Return number of files written.
+    For each flattened metadata object, build up a metadataObj with correct structure.
     """
     num_files_written = 0
 
@@ -264,6 +268,8 @@ def writeOutput(metadataObjs, outputDir):
         commonObjS = json.dumps(commonObj, sort_keys=True)
         if not commonObjS in commonObjMap.keys():
             commonObjMap[commonObjS] = commonObj
+            commonObjMap[commonObjS]["timestamp"] = getTimestamp()
+            commonObjMap[commonObjS]["schema_version"] = "0.0.1"
 
         # add specimen
         specObj = {}
@@ -287,7 +293,6 @@ def writeOutput(metadataObjs, outputDir):
         if storedSampleObj == None:
             storedSpecObj["samples"].append(sampleObj)
             storedSampleObj = getObj(storedSpecObj["samples"], sampleObj)
-            storedSampleObj["workflows"] = []
 
         # add workflow
         workFlowObj = {}
@@ -295,35 +300,31 @@ def writeOutput(metadataObjs, outputDir):
         workFlowObj["workflow_version"] = metaObj["workflow_version"]
         workFlowObj["analysis_type"] = metaObj["analysis_type"]
 
-        storedWorkFlowObj = getObj(storedSampleObj["workflows"], workFlowObj)
+        storedWorkFlowObj = getObj(storedSampleObj.values(), workFlowObj)
         if storedWorkFlowObj == None:
-            storedSampleObj["workflows"].append(workFlowObj)
-            storedWorkFlowObj = getObj(storedSampleObj["workflows"], workFlowObj)
-            storedWorkFlowObj["workflow_outputs"] = []
+            analysis_type = metaObj["analysis_type"]
+            storedSampleObj[analysis_type] = workFlowObj
+            storedWorkFlowObj = getObj(storedSampleObj.values(), workFlowObj)
+            storedWorkFlowObj["workflow_outputs"] = {}
 
         # add file info
-        fileInfoObj = {}
-        fileInfoObj["file_type"] = metaObj["file_type"]
-        fileInfoObj["file_path"] = metaObj["file_path"]
+        underscore_filename = metaObj["file_path"].replace('.', '_')
 
-        storedFileInfoObj = getObj(storedWorkFlowObj["workflow_outputs"], fileInfoObj)
-        if storedFileInfoObj == None:
-            storedWorkFlowObj["workflow_outputs"].append(fileInfoObj)
+        if underscore_filename in storedWorkFlowObj["workflow_outputs"].keys():
+            logging.warning("skipping duplicate workflow_output for %s" % (json.dumps(metaObj, indent=4, separators=(',', ': '), sort_keys=True)))
+            continue
+        else:
+            storedWorkFlowObj["workflow_outputs"][underscore_filename] = {}
+            storedWorkFlowObj["workflow_outputs"][underscore_filename]["file_type"] = metaObj["file_type"]
+            storedWorkFlowObj["workflow_outputs"][underscore_filename]["file_path"] = metaObj["file_path"]
 
-    # write files
-    for metaObj in commonObjMap.values():
-        donor_uuid = metaObj["donor_uuid"]
-        donorDir = os.path.join(outputDir, donor_uuid)
-
-        num_files_written += writeJson(donorDir, "metadata.json", metaObj)
-    return num_files_written
+    return commonObjMap.values()
 
 def writeJson(directory, fileName, jsonObj):
     """
     Dump a json object to the specified directory/fileName. Creates directory if necessary.
     """
     success = None
-    # write metadata.json:
     try:
         mkdir_p(directory)
         filePath = os.path.join(directory, fileName)
@@ -336,6 +337,16 @@ def writeJson(directory, fileName, jsonObj):
     finally:
         file.close()
     return success
+
+def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
+    """
+    TODO
+    """
+    numFilesWritten = 0
+    for donorLevelObj in structuredDonorLevelObjs:
+        donorPath = os.path.join(outputDir, donorLevelObj["donor_uuid"])
+        numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
+    return numFilesWritten
 
 # parse output to retrieve "object id"
 def parseUploadOutputForObjectIds(output):
@@ -436,7 +447,7 @@ def main():
     # load flattened metadata schema
     metadataSchema = loadJsonSchema(options.metadataSchemaFileName)
 
-    metadataObjs = []
+    flatMetadataObjs = []
 
     # iter over input files
     for fileName in args:
@@ -457,11 +468,14 @@ def main():
             if metaObj == None:
                 continue
 
-            metadataObjs.append(metaObj)
+            flatMetadataObjs.append(metaObj)
 
-    # write output
-    num_files_written = writeOutput(metadataObjs, options.metadataOutDir)
-    sys.stderr.write("%s metadata files written to %s\n" % (str(num_files_written), options.metadataOutDir))
+    # get structured donor-level objects
+    donorLevelObjs = getDonorLevelObjects(flatMetadataObjs)
+
+    # write biospecimen.json and metadata.json files
+    numFilesWritten = writeMetadataOutput(donorLevelObjs, options.metadataOutDir)
+    logging.info("number of files written: %s\n" % (str(numFilesWritten)))
 
     if (options.skip_upload):
         return None
