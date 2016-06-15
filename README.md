@@ -52,6 +52,7 @@ that clients will use in the field to prepare their samples.
 
     python generate_metadata.py \
 		--metadataSchema metadata_flattened.json \
+		--outputDir output_metadata \
 		sample_tsv/sample.tsv
 
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
