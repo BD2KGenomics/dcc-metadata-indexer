@@ -211,6 +211,25 @@ def getDataDictFromXls(fileName):
 
     return data
 
+def ln_s(file_path, link_path):
+    """
+    ln -s
+    note: will not clobber existing file
+    """
+    try:
+        os.symlink(file_path, link_path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST:
+            if os.path.isdir(link_path):
+                logging.error("ln_s\t%s is an existing directory" % (link_path))
+            elif os.path.isfile(link_path):
+                logging.error("ln_s\t%s is an existing file" % (link_path))
+            elif os.path.islink(link_path):
+                logging.error("ln_s\t%s is an existing link" % (link_path))
+        else:
+            logging.error("raising error")
+            raise
+    return None
 
 def mkdir_p(path):
     """
@@ -218,7 +237,7 @@ def mkdir_p(path):
     """
     try:
         os.makedirs(path)
-    except OSError as exc:  # Python >2.5
+    except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else:
@@ -323,6 +342,7 @@ def getDonorLevelObjects(metadataObjs):
 def writeJson(directory, fileName, jsonObj):
     """
     Dump a json object to the specified directory/fileName. Creates directory if necessary.
+    NOTE: will clobber the existing file
     """
     success = None
     try:
@@ -341,11 +361,54 @@ def writeJson(directory, fileName, jsonObj):
 def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
     """
     TODO
+    For each structuredDonorLevelObj...
+      1. extract and write the biospecimen.json
+      2. extract and write the metadata.json files for each workflow
+      3. link the data files
     """
     numFilesWritten = 0
     for donorLevelObj in structuredDonorLevelObjs:
+        timestamp = donorLevelObj["timestamp"]
+        schema_version = donorLevelObj["schema_version"]
         donorPath = os.path.join(outputDir, donorLevelObj["donor_uuid"])
-        numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
+#         numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
+        specimens = donorLevelObj["specimen"]
+        for specimen in donorLevelObj["specimen"]:
+           for sample in specimen["samples"]:
+               for sampleKey in sample.keys():
+                   sample_uuid = sample["sample_uuid"]
+                   obj = sample[sampleKey]
+                   if (isinstance(obj, dict)) and ("analysis_type" in obj.keys()):
+                       analysis_type = obj["analysis_type"]
+                       workflowObj = sample.pop(sampleKey)
+
+                       # update parent_uuids list...
+                       if not "parent_uuids" in sample.keys():
+                           workflowObj["parent_uuids"] = []
+                       parent_uuids_set = set(workflowObj["parent_uuids"])
+                       parent_uuids_set.add(sample_uuid)
+                       workflowObj["parent_uuids"] = list(parent_uuids_set)
+
+                       # add timestamp and schema_version from the donorLevelObj
+                       workflowObj["timestamp"] = timestamp
+                       workflowObj["schema_version"] = schema_version
+
+                       # link data file(s)
+                       for file_info in workflowObj["workflow_outputs"]:
+                           file_path = file_info["file_path"]
+                           full_file_path = os.path.join(os.getcwd(), file_path)
+                           file_name = os.path.basename(file_path)
+                           link_path = os.path.join(donorPath, file_name)
+                           mkdir_p(donorPath)
+                           ln_s(full_file_path, link_path)
+
+                       # write json file
+                       numFilesWritten += writeJson(donorPath, analysis_type + ".json", workflowObj)
+                   else:
+                       continue
+
+        numFilesWritten += writeJson(donorPath, "biospecimen.json", donorLevelObj)
+
     return numFilesWritten
 
 # parse output to retrieve "object id"
@@ -483,6 +546,7 @@ def main():
     sys.stderr.write("Now attempting to upload data.\n")
 
     # TODO: so this upload mechanism is not great, need to cleanup, need to use symlinks since cp will take a long time on big files
+    # TODO section below is very broken
     uploadCounts = {}
     uploadCounts["workflowOutputs"] = 0
     uploadCounts["metadataJson"] = 0
