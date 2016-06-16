@@ -273,7 +273,7 @@ def getObj(dataObjs, queryObj):
             continue
         else:
             return dataObj
-    
+
     return None
 
 def getDonorLevelObjects(metadataObjs):
@@ -304,7 +304,7 @@ def getDonorLevelObjects(metadataObjs):
         specObj["submitter_specimen_id"] = metaObj["submitter_specimen_id"]
         specObj["submitter_specimen_type"] = metaObj["submitter_specimen_type"]
         specObj["specimen_uuid"] = metaObj["specimen_uuid"]
-        
+
         storedSpecObj = getObj(commonObjMap[commonObjS]["specimen"], specObj)
 
         if storedSpecObj == None:
@@ -423,7 +423,7 @@ def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
 # parse output to retrieve "object id"
 def parseUploadOutputForObjectIds(output):
     """
-    1. Parse the output from ucsc-upload.sh to get the object id of the upload.
+    1. Parse the output from ucsc-upload.sh to get the object ids of the upload.
     2. Return the discovered object ids.
     """
     ids = []
@@ -431,63 +431,66 @@ def parseUploadOutputForObjectIds(output):
         fields = outputLine.split("using the object id")
         if len(fields) == 2:
             objectId = fields[1].strip()
-            ids.append(objectId)
+            objectName = fields[0].strip()
+            objectName = objectName.replace("Uploading object:", "", 1).strip()
+            objectName = objectName.replace("'", "")
+            objectInfo = {}
+            objectInfo["id"] = objectId
+            objectInfo["name"] = objectName
+            ids.append(objectInfo)
     return ids
 
-def uploadFileViaExternalScript(uploadFilePath):
+def uploadMultipleFilesViaExternalScript(filePaths):
     """
-    1. Upload a single file with the ucsc-storage-client/ucsc-upload.sh script.
-    2. Parse the output from ucsc-upload.sh to get the object id of the upload.
-    3. Return the object id.
+    1. Upload a multiple files with the ucsc-storage-client/ucsc-upload.sh script.
+    2. Parse the output from ucsc-upload.sh to get the object ids of the uploads.
+    3. Return a mapping of filePath to object id.
     """
     startTime = getTimestamp()
-    upload_uuid = None
-
-    fullFilePath = os.path.join(os.getcwd(), uploadFilePath)
 
     # check correct file paths
-    if not os.path.isfile(fullFilePath):
-        logging.error("missing file: %s\n" % (fullFilePath))
+    fullFilePaths = []
     if not os.path.isfile("ucsc-storage-client/ucsc-upload.sh"):
         logging.critical("missing file: %s\n" % ("ucsc-storage-client/ucsc-upload.sh"))
+    for filePath in filePaths:
+        fullFilePath = os.path.join(os.getcwd(), filePath)
+        if not os.path.isfile(fullFilePath):
+            logging.error("missing file: %s\n" % (fullFilePath))
+        else:
+            fullFilePaths.append(fullFilePath)
 
-    command = ["/bin/bash", "ucsc-upload.sh", str(fullFilePath)]
+    # build command string
+    command = ["/bin/bash", "ucsc-upload.sh"]
+    command.extend(fullFilePaths)
     command = " ".join(command)
     logging.debug("command:\t%s\n" % (command))
+
+    # execute script, capture output
     try:
-        # subprocess.check_output captures output
         output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
-        # subprocess.check_call captures return code only
-#         returnCode = subprocess.check_call(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
-#         logging.debug("returnCode: %s\n" % (returnCode))
-        # faking some return output
-#         output = "Uploading object: '/private/var/folders/0_/6dtmmwcx7x16sdjhxshdcjrh0000gn/T/tmp.19jNUYs0/upload/61569BEE-7AFE-42C6-8EA4-00714D29027C/normal.bam' using the object id 92bd77fb-18bf-5db6-8b9f-611cb3df0dd4"
         logging.debug("output:%s\n" % (str(output)))
     except Exception as exc:
-        logging.exception("ERROR while uploading %s: %s\n" % (uploadFilePath, str(exc)))
+        logging.exception("ERROR while uploading multiple files")
         output = ""
     finally:
-        logging.info("done uploading %s\n" % (uploadFilePath))
+        logging.info("done uploading multiple files")
 
-    ids = parseUploadOutputForObjectIds(output)
-    logging.info("ids:%s\n" % (str(ids)))
-    if (len(ids) == 0):
-        logging.error("didn't get any object id for %s\n" % (fullFilePath))
-    elif (len(ids) > 1):
-        logging.error("got multiple object ids for %s: %s\n" % (fullFilePath, str(ids)))
-    elif len(ids) == 1:
-        upload_uuid = ids[0]
+    # parse output for object ids
+    objectIdInfo = parseUploadOutputForObjectIds(output)
+    if len(objectIdInfo) != len(filePaths):
+        logging.warning("number of object IDs does not match number of upload files: %s != %s" % (str(len(objectIdInfo)), str(len(filePaths))))
 
-    runTime = getTimestamp() - startTime
+    runTime = startTime - getTimestamp()
     logging.info("upload took %s s." % (str(runTime)))
 
-    return upload_uuid
+    return objectIdInfo
 
 def uploadBiospecimenMetadata(uploadFilePath):
     """
     upload biospecimen metadata file. Returns 0 if failed, 1 if successful.s
     """
-    upload_uuid = uploadFileViaExternalScript(uploadFilePath)
+    ids = uploadMultipleFilesViaExternalScript([uploadFilePath])
+    upload_uuid = ids[0]["id"]
     logging.info("upload_uuid for %s is %s" % (uploadFilePath, upload_uuid))
     if not upload_uuid == None:
         return 1
@@ -499,7 +502,8 @@ def uploadAnalysesMetadata(uploadFilePath):
     """
     upload analysis metadata file. Returns 0 if failed, 1 if successful.s
     """
-    upload_uuid = uploadFileViaExternalScript(uploadFilePath)
+    ids = uploadMultipleFilesViaExternalScript([uploadFilePath])
+    upload_uuid = ids[0]["id"]
     logging.info("upload_uuid for %s is %s" % (uploadFilePath, upload_uuid))
     if not upload_uuid == None:
         return 1
@@ -515,7 +519,8 @@ def uploadWorkflowOutputFiles(metadataObj, dirName):
     """
     num_uploads = 0
     for workflow_output in metadataObj["workflow_outputs"]:
-        file_uuid = uploadFileViaExternalScript(workflow_output["file_path"])
+        ids = uploadMultipleFilesViaExternalScript([workflow_output["file_path"]])
+        file_uuid = ids[0]["id"]
         if (file_uuid != None):
             # upload failed
             num_uploads += 1
