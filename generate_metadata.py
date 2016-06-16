@@ -434,12 +434,13 @@ def parseUploadOutputForObjectIds(output):
             ids.append(objectId)
     return ids
 
-def uploadSingleFileViaScript(uploadFilePath):
+def uploadFileViaExternalScript(uploadFilePath):
     """
     1. Upload a single file with the ucsc-storage-client/ucsc-upload.sh script.
     2. Parse the output from ucsc-upload.sh to get the object id of the upload.
     3. Return the object id.
     """
+    startTime = getTimestamp()
     upload_uuid = None
 
     fullFilePath = os.path.join(os.getcwd(), uploadFilePath)
@@ -455,12 +456,12 @@ def uploadSingleFileViaScript(uploadFilePath):
     logging.debug("command:\t%s\n" % (command))
     try:
         # subprocess.check_output captures output
-#         output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
         # subprocess.check_call captures return code only
-        returnCode = subprocess.check_call(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
-        logging.debug("returnCode: %s\n" % (returnCode))
+#         returnCode = subprocess.check_call(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
+#         logging.debug("returnCode: %s\n" % (returnCode))
         # faking some return output
-        output = "Uploading object: '/private/var/folders/0_/6dtmmwcx7x16sdjhxshdcjrh0000gn/T/tmp.19jNUYs0/upload/61569BEE-7AFE-42C6-8EA4-00714D29027C/normal.bam' using the object id 92bd77fb-18bf-5db6-8b9f-611cb3df0dd4"
+#         output = "Uploading object: '/private/var/folders/0_/6dtmmwcx7x16sdjhxshdcjrh0000gn/T/tmp.19jNUYs0/upload/61569BEE-7AFE-42C6-8EA4-00714D29027C/normal.bam' using the object id 92bd77fb-18bf-5db6-8b9f-611cb3df0dd4"
         logging.debug("output:%s\n" % (str(output)))
     except Exception as exc:
         logging.exception("ERROR while uploading %s: %s\n" % (uploadFilePath, str(exc)))
@@ -477,7 +478,34 @@ def uploadSingleFileViaScript(uploadFilePath):
     elif len(ids) == 1:
         upload_uuid = ids[0]
 
+    runTime = getTimestamp() - startTime
+    logging.info("upload took %s s." % (str(runTime)))
+
     return upload_uuid
+
+def uploadBiospecimenMetadata(uploadFilePath):
+    """
+    upload biospecimen metadata file. Returns 0 if failed, 1 if successful.s
+    """
+    upload_uuid = uploadFileViaExternalScript(uploadFilePath)
+    logging.info("upload_uuid for %s is %s" % (uploadFilePath, upload_uuid))
+    if not upload_uuid == None:
+        return 1
+    else:
+        logging.critical("Did not get an upload_uuid for %s" % (uploadFilePath))
+        return 0
+
+def uploadAnalysesMetadata(uploadFilePath):
+    """
+    upload analysis metadata file. Returns 0 if failed, 1 if successful.s
+    """
+    upload_uuid = uploadFileViaExternalScript(uploadFilePath)
+    logging.info("upload_uuid for %s is %s" % (uploadFilePath, upload_uuid))
+    if not upload_uuid == None:
+        return 1
+    else:
+        logging.critical("Did not get an upload_uuid for %s" % (uploadFilePath))
+        return 0
 
 def uploadWorkflowOutputFiles(metadataObj, dirName):
     """
@@ -486,24 +514,18 @@ def uploadWorkflowOutputFiles(metadataObj, dirName):
     3. Update metadataObj with file_uuid of upload
     """
     num_uploads = 0
-    for specimen in metadataObj["specimen"]:
-        specimen_uuid = specimen["specimen_uuid"]
-        for sample in specimen["samples"]:
-            sample_uuid = sample["sample_uuid"]
-            for workflow in sample["workflows"]:
-                workflow_name = workflow["workflow_name"]
-                workflow_version = workflow["workflow_version"]
-                for workflow_output in workflow["workflow_outputs"]:
-                    file_uuid = uploadSingleFileViaScript(workflow_output["file_path"])
-                    if (file_uuid != None):
-                        # upload failed
-                        num_uploads += 1
-                    workflow_output["file_uuid"] = file_uuid
+    for workflow_output in metadataObj["workflow_outputs"]:
+        file_uuid = uploadFileViaExternalScript(workflow_output["file_path"])
+        if (file_uuid != None):
+            # upload failed
+            num_uploads += 1
+        workflow_output["file_uuid"] = file_uuid
     return num_uploads
 
 #:####################################
 
 def main():
+    startTimestamp = getTimestamp()
     (options, args, parser) = getOptions()
 
     if len(args) == 0:
@@ -550,33 +572,40 @@ def main():
     logging.info("number of files written: %s\n" % (str(numFilesWritten)))
 
     if (options.skip_upload):
+        sys.stderr.write("Skipping data upload steps.\n")
         return None
     else:
-        logging.critical("UPLOADING DISABLED")
-        return None
-
-    sys.stderr.write("Now attempting to upload data.\n")
+        sys.stderr.write("Now attempting to upload data.\n")
 
     # TODO: so this upload mechanism is not great, need to cleanup, need to use symlinks since cp will take a long time on big files
     # TODO section below is very broken
     uploadCounts = {}
     uploadCounts["workflowOutputs"] = 0
-    uploadCounts["metadataJson"] = 0
+    uploadCounts["biospecimens"] = 0
+    uploadCounts["analyses"] = 0
+    numFilesWritten = 0
     for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
         if dirName == options.metadataOutDir:
             continue
         sys.stderr.write('looking in directory: %s\n' % dirName)
         for fileName in fileList:
-            if (fileName == "metadata.json"):
+            if fileName.endswith(".json"):
                 sys.stderr.write('\tfound %s\n' % fileName)
                 filePath = os.path.join(dirName, fileName)
-                metadataObj = loadJsonObj(filePath)
-
-                uploadCounts["workflowOutputs"] += uploadWorkflowOutputFiles(metadataObj, dirName)
-                uploadCounts["metadataJson"] += writeJson(dirName, fileName, metadataObj)
+                if fileName == "biospecimen.json":
+                    uploadCounts["biospecimens"] += uploadBiospecimenMetadata(filePath)
+                else:
+                    metadataObj = loadJsonObj(filePath)
+                    uploadCounts["workflowOutputs"] += uploadWorkflowOutputFiles(metadataObj, dirName)
+                    # write updated metadataObj ... contains upload_uuids
+                    numFilesWritten += writeJson(dirName, fileName, metadataObj)
+                    uploadCounts["analyses"] += uploadAnalysesMetadata(filePath)
 
     sys.stderr.write("uploadCounts\t%s\n" % (json.dumps(uploadCounts)))
+    sys.stderr.write("numFilesWritten\t%s\n" % (str(numFilesWritten)))
 
+    runTime = getTimestamp() - startTimestamp
+    logging.info("program ran for %s s." % str(runTime))
     return None
 
 
