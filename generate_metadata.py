@@ -18,8 +18,6 @@ from sets import Set
 # import shutil
 import subprocess
 import time
-
-
 # import re
 
 # methods and functions
@@ -49,6 +47,13 @@ def getOptions():
     (options, args) = parser.parse_args()
 
     return (options, args, parser)
+
+def jsonPP(obj):
+    """
+    Get a pretty stringified JSON
+    """
+    str = json.dumps(obj, indent=4, separators=(',', ': '), sort_keys=True)
+    return str
 
 def getTimestamp():
     stamp = time.time()
@@ -182,7 +187,7 @@ def getDataObj(dict, schema):
     if (isValid):
         return dataObj
     else:
-        logging.error("validation FAILED for \t%s\n" % (json.dumps(dataObj, sort_keys=True, indent=4, separators=(',', ': '))))
+        logging.error("validation FAILED for \t%s\n" % (jsonPP(dataObj)))
         return None
 
 
@@ -344,7 +349,7 @@ def getDonorLevelObjects(metadataObjs):
         if storedFileInfoObj == None:
             storedWorkFlowObj["workflow_outputs"].append(fileInfoObj)
         else:
-            logging.warning("skipping duplicate workflow_output for %s" % (json.dumps(metaObj, indent=4, separators=(',', ': '), sort_keys=True)))
+            logging.warning("skipping duplicate workflow_output for %s" % (jsonPP(metaObj)))
 
     return commonObjMap.values()
 
@@ -372,13 +377,13 @@ def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
     For each structuredDonorLevelObj...
       1. extract and write the biospecimen.json
       2. extract and write the metadata.json files for each workflow
-      3. link the data files
     """
     numFilesWritten = 0
     for donorLevelObj in structuredDonorLevelObjs:
+        donor_uuid = donorLevelObj["donor_uuid"]
         timestamp = donorLevelObj["timestamp"]
         schema_version = donorLevelObj["schema_version"]
-        donorPath = os.path.join(outputDir, donorLevelObj["donor_uuid"])
+        donorPath = os.path.join(outputDir, donor_uuid)
 #         numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
         specimens = donorLevelObj["specimen"]
         for specimen in donorLevelObj["specimen"]:
@@ -401,22 +406,23 @@ def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
                        workflowObj["timestamp"] = timestamp
                        workflowObj["schema_version"] = schema_version
 
-                       # link data file(s)
-                       for file_info in workflowObj["workflow_outputs"]:
-                           file_path = file_info["file_path"]
-                           fullFilePath = os.path.join(os.getcwd(), file_path)
-                           filename = os.path.basename(file_path)
-                           linkPath = os.path.join(donorPath, filename)
-                           mkdir_p(donorPath)
-                           ln_s(fullFilePath, linkPath)
-
                        # write json file
                        workflowUuid = getWorkflowUuid(sample_uuid, workflowObj["workflow_name"], workflowObj["workflow_version"])
                        numFilesWritten += writeJson(donorPath, workflowUuid + "_" + analysis_type + ".json", workflowObj)
+
+                       # link data file(s)
+                       # ucsc-upload.sh requires files be named uniquely, even if they are in different directories
+                       for file_info in workflowObj["workflow_outputs"]:
+                           file_path = file_info["file_path"]
+                           fullFilePath = os.path.join(os.getcwd(), file_path)
+                           filename = workflowUuid + "_" + os.path.basename(file_path)
+                           linkPath = os.path.join(donorPath, filename)
+                           mkdir_p(donorPath)
+                           ln_s(fullFilePath, linkPath)
                    else:
                        continue
 
-        numFilesWritten += writeJson(donorPath, "biospecimen.json", donorLevelObj)
+        numFilesWritten += writeJson(donorPath, donor_uuid + "_biospecimen.json", donorLevelObj)
 
     return numFilesWritten
 
@@ -426,7 +432,7 @@ def parseUploadOutputForObjectIds(output):
     1. Parse the output from ucsc-upload.sh to get the object ids of the upload.
     2. Return the discovered object ids.
     """
-    ids = []
+    ids = {}
     for outputLine in output.split("\n"):
         fields = outputLine.split("using the object id")
         if len(fields) == 2:
@@ -434,15 +440,13 @@ def parseUploadOutputForObjectIds(output):
             objectName = fields[0].strip()
             objectName = objectName.replace("Uploading object:", "", 1).strip()
             objectName = objectName.replace("'", "")
+            ids[objectName] = objectId
             objectInfo = {}
-            objectInfo["id"] = objectId
-            objectInfo["name"] = objectName
-            ids.append(objectInfo)
     return ids
 
 def uploadMultipleFilesViaExternalScript(filePaths):
     """
-    1. Upload a multiple files with the ucsc-storage-client/ucsc-upload.sh script.
+    1. Upload multiple files with the ucsc-storage-client/ucsc-upload.sh script.
     2. Parse the output from ucsc-upload.sh to get the object ids of the uploads.
     3. Return a mapping of filePath to object id.
     """
@@ -455,9 +459,9 @@ def uploadMultipleFilesViaExternalScript(filePaths):
     for filePath in filePaths:
         fullFilePath = os.path.join(os.getcwd(), filePath)
         if not os.path.isfile(fullFilePath):
-            logging.error("missing file: %s\n" % (fullFilePath))
-        else:
-            fullFilePaths.append(fullFilePath)
+            pass
+#             logging.warning("missing file: %s\n" % (fullFilePath))
+        fullFilePaths.append(fullFilePath)
 
     # build command string
     command = ["/bin/bash", "ucsc-upload.sh"]
@@ -468,64 +472,70 @@ def uploadMultipleFilesViaExternalScript(filePaths):
     # execute script, capture output
     try:
         output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
-        logging.debug("output:%s\n" % (str(output)))
+#         logging.debug("output:%s\n" % (str(output)))
     except Exception as exc:
-        logging.exception("ERROR while uploading multiple files")
+        logging.exception("ERROR while uploading files")
         output = ""
     finally:
-        logging.info("done uploading multiple files")
+        logging.info("done uploading files")
 
     # parse output for object ids
     objectIdInfo = parseUploadOutputForObjectIds(output)
-    if len(objectIdInfo) != len(filePaths):
-        logging.warning("number of object IDs does not match number of upload files: %s != %s" % (str(len(objectIdInfo)), str(len(filePaths))))
 
-    runTime = startTime - getTimestamp()
-    logging.info("upload took %s s." % (str(runTime)))
+    runTime = getTimestamp() - startTime
+    logging.info("upload took %s s for %s files." % (str(runTime), str(len(objectIdInfo.keys()))))
 
     return objectIdInfo
 
-def uploadBiospecimenMetadata(uploadFilePath):
+def createDirWithSymLinks(targetDir, paths):
     """
-    upload biospecimen metadata file. Returns 0 if failed, 1 if successful.s
+    ln_s a list of paths into the targetDir
     """
-    ids = uploadMultipleFilesViaExternalScript([uploadFilePath])
-    upload_uuid = ids[0]["id"]
-    logging.info("upload_uuid for %s is %s" % (uploadFilePath, upload_uuid))
-    if not upload_uuid == None:
-        return 1
-    else:
-        logging.critical("Did not get an upload_uuid for %s" % (uploadFilePath))
-        return 0
+    mkdir_p(targetDir)
+    for path in paths:
+        fileName = os.path.basename(path)
+        file_path = os.path.join(os.getcwd(), path)
+        link_path = os.path.join(targetDir, fileName)
+        ln_s(file_path, link_path)
 
-def uploadAnalysesMetadata(uploadFilePath):
+def uploadViaTempDir(tempDirName, filePaths):
     """
-    upload analysis metadata file. Returns 0 if failed, 1 if successful.s
+      1. create temp directory
+      2. create links to upload paths
+      3. upload directory contents
+      4. clean up
+      5. return upload object IDs
     """
-    ids = uploadMultipleFilesViaExternalScript([uploadFilePath])
-    upload_uuid = ids[0]["id"]
-    logging.info("upload_uuid for %s is %s" % (uploadFilePath, upload_uuid))
-    if not upload_uuid == None:
-        return 1
-    else:
-        logging.critical("Did not get an upload_uuid for %s" % (uploadFilePath))
-        return 0
+    if (tempDirName.startswith(os.pathsep) or tempDirName.endswith(os.pathsep)):
+        logging.critical("dangerous tempDirName: %s" % (tempDirName))
+        sys.exit(0)
+    subprocess.call(["rm", "-rf", tempDirName])
+    createDirWithSymLinks(tempDirName, filePaths)
 
-def uploadWorkflowOutputFiles(metadataObj, dirName):
+    uploadPath = os.path.join(os.getcwd(), tempDirName, "*")
+    logging.debug("uploadPath %s" % uploadPath)
+    idMapping = uploadMultipleFilesViaExternalScript([uploadPath])
+    subprocess.call(["rm", "-rf", tempDirName])
+    return idMapping
+
+def updateWorkFlowFileUuids(metadataObj, idMapping):
     """
-    1. Find workflow_outputs.
-    2. Upload each output file
-    3. Update metadataObj with file_uuid of upload
+    update file_uuid in metadata object. idMapping is a dict that maps fileName to file_uuid
     """
-    num_uploads = 0
+    modified = False
+    workflowUuid = getWorkflowUuid(metadataObj["parent_uuids"][0], metadataObj["workflow_name"], metadataObj["workflow_version"])
     for workflow_output in metadataObj["workflow_outputs"]:
-        ids = uploadMultipleFilesViaExternalScript([workflow_output["file_path"]])
-        file_uuid = ids[0]["id"]
-        if (file_uuid != None):
-            # upload failed
-            num_uploads += 1
-        workflow_output["file_uuid"] = file_uuid
-    return num_uploads
+        file_path = workflow_output["file_path"]
+        fileName = os.path.basename(file_path)
+        filePathWithUuid = workflowUuid + "_" + fileName
+        if filePathWithUuid in idMapping.keys():
+            pass
+            file_uuid = idMapping[filePathWithUuid]
+            workflow_output["file_uuid"] = file_uuid
+            modified = True
+        else:
+            logging.warning("no object ID found for %s" % (filePathWithUuid))
+    return modified
 
 #:####################################
 
@@ -539,9 +549,15 @@ def main():
 
     verbose = options.verbose
     if verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logLevel = logging.DEBUG
+    else:
+        logLevel = logging.INFO
+    logging.basicConfig(level=logLevel)
+
     logging.debug('options:\t%s\n' % (str(options)))
     logging.debug('args:\t%s\n' % (str(args)))
+
+    tempDirName = os.path.basename(__file__) + "_temp"
 
     # load flattened metadata schema
     metadataSchema = loadJsonSchema(options.metadataSchemaFileName)
@@ -574,40 +590,69 @@ def main():
 
     # write biospecimen.json and metadata.json files
     numFilesWritten = writeMetadataOutput(donorLevelObjs, options.metadataOutDir)
-    logging.info("number of files written: %s\n" % (str(numFilesWritten)))
+    logging.info("number of metadata files written: %s\n" % (str(numFilesWritten)))
 
     if (options.skip_upload):
-        sys.stderr.write("Skipping data upload steps.\n")
+        logging.info("Skipping data upload steps.\n")
         return None
     else:
-        sys.stderr.write("Now attempting to upload data.\n")
+        logging.info("Now attempting to upload data.\n")
 
-    # TODO: so this upload mechanism is not great, need to cleanup, need to use symlinks since cp will take a long time on big files
-    # TODO section below is very broken
+    # UPLOAD SECTION
     uploadCounts = {}
     uploadCounts["workflowOutputs"] = 0
-    uploadCounts["biospecimens"] = 0
-    uploadCounts["analyses"] = 0
+    uploadCounts["metadata"] = 0
     numFilesWritten = 0
+    jsonFilePaths = []
+    workflowOutputPaths = []
     for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
         if dirName == options.metadataOutDir:
             continue
-        sys.stderr.write('looking in directory: %s\n' % dirName)
+        logging.info('looking in directory: %s\n' % dirName)
         for fileName in fileList:
-            if fileName.endswith(".json"):
-                sys.stderr.write('\tfound %s\n' % fileName)
-                filePath = os.path.join(dirName, fileName)
-                if fileName == "biospecimen.json":
-                    uploadCounts["biospecimens"] += uploadBiospecimenMetadata(filePath)
-                else:
-                    metadataObj = loadJsonObj(filePath)
-                    uploadCounts["workflowOutputs"] += uploadWorkflowOutputFiles(metadataObj, dirName)
-                    # write updated metadataObj ... contains upload_uuids
-                    numFilesWritten += writeJson(dirName, fileName, metadataObj)
-                    uploadCounts["analyses"] += uploadAnalysesMetadata(filePath)
+            filePath = os.path.join(dirName, fileName)
+            logging.debug("filePath\t%s" % filePath)
+            if filePath.endswith(".json"):
+                jsonFilePaths.append(filePath)
+            else:
+                workflowOutputPaths.append(filePath)
 
-    sys.stderr.write("uploadCounts\t%s\n" % (json.dumps(uploadCounts)))
-    sys.stderr.write("numFilesWritten\t%s\n" % (str(numFilesWritten)))
+    # upload workflowOutputs and get object IDs
+    logging.info("First, upload workflow outputs to get file_uuids.")
+    idMapping = uploadViaTempDir(tempDirName, workflowOutputPaths)
+    logging.debug("idMapping\t%s" % (jsonPP(idMapping)))
+
+    uploadCounts["workflowOutputs"] += len(idMapping.keys())
+
+    # get correct file names
+    processedIdMapping = {}
+    for key in idMapping.keys():
+        newKey = os.path.basename(key)
+        processedIdMapping[newKey] = idMapping[key]
+    idMapping = processedIdMapping
+
+    # update metadata jsons with file_uuid (upload object ID)
+    logging.debug("jsonFilePaths\t%s" % (jsonPP(jsonFilePaths)))
+    for filePath in jsonFilePaths:
+        if filePath.endswith("biospecimen.json"):
+            pass
+        else:
+            metadataObj = loadJsonObj(filePath)
+            isModified = updateWorkFlowFileUuids(metadataObj, idMapping)
+            if isModified:
+                logging.debug("%s was modified" % filePath)
+                numFilesWritten += writeJson(os.getcwd(), filePath, metadataObj)
+
+
+    # upload jsonFilePaths
+    logging.info("Now, upload metadata json files.")
+    idMapping = uploadViaTempDir(tempDirName, jsonFilePaths)
+    logging.debug("idMapping\t%s" % (jsonPP(idMapping)))
+
+    uploadCounts["metadata"] += len(idMapping.keys())
+
+    logging.info("file upload count\t%s\n" % (json.dumps(uploadCounts)))
+    logging.info("number of updated metadata files:%s\n" % (str(numFilesWritten)))
 
     runTime = getTimestamp() - startTimestamp
     logging.info("program ran for %s s." % str(runTime))
