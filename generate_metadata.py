@@ -18,6 +18,7 @@ from sets import Set
 # import shutil
 import subprocess
 import time
+import datetime
 # import re
 
 # methods and functions
@@ -57,7 +58,8 @@ def jsonPP(obj):
 
 def getTimestamp():
     stamp = time.time()
-    return stamp
+    readableTimeStamp = datetime.datetime.fromtimestamp(stamp).strftime('%Y-%m-%d %H:%M:%S')
+    return readableTimeStamp
 
 def loadJsonObj(fileName):
     """
