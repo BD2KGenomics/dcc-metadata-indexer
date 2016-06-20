@@ -17,7 +17,6 @@ import uuid
 from sets import Set
 # import shutil
 import subprocess
-import time
 import datetime
 # import re
 
@@ -56,10 +55,21 @@ def jsonPP(obj):
     str = json.dumps(obj, indent=4, separators=(',', ': '), sort_keys=True)
     return str
 
-def getTimestamp():
-    stamp = time.time()
-    readableTimeStamp = datetime.datetime.fromtimestamp(stamp).strftime('%Y-%m-%d %H:%M:%S')
-    return readableTimeStamp
+def getNow():
+    """
+    Get a datetime object for utc NOW.
+    Convert to ISO 8601 format with datetime.isoformat()
+    """
+    now = datetime.datetime.utcnow()
+    return now
+
+def getTimeDelta(startDatetime):
+    """
+    get a timedelta object. Get seconds elapsed with timedelta.total_seconds().
+    """
+    endDatetime = datetime.datetime.utcnow()
+    timedeltaObj = endDatetime - startDatetime
+    return timedeltaObj
 
 def loadJsonObj(fileName):
     """
@@ -303,7 +313,7 @@ def getDonorLevelObjects(metadataObjs):
         commonObjS = json.dumps(commonObj, sort_keys=True)
         if not commonObjS in commonObjMap.keys():
             commonObjMap[commonObjS] = commonObj
-            commonObjMap[commonObjS]["timestamp"] = getTimestamp()
+            commonObjMap[commonObjS]["timestamp"] = getNow().isoformat()
             commonObjMap[commonObjS]["schema_version"] = "0.0.1"
 
         # add specimen
@@ -452,7 +462,7 @@ def uploadMultipleFilesViaExternalScript(filePaths):
     2. Parse the output from ucsc-upload.sh to get the object ids of the uploads.
     3. Return a mapping of filePath to object id.
     """
-    startTime = getTimestamp()
+    startDatetime = getNow()
 
     # check correct file paths
     fullFilePaths = []
@@ -484,7 +494,7 @@ def uploadMultipleFilesViaExternalScript(filePaths):
     # parse output for object ids
     objectIdInfo = parseUploadOutputForObjectIds(output)
 
-    runTime = getTimestamp() - startTime
+    runTime = getTimeDelta(startDatetime)
     logging.info("upload took %s s for %s files." % (str(runTime), str(len(objectIdInfo.keys()))))
 
     return objectIdInfo
@@ -508,16 +518,17 @@ def uploadViaTempDir(tempDirName, filePaths):
       4. clean up
       5. return upload object IDs
     """
-    if (tempDirName.startswith(os.pathsep) or tempDirName.endswith(os.pathsep)):
-        logging.critical("dangerous tempDirName: %s" % (tempDirName))
-        sys.exit(0)
-    subprocess.call(["rm", "-rf", tempDirName])
+    tempDirFullPath = os.path.join(os.getcwd(), tempDirName)
+
+    # CAREFUL HERE!
+    subprocess.call(["rm", "-rf", tempDirFullPath])
     createDirWithSymLinks(tempDirName, filePaths)
 
     uploadPath = os.path.join(os.getcwd(), tempDirName, "*")
     logging.debug("uploadPath %s" % uploadPath)
     idMapping = uploadMultipleFilesViaExternalScript([uploadPath])
-    subprocess.call(["rm", "-rf", tempDirName])
+
+    subprocess.call(["rm", "-rf", tempDirFullPath])
     return idMapping
 
 def updateWorkFlowFileUuids(metadataObj, idMapping):
@@ -542,7 +553,7 @@ def updateWorkFlowFileUuids(metadataObj, idMapping):
 #:####################################
 
 def main():
-    startTimestamp = getTimestamp()
+    startTime = getNow()
     (options, args, parser) = getOptions()
 
     if len(args) == 0:
@@ -596,6 +607,8 @@ def main():
 
     if (options.skip_upload):
         logging.info("Skipping data upload steps.\n")
+        runTime = getTimeDelta(startTime).total_seconds()
+        logging.info("program ran for %s s." % str(runTime))
         return None
     else:
         logging.info("Now attempting to upload data.\n")
@@ -656,7 +669,7 @@ def main():
     logging.info("file upload count\t%s\n" % (json.dumps(uploadCounts)))
     logging.info("number of updated metadata files:%s\n" % (str(numFilesWritten)))
 
-    runTime = getTimestamp() - startTimestamp
+    runTime = getTimeDelta(startTime).total_seconds()
     logging.info("program ran for %s s." % str(runTime))
     return None
 
