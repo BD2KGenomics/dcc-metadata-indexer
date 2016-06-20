@@ -8,7 +8,7 @@ First, there are JSON schema, see `analysis_flattened.json` and `biospecimen_fla
 
 Second, this repo contains a `generate_metadata.py` script that takes a TSV format and converts it into metadata JSON documents (and also has an option for uploading, we use this for bulk uploads to our system).
 
-This repo also contains a merge tool, `merge.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
+This repo also contains a merge tool, `merge_generated_metadata.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
 
 1. query the storage system for all metadata.json
 1. group the related metadata.json documents, all the docs for a given donor are grouped together
@@ -55,6 +55,8 @@ that clients will use in the field to prepare their samples.
 		--outputDir output_metadata \
 		sample_tsv/sample.tsv
 
+Take out `--skip-upload` if you want to perform upload, see below for more details.
+
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
 ### Enabling Upload
@@ -67,7 +69,7 @@ for the tarball.
 If you have the directory setup and don't pass in `--skip-upload` the upload will take place.  Keep this in
 mind if you're just testing the metadata components and don't want to create a ton of uploads.  If you upload
 the fact data linked to from the `sample.tsv` the program and project will both be TEST which should make
-it easy to avoid in the future.
+it easy to avoid in the future. The file is based on [this](https://docs.google.com/spreadsheets/d/13fqil92C-Evi-4cy_GTnzNMmrD0ssuSCx3-cveZ4k70/edit?usp=sharing) google doc.
 
 ## Run Merge and Generate Elasticsearch Index
 
