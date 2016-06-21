@@ -101,7 +101,6 @@ def validateObjAgainstJsonSchema(obj, schema):
         return False
     return True
 
-
 def readFileLines(filename, strip=True):
     """
     Convenience method for getting an array of fileLines from a file.
@@ -115,14 +114,12 @@ def readFileLines(filename, strip=True):
     file.close()
     return fileLines
 
-
 def readTsv(fileLines, d="\t"):
     """
     convenience method for reading TSV file lines into csv.DictReader obj.
     """
     reader = csv.DictReader(fileLines, delimiter=d)
     return reader
-
 
 def normalizePropertyName(inputStr):
     """
@@ -131,7 +128,6 @@ def normalizePropertyName(inputStr):
     newStr = inputStr.lower()
     newStr = newStr.replace(" ", "_")
     return newStr
-
 
 def processFieldNames(dictReaderObj):
     """
@@ -145,7 +141,6 @@ def processFieldNames(dictReaderObj):
             newKey = normalizePropertyName(key)
             newDict[newKey] = dict[key]
     return newDataList
-
 
 def setUuids(dataObj):
     """
@@ -202,7 +197,6 @@ def getDataObj(dict, schema):
         logging.error("validation FAILED for \t%s\n" % (jsonPP(dataObj)))
         return None
 
-
 def getDataDictFromXls(fileName, sheetName="Sheet1"):
     """
     Get list of dict objects from .xlsx,.xlsm,.xltx,.xltm.
@@ -247,11 +241,11 @@ def ln_s(file_path, link_path):
     except OSError as exc:
         if exc.errno == errno.EEXIST:
             if os.path.isdir(link_path):
-                logging.error("ln_s\t linking failed -> %s is an existing directory" % (link_path))
+                logging.error("linking failed -> %s is an existing directory" % (link_path))
             elif os.path.isfile(link_path):
-                logging.error("ln_s\t linking failed -> %s is an existing file" % (link_path))
+                logging.error("linking failed -> %s is an existing file" % (link_path))
             elif os.path.islink(link_path):
-                logging.error("ln_s\t linking failed -> %s is an existing link" % (link_path))
+                logging.error("linking failed -> %s is an existing link" % (link_path))
         else:
             logging.error("raising error")
             raise
@@ -550,6 +544,23 @@ def updateWorkFlowFileUuids(metadataObj, idMapping):
             logging.warning("no object ID found for %s" % (filePathWithUuid))
     return modified
 
+def setupLogging(logfileName, logFormat, logLevel, logToConsole=True):
+    """
+    Setup simultaneous logging to file and console.
+    """
+#     logFormat = "%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s"
+    logging.basicConfig(filename=logfileName, level=logging.NOTSET, format=logFormat)
+    if logToConsole:
+        console = logging.StreamHandler()
+        console.setLevel(logLevel)
+        # set a format which is simpler for console use
+        formatter = logging.Formatter(logFormat)
+        # tell the handler to use this format
+        console.setFormatter(formatter)
+        # add the handler to the root logger
+        logging.getLogger('').addHandler(console)
+    return None
+
 #:####################################
 
 def main():
@@ -560,12 +571,13 @@ def main():
         logging.critical("no input files\n")
         sys.exit(1)
 
-    verbose = options.verbose
-    if verbose:
+    if options.verbose:
         logLevel = logging.DEBUG
     else:
         logLevel = logging.INFO
-    logging.basicConfig(level=logLevel)
+    logfileName = os.path.basename(__file__).replace(".py", ".log")
+    logFormat = "%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s"
+    setupLogging(logfileName, logFormat, logLevel)
 
     logging.debug('options:\t%s\n' % (str(options)))
     logging.debug('args:\t%s\n' % (str(args)))
@@ -658,7 +670,6 @@ def main():
                 logging.debug("%s was modified" % filePath)
                 numFilesWritten += writeJson(os.getcwd(), filePath, metadataObj)
 
-
     # upload jsonFilePaths
     logging.info("Now, upload metadata json files.")
     idMapping = uploadViaTempDir(tempDirName, jsonFilePaths)
@@ -671,8 +682,8 @@ def main():
 
     runTime = getTimeDelta(startTime).total_seconds()
     logging.info("program ran for %s s." % str(runTime))
+    logging.shutdown()
     return None
-
 
 # main program section
 if __name__ == "__main__":
