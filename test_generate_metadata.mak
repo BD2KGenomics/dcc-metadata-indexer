@@ -17,9 +17,14 @@ test:
 	python ./generate_metadata.py \
 		-v \
 		--metadataSchema metadata_flattened.json \
-		--skip-upload \
-		1.tmp $(XL_FILE) \
+		1.tmp \
 	;
 	\
 	rm -f 1.tmp ;
+	\
+
+clean:
+	rm -rf output_metadata ;
+	\
+	rm -f generate_metadata.log ;
 	\
