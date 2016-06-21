@@ -125,8 +125,9 @@ def normalizePropertyName(inputStr):
     """
     field names in the schema are all lower-snake-case
     """
-    newStr = inputStr.lower()
+    newStr = inputStr.encode('ascii', 'ignore').lower()
     newStr = newStr.replace(" ", "_")
+    newStr = newStr.strip()
     return newStr
 
 def processFieldNames(dictReaderObj):
@@ -155,15 +156,31 @@ def setUuids(dataObj):
     keyFieldsMapping["sample_uuid"] = list(keyFieldsMapping["specimen_uuid"])
     keyFieldsMapping["sample_uuid"].append("submitter_sample_id")
 
+#     keyFieldsMapping["workflow_uuid"] = ["sample_uuid", "workflow_name", "workflow_version"]
+
     for uuidName in keyFieldsMapping.keys():
         keyList = []
         for field in keyFieldsMapping[uuidName]:
             if dataObj[field] is None:
+                logging.error("%s not found in %s" % (field, jsonPP(dataObj)))
                 return None
-            keyList.append(dataObj[field])
+            keyList.append(dataObj[field].encode('ascii', 'ignore'))
         # was having some trouble with data coming out of openpyxl not being ascii
-        s = "".join(keyList).encode('ascii', 'ignore').lower()
-        dataObj[uuidName] = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
+        s = "".join(keyList).lower()
+        id = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
+        dataObj[uuidName] = id
+
+    # must follow sample_uuid assignment
+    workflow_uuid_keys = ["sample_uuid", "workflow_name", "workflow_version"]
+    keyList = []
+    for field in workflow_uuid_keys:
+        if dataObj[field] is None:
+            logging.error("%s not found in %s" % (field, jsonPP(dataObj)))
+            return None
+        keyList.append(dataObj[field].encode('ascii', 'ignore'))
+    s = "".join(keyList).lower()
+    id = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
+    dataObj["workflow_uuid"] = id
 
 def getWorkflowUuid(sample_uuid, workflow_name, workflow_version):
     """
@@ -184,11 +201,17 @@ def getDataObj(dict, schema):
     """
     setUuids(dict)
 
+#     schema["properties"]["workflow_uuid"] = {"type": "string"}
     propNames = schema["properties"].keys()
 
     dataObj = {}
     for propName in propNames:
         dataObj[propName] = dict[propName]
+
+    if "workflow_uuid" in dict.keys():
+        dataObj["workflow_uuid"] = dict["workflow_uuid"]
+
+    logging.error("dict %s" % (jsonPP(dict)))
 
     isValid = validateObjAgainstJsonSchema(dataObj, schema)
     if (isValid):
@@ -287,6 +310,69 @@ def getObj(dataObjs, queryObj):
 
     return None
 
+def getWorkflowObjects(flatMetadataObj):
+    """
+    For each flattened metadata object, build up a metadataObj with correct structure.
+    """
+    schema_version = "0.0.1"
+    num_files_written = 0
+
+    commonObjMap = {}
+    for metaObj in flatMetadataObj:
+        workflow_uuid = metaObj["workflow_uuid"]
+        if workflow_uuid in commonObjMap.keys():
+            pass
+        else:
+            workflowObj = {}
+            commonObjMap[workflow_uuid] = workflowObj
+            workflowObj["program"] = metaObj["program"]
+            workflowObj["project"] = metaObj["project"]
+            workflowObj["center_name"] = metaObj["center_name"]
+            workflowObj["submitter_donor_id"] = metaObj["submitter_donor_id"]
+            workflowObj["donor_uuid"] = metaObj["donor_uuid"]
+
+            workflowObj["timestamp"] = getNow().isoformat()
+            workflowObj["schema_version"] = schema_version
+
+            workflowObj["specimen"] = []
+
+            # add specimen
+            specObj = {}
+            workflowObj["specimen"].append(specObj)
+            specObj["submitter_specimen_id"] = metaObj["submitter_specimen_id"]
+            specObj["submitter_specimen_type"] = metaObj["submitter_specimen_type"]
+            specObj["specimen_uuid"] = metaObj["specimen_uuid"]
+            specObj["samples"] = []
+
+            # add sample
+            sampleObj = {}
+            specObj["samples"].append(sampleObj)
+            sampleObj["submitter_sample_id"] = metaObj["submitter_sample_id"]
+            sampleObj["sample_uuid"] = metaObj["sample_uuid"]
+
+            # add workflow
+            workFlowObj = {}
+            analysis_type = metaObj["analysis_type"]
+            sampleObj[analysis_type] = workFlowObj
+
+            workFlowObj["workflow_name"] = metaObj["workflow_name"]
+            workFlowObj["workflow_version"] = metaObj["workflow_version"]
+            workFlowObj["analysis_type"] = metaObj["analysis_type"]
+            workFlowObj["workflow_outputs"] = []
+
+        # retrieve workflow
+        workflowObj = commonObjMap[workflow_uuid]
+        analysis_type = metaObj["analysis_type"]
+        wf_outputsObj = workflowObj["specimen"][0]["samples"][0][analysis_type]["workflow_outputs"]
+
+        # add file info
+        fileInfoObj = {}
+        wf_outputsObj.append(fileInfoObj)
+        fileInfoObj["file_type"] = metaObj["file_type"]
+        fileInfoObj["file_path"] = metaObj["file_path"]
+
+    return commonObjMap
+
 def getDonorLevelObjects(metadataObjs):
     """
     For each flattened metadata object, build up a metadataObj with correct structure.
@@ -378,7 +464,46 @@ def writeJson(directory, fileName, jsonObj):
         file.close()
     return success
 
-def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
+def writeMetadataOutput(structuredMetaDataObjMap, outputDir):
+    """
+    For each structuredDonorLevelObj, extract and write the metadata.json files for each workflow
+    """
+    numFilesWritten = 0
+    for workflow_uuid in structuredMetaDataObjMap.keys():
+        metaObj = structuredMetaDataObjMap[workflow_uuid]
+
+        # get outputDir
+        donor_uuid = metaObj["donor_uuid"]
+        donorPath = os.path.join(outputDir, donor_uuid)
+
+        # get analysis_type
+        sampleObj = metaObj["specimen"][0]["samples"][0]
+        analysis_type = None
+        for obj in sampleObj.values():
+            if (isinstance(obj, dict)) and ("analysis_type" in obj.keys()):
+                analysis_type = obj["analysis_type"]
+                break
+        if analysis_type == None:
+            logging.error("no analysis found in %s" % (jsonPP(metaObj)))
+            continue
+
+        # link data file(s)
+        wf_outputsObj = sampleObj[analysis_type]["workflow_outputs"]
+        for outputObj in wf_outputsObj:
+            file_path = outputObj["file_path"]
+            fullFilePath = os.path.join(os.getcwd(), file_path)
+            filename = workflow_uuid + "_" + os.path.basename(file_path)
+            linkPath = os.path.join(donorPath, filename)
+            mkdir_p(donorPath)
+            ln_s(fullFilePath, linkPath)
+
+        # write metadata
+        metadataJsonFileName = workflow_uuid + "_" + analysis_type + ".json"
+        numFilesWritten += writeJson(donorPath, metadataJsonFileName, metaObj)
+
+    return numFilesWritten
+
+def writeMetadataOutput_old(structuredDonorLevelObjs, outputDir):
     """
     For each structuredDonorLevelObj...
       1. extract and write the biospecimen.json
@@ -390,7 +515,7 @@ def writeMetadataOutput(structuredDonorLevelObjs, outputDir):
         timestamp = donorLevelObj["timestamp"]
         schema_version = donorLevelObj["schema_version"]
         donorPath = os.path.join(outputDir, donor_uuid)
-#         numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
+        numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
         specimens = donorLevelObj["specimen"]
         for specimen in donorLevelObj["specimen"]:
            for sample in specimen["samples"]:
@@ -553,11 +678,8 @@ def setupLogging(logfileName, logFormat, logLevel, logToConsole=True):
     if logToConsole:
         console = logging.StreamHandler()
         console.setLevel(logLevel)
-        # set a format which is simpler for console use
         formatter = logging.Formatter(logFormat)
-        # tell the handler to use this format
         console.setFormatter(formatter)
-        # add the handler to the root logger
         logging.getLogger('').addHandler(console)
     return None
 
@@ -613,8 +735,12 @@ def main():
     # get structured donor-level objects
     donorLevelObjs = getDonorLevelObjects(flatMetadataObjs)
 
-    # write biospecimen.json and metadata.json files
-    numFilesWritten = writeMetadataOutput(donorLevelObjs, options.metadataOutDir)
+    # get structured workflow objects
+    structuredWorkflowObjMap = getWorkflowObjects(flatMetadataObjs)
+    logging.debug("structuredWorkflowObjMap %s" % (jsonPP(structuredWorkflowObjMap)))
+
+    # write metadata files and link data files
+    numFilesWritten = writeMetadataOutput(structuredWorkflowObjMap, options.metadataOutDir)
     logging.info("number of metadata files written: %s\n" % (str(numFilesWritten)))
 
     if (options.skip_upload):
