@@ -211,8 +211,6 @@ def getDataObj(dict, schema):
     if "workflow_uuid" in dict.keys():
         dataObj["workflow_uuid"] = dict["workflow_uuid"]
 
-    logging.error("dict %s" % (jsonPP(dict)))
-
     isValid = validateObjAgainstJsonSchema(dataObj, schema)
     if (isValid):
         return dataObj
@@ -359,6 +357,7 @@ def getWorkflowObjects(flatMetadataObj):
             workFlowObj["workflow_version"] = metaObj["workflow_version"]
             workFlowObj["analysis_type"] = metaObj["analysis_type"]
             workFlowObj["workflow_outputs"] = []
+            workFlowObj["bundle_uuid"] = metaObj["workflow_uuid"]
 
         # retrieve workflow
         workflowObj = commonObjMap[workflow_uuid]
@@ -372,78 +371,6 @@ def getWorkflowObjects(flatMetadataObj):
         fileInfoObj["file_path"] = metaObj["file_path"]
 
     return commonObjMap
-
-def getDonorLevelObjects(metadataObjs):
-    """
-    For each flattened metadata object, build up a metadataObj with correct structure.
-    """
-    num_files_written = 0
-
-    commonObjMap = {}
-    for metaObj in metadataObjs:
-        commonObj = {}
-        commonObj["program"] = metaObj["program"]
-        commonObj["project"] = metaObj["project"]
-        commonObj["center_name"] = metaObj["center_name"]
-        commonObj["submitter_donor_id"] = metaObj["submitter_donor_id"]
-        commonObj["donor_uuid"] = metaObj["donor_uuid"]
-        commonObj["specimen"] = []
-
-        # get donor level obj
-        commonObjS = json.dumps(commonObj, sort_keys=True)
-        if not commonObjS in commonObjMap.keys():
-            commonObjMap[commonObjS] = commonObj
-            commonObjMap[commonObjS]["timestamp"] = getNow().isoformat()
-            commonObjMap[commonObjS]["schema_version"] = "0.0.1"
-
-        # add specimen
-        specObj = {}
-        specObj["submitter_specimen_id"] = metaObj["submitter_specimen_id"]
-        specObj["submitter_specimen_type"] = metaObj["submitter_specimen_type"]
-        specObj["specimen_uuid"] = metaObj["specimen_uuid"]
-
-        storedSpecObj = getObj(commonObjMap[commonObjS]["specimen"], specObj)
-
-        if storedSpecObj == None:
-            commonObjMap[commonObjS]["specimen"].append(specObj)
-            storedSpecObj = getObj(commonObjMap[commonObjS]["specimen"], specObj)
-            storedSpecObj["samples"] = []
-
-        # add sample
-        sampleObj = {}
-        sampleObj["submitter_sample_id"] = metaObj["submitter_sample_id"]
-        sampleObj["sample_uuid"] = metaObj["sample_uuid"]
-
-        storedSampleObj = getObj(storedSpecObj["samples"], sampleObj)
-        if storedSampleObj == None:
-            storedSpecObj["samples"].append(sampleObj)
-            storedSampleObj = getObj(storedSpecObj["samples"], sampleObj)
-
-        # add workflow
-        workFlowObj = {}
-        workFlowObj["workflow_name"] = metaObj["workflow_name"]
-        workFlowObj["workflow_version"] = metaObj["workflow_version"]
-        workFlowObj["analysis_type"] = metaObj["analysis_type"]
-
-        storedWorkFlowObj = getObj(storedSampleObj.values(), workFlowObj)
-        if storedWorkFlowObj == None:
-            analysis_type = metaObj["analysis_type"]
-            storedSampleObj[analysis_type] = workFlowObj
-            storedWorkFlowObj = getObj(storedSampleObj.values(), workFlowObj)
-            storedWorkFlowObj["workflow_outputs"] = []
-
-        # add file info
-        fileInfoObj = {}
-        fileInfoObj["file_type"] = metaObj["file_type"]
-        fileInfoObj["file_path"] = metaObj["file_path"]
-
-        storedFileInfoObj = getObj(storedWorkFlowObj["workflow_outputs"] , fileInfoObj)
-        if storedFileInfoObj == None:
-            storedWorkFlowObj["workflow_outputs"].append(fileInfoObj)
-        else:
-            logging.warning("skipping duplicate workflow_output for %s" % (jsonPP(metaObj)))
-
-    return commonObjMap.values()
 
 def writeJson(directory, fileName, jsonObj):
     """
@@ -464,17 +391,16 @@ def writeJson(directory, fileName, jsonObj):
         file.close()
     return success
 
-def writeMetadataOutput(structuredMetaDataObjMap, outputDir):
+def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
     """
-    For each structuredDonorLevelObj, extract and write the metadata.json files for each workflow
+    For each structuredMetaDataObj, prepare a data bundle dir for each workflow
     """
     numFilesWritten = 0
     for workflow_uuid in structuredMetaDataObjMap.keys():
         metaObj = structuredMetaDataObjMap[workflow_uuid]
 
-        # get outputDir
-        donor_uuid = metaObj["donor_uuid"]
-        donorPath = os.path.join(outputDir, donor_uuid)
+        # get outputDir (bundle_uuid)
+        bundlePath = os.path.join(outputDir, workflow_uuid)
 
         # get analysis_type
         sampleObj = metaObj["specimen"][0]["samples"][0]
@@ -492,88 +418,15 @@ def writeMetadataOutput(structuredMetaDataObjMap, outputDir):
         for outputObj in wf_outputsObj:
             file_path = outputObj["file_path"]
             fullFilePath = os.path.join(os.getcwd(), file_path)
-            filename = workflow_uuid + "_" + os.path.basename(file_path)
-            linkPath = os.path.join(donorPath, filename)
-            mkdir_p(donorPath)
+            filename = os.path.basename(file_path)
+            linkPath = os.path.join(bundlePath, filename)
+            mkdir_p(bundlePath)
             ln_s(fullFilePath, linkPath)
 
         # write metadata
-        metadataJsonFileName = workflow_uuid + "_" + analysis_type + ".json"
-        numFilesWritten += writeJson(donorPath, metadataJsonFileName, metaObj)
+        numFilesWritten += writeJson(bundlePath, "metadata.json", metaObj)
 
     return numFilesWritten
-
-def writeMetadataOutput_old(structuredDonorLevelObjs, outputDir):
-    """
-    For each structuredDonorLevelObj...
-      1. extract and write the biospecimen.json
-      2. extract and write the metadata.json files for each workflow
-    """
-    numFilesWritten = 0
-    for donorLevelObj in structuredDonorLevelObjs:
-        donor_uuid = donorLevelObj["donor_uuid"]
-        timestamp = donorLevelObj["timestamp"]
-        schema_version = donorLevelObj["schema_version"]
-        donorPath = os.path.join(outputDir, donor_uuid)
-        numFilesWritten += writeJson(donorPath, "donor.json", donorLevelObj)
-        specimens = donorLevelObj["specimen"]
-        for specimen in donorLevelObj["specimen"]:
-           for sample in specimen["samples"]:
-               for sampleKey in sample.keys():
-                   sample_uuid = sample["sample_uuid"]
-                   obj = sample[sampleKey]
-                   if (isinstance(obj, dict)) and ("analysis_type" in obj.keys()):
-                       analysis_type = obj["analysis_type"]
-                       workflowObj = sample.pop(sampleKey)
-
-                       # update parent_uuids list...
-                       if not "parent_uuids" in sample.keys():
-                           workflowObj["parent_uuids"] = []
-                       parent_uuids_set = set(workflowObj["parent_uuids"])
-                       parent_uuids_set.add(sample_uuid)
-                       workflowObj["parent_uuids"] = list(parent_uuids_set)
-
-                       # add timestamp and schema_version from the donorLevelObj
-                       workflowObj["timestamp"] = timestamp
-                       workflowObj["schema_version"] = schema_version
-
-                       # write json file
-                       workflowUuid = getWorkflowUuid(sample_uuid, workflowObj["workflow_name"], workflowObj["workflow_version"])
-                       numFilesWritten += writeJson(donorPath, workflowUuid + "_" + analysis_type + ".json", workflowObj)
-
-                       # link data file(s)
-                       # ucsc-upload.sh requires files be named uniquely, even if they are in different directories
-                       for file_info in workflowObj["workflow_outputs"]:
-                           file_path = file_info["file_path"]
-                           fullFilePath = os.path.join(os.getcwd(), file_path)
-                           filename = workflowUuid + "_" + os.path.basename(file_path)
-                           linkPath = os.path.join(donorPath, filename)
-                           mkdir_p(donorPath)
-                           ln_s(fullFilePath, linkPath)
-                   else:
-                       continue
-
-        numFilesWritten += writeJson(donorPath, donor_uuid + "_biospecimen.json", donorLevelObj)
-
-    return numFilesWritten
-
-# parse output to retrieve "object id"
-def parseUploadOutputForObjectIds(output):
-    """
-    1. Parse the output from ucsc-upload.sh to get the object ids of the upload.
-    2. Return the discovered object ids.
-    """
-    ids = {}
-    for outputLine in output.split("\n"):
-        fields = outputLine.split("using the object id")
-        if len(fields) == 2:
-            objectId = fields[1].strip()
-            objectName = fields[0].strip()
-            objectName = objectName.replace("Uploading object:", "", 1).strip()
-            objectName = objectName.replace("'", "")
-            ids[objectName] = objectId
-            objectInfo = {}
-    return ids
 
 def uploadMultipleFilesViaExternalScript(filePaths):
     """
@@ -603,7 +456,7 @@ def uploadMultipleFilesViaExternalScript(filePaths):
     # execute script, capture output
     try:
         output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
-#         logging.debug("output:%s\n" % (str(output)))
+        logging.debug("output:%s\n" % (str(output)))
     except Exception as exc:
         logging.exception("ERROR while uploading files")
         output = ""
@@ -683,6 +536,37 @@ def setupLogging(logfileName, logFormat, logLevel, logToConsole=True):
         logging.getLogger('').addHandler(console)
     return None
 
+def registerBundleUpload(upload, manifest, accessToken):
+     """
+     java
+         -Djavax.net.ssl.trustStore=ssl/cacerts
+         -Djavax.net.ssl.trustStorePassword=changeit
+         -Dserver.baseUrl=https://storage.ucsc-cgl.org:8444
+         -DaccessToken=${accessToken}
+         -jar dcc-metadata-client-0.0.16-SNAPSHOT/lib/dcc-metadata-client.jar
+         -i ${upload}
+         -o ${manifest}
+         -m manifest.txt
+     """
+
+     return None
+
+def performBundleUpload(manifest, accessToken):
+    """
+    Java
+        -Djavax.net.ssl.trustStore=ssl/cacerts
+        -Djavax.net.ssl.trustStorePassword=changeit
+        -Dmetadata.url=https://storage.ucsc-cgl.org:8444
+        -Dmetadata.ssl.enabled=true
+        -Dclient.ssl.custom=false
+        -Dstorage.url=https://storage.ucsc-cgl.org:5431
+        -DaccessToken=${accessToken}
+        -jar icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar upload
+        --manifest ${manifest}/manifest.txt
+    """
+
+    return None
+
 #:####################################
 
 def main():
@@ -732,15 +616,12 @@ def main():
 
             flatMetadataObjs.append(metaObj)
 
-    # get structured donor-level objects
-    donorLevelObjs = getDonorLevelObjects(flatMetadataObjs)
-
     # get structured workflow objects
     structuredWorkflowObjMap = getWorkflowObjects(flatMetadataObjs)
-    logging.debug("structuredWorkflowObjMap %s" % (jsonPP(structuredWorkflowObjMap)))
 
     # write metadata files and link data files
-    numFilesWritten = writeMetadataOutput(structuredWorkflowObjMap, options.metadataOutDir)
+    numFilesWritten = writeDataBundleDirs(structuredWorkflowObjMap, options.metadataOutDir)
+#     numFilesWritten = writeMetadataOutput(structuredWorkflowObjMap, options.metadataOutDir)
     logging.info("number of metadata files written: %s\n" % (str(numFilesWritten)))
 
     if (options.skip_upload):
@@ -752,6 +633,7 @@ def main():
         logging.info("Now attempting to upload data.\n")
 
     # UPLOAD SECTION
+    # TODO section below is very broken
     uploadCounts = {}
     uploadCounts["workflowOutputs"] = 0
     uploadCounts["metadata"] = 0
