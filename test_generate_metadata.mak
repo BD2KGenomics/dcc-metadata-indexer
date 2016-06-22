@@ -2,6 +2,7 @@
 TSV_FILE="sample_metadata/sample.tsv"
 XL_FILE="sample_metadata/sample.xlsx"
 OUTPUT_DIR="output_test"
+ACCESS_TOKEN=`cat ucsc-storage-client/accessToken`
 
 test2:
 	python ./generate_metadata.py \
@@ -15,8 +16,8 @@ test:
 	> 1.tmp ;
 	\
 	python ./generate_metadata.py \
-		-v \
 		--metadataSchema metadata_flattened.json \
+		--awsAccessToken $(ACCESS_TOKEN) \
 		1.tmp \
 	;
 	\

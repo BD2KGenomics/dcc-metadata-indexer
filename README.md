@@ -53,6 +53,8 @@ that clients will use in the field to prepare their samples.
     python generate_metadata.py \
 		--metadataSchema metadata_flattened.json \
 		--outputDir output_metadata \
+		--awsAccessToken `cat ucsc-storage-client/accessToken` \
+		--skip-upload \
 		sample_tsv/sample.tsv
 
 Take out `--skip-upload` if you want to perform upload, see below for more details.

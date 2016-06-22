@@ -19,6 +19,7 @@ from sets import Set
 import subprocess
 import datetime
 # import re
+import copy
 
 # methods and functions
 
@@ -31,18 +32,17 @@ def getOptions():
     usage_text.append("Data will be read from 'Sheet1' in the case of Excel file.")
 
     parser = OptionParser(usage="\n".join(usage_text))
-    parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose",
-                      help="Switch for verbose mode.")
+    parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose", help="Switch for verbose mode.")
+    parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload", help="Switch to skip upload. Metadata files will be generated only.")
 
-    parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload",
-                      help="Switch to skip upload. Metadata files will be generated only.")
+    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_flattened.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
 
-    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_flattened.json", type="string",
-                      dest="metadataSchemaFileName", help="flattened json schema file for metadata")
+    parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
 
-    parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string",
-                      dest="metadataOutDir",
-                      help="output directory. In the case of colliding file names, the older file will be overwritten.")
+    parser.add_option("--awsAccessToken", action="store", default="12345678-abcd-1234-abcdefghijkl", type="string", dest="awsAccessToken", help="access token for AWS looks something like 12345678-abcd-1234-abcdefghijkl.")
+    parser.add_option("--metadataServerUrl", action="store", default="https://storage.ucsc-cgl.org:8444", type="string", dest="metadataServerUrl", help="URL for metadata server.")
+    parser.add_option("--storageServerUrl", action="store", default="https://storage.ucsc-cgl.org:5431", type="string", dest="storageServerUrl", help="URL for storage server.")
+    parser.add_option("--force-upload", action="store_true", default=False, dest="force_upload", help="Switch to force upload in case object ID already exists remotely. Overwrites existing bundle.")
 
     (options, args) = parser.parse_args()
 
@@ -472,17 +472,6 @@ def uploadMultipleFilesViaExternalScript(filePaths):
 
     return None
 
-def createDirWithSymLinks(targetDir, paths):
-    """
-    ln_s a list of paths into the targetDir
-    """
-    mkdir_p(targetDir)
-    for path in paths:
-        fileName = os.path.basename(path)
-        file_path = os.path.join(os.getcwd(), path)
-        link_path = os.path.join(targetDir, fileName)
-        ln_s(file_path, link_path)
-
 def setupLogging(logfileName, logFormat, logLevel, logToConsole=True):
     """
     Setup simultaneous logging to file and console.
@@ -497,7 +486,7 @@ def setupLogging(logfileName, logFormat, logLevel, logToConsole=True):
         logging.getLogger('').addHandler(console)
     return None
 
-def registerBundleUpload(upload, manifest, accessToken):
+def registerBundleUpload(metadataUrl, bundleDir, accessToken):
      """
      java
          -Djavax.net.ssl.trustStore=ssl/cacerts
@@ -509,10 +498,41 @@ def registerBundleUpload(upload, manifest, accessToken):
          -o ${manifest}
          -m manifest.txt
      """
+     success = True
 
-     return None
+     metadataClientJar = "ucsc-storage-client/dcc-metadata-client-0.0.16-SNAPSHOT/lib/dcc-metadata-client.jar"
+     trustStore = "ucsc-storage-client/ssl/cacerts"
+     trustStorePw = "changeit"
 
-def performBundleUpload(manifest, accessToken):
+     # build command string
+     command = ["java"]
+     command.append("-Djavax.net.ssl.trustStore=" + trustStore)
+     command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
+     command.append("-Dserver.baseUrl=" + str(metadataUrl))
+     command.append("-DaccessToken=" + str(accessToken))
+     command.append("-jar " + metadataClientJar)
+     command.append("-i " + str(bundleDir))
+     command.append("-o " + str(bundleDir))
+     command.append("-m manifest.txt")
+     command = " ".join(command)
+
+     # !!! This may expose the access token !!!
+#      logging.debug("register upload command:\t%s\n" % (command))
+
+     try:
+         output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
+         logging.debug("output:%s\n" % (str(output)))
+     except Exception as exc:
+         success = False
+         # !!! logging.exception here may expose access token !!!
+         logging.error("ERROR while registering bundle %s" % bundleDir)
+         output = ""
+     finally:
+         logging.info("done registering bundle upload %s" % bundleDir)
+
+     return success
+
+def performBundleUpload(metadataUrl, storageUrl, bundleDir, accessToken, force=False):
     """
     Java
         -Djavax.net.ssl.trustStore=ssl/cacerts
@@ -525,8 +545,46 @@ def performBundleUpload(manifest, accessToken):
         -jar icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar upload
         --manifest ${manifest}/manifest.txt
     """
+    success = True
 
-    return None
+    storageClientJar = "ucsc-storage-client/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar"
+    trustStore = "ucsc-storage-client/ssl/cacerts"
+    trustStorePw = "changeit"
+
+    # build command string
+    command = ["java"]
+    command.append("-Djavax.net.ssl.trustStore=" + trustStore)
+    command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
+    command.append("-Dmetadata.url=" + str(metadataUrl))
+    command.append("-Dmetadata.ssl.enabled=true")
+    command.append("-Dclient.ssl.custom=false")
+    command.append("-Dstorage.url=" + str(storageUrl))
+    command.append("-DaccessToken=" + str(accessToken))
+    command.append("-jar " + storageClientJar + " upload")
+
+    # force upload in case object id already exists remotely
+    if force:
+        command.append("--force")
+
+    manifestFilePath = os.path.join(bundleDir, "manifest.txt")
+    command.append("--manifest " + manifestFilePath)
+    command = " ".join(command)
+
+    # !!! This may expose the access token !!!
+#     logging.debug("perform upload command:\t%s\n" % (command))
+
+    try:
+        output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
+        logging.debug("output:%s\n" % (str(output)))
+    except Exception as exc:
+        success = False
+        # !!! logging.exception here may expose access token !!!
+        logging.error("ERROR while uploading files for bundle %s" % bundleDir)
+        output = ""
+    finally:
+        logging.info("done uploading bundle %s" % bundleDir)
+
+    return success
 
 #:####################################
 
@@ -546,7 +604,10 @@ def main():
     logFormat = "%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s"
     setupLogging(logfileName, logFormat, logLevel)
 
-    logging.debug('options:\t%s\n' % (str(options)))
+    # !!! careful not to expose the access token !!!
+    printOptions = copy.deepcopy(vars(options))
+    printOptions.pop("awsAccessToken")
+    logging.debug('options:\t%s\n' % (str(printOptions)))
     logging.debug('args:\t%s\n' % (str(args)))
 
     tempDirName = os.path.basename(__file__) + "_temp"
@@ -582,7 +643,6 @@ def main():
 
     # write metadata files and link data files
     numFilesWritten = writeDataBundleDirs(structuredWorkflowObjMap, options.metadataOutDir)
-#     numFilesWritten = writeMetadataOutput(structuredWorkflowObjMap, options.metadataOutDir)
     logging.info("number of metadata files written: %s\n" % (str(numFilesWritten)))
 
     if (options.skip_upload):
@@ -594,9 +654,11 @@ def main():
         logging.info("Now attempting to upload data.\n")
 
     # UPLOAD SECTION
-    # TODO section below is very broken
     counts = {}
     counts["bundlesFound"] = 0
+    counts["failedRegistration"] = []
+    counts["failedUploads"] = []
+    counts["bundlesUploaded"] = 0
 
     for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
         if dirName == options.metadataOutDir:
@@ -609,18 +671,34 @@ def main():
                 logging.debug("found bundle directory at %s" % (bundleDirFullPath))
                 counts["bundlesFound"] += 1
 
-                uploadPath = os.path.join(bundleDirFullPath, "*")
-                uploadMultipleFilesViaExternalScript([uploadPath])
+                bundle_uuid = dirName
 
-                # TODO register upload
+                # register upload
+                args = {"accessToken":options.awsAccessToken, "bundleDir":dirName, "metadataUrl":options.metadataServerUrl}
+                regSuccess = registerBundleUpload(**args)
 
-                # TODO perform upload
+                # perform upload
+                upSuccess = False
+                if regSuccess:
+                    args["storageUrl"] = options.storageServerUrl
+                    args["force"] = options.force_upload
+                    upSuccess = performBundleUpload(**args)
+                else:
+                    counts["failedRegistration"].append(bundle_uuid)
+
+                if upSuccess:
+                    counts["bundlesUploaded"] += 1
+                else:
+                    counts["failedUploads"].append(bundle_uuid)
 
                 break
             else:
                 pass
 
-    logging.info("file upload count\t%s\n" % (json.dumps(counts)))
+    logging.info("counts\t%s\n" % (json.dumps(counts)))
+
+    if counts["failedRegistration"] > 0 or counts["failedUploads"] > 0:
+        logging.error("THERE WERE SOME FAILED PROCESSES !")
 
     runTime = getTimeDelta(startTime).total_seconds()
     logging.info("program ran for %s s." % str(runTime))
