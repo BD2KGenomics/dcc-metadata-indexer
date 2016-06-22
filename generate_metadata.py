@@ -1,6 +1,9 @@
 # generage_metadata.py
-# Generate metadata files from a tsv file.
+# Generate and upload UCSC Core Genomics data bundles from information passed via excel or tsv file.
+#
 # See "helper client" in https://ucsc-cgl.atlassian.net/wiki/display/DEV/Storage+Service+-+Functional+Spec
+#
+# The upload portion of this script requires external java8 jars and other files from the private S3 bucket at <https://s3-us-west-2.amazonaws.com/beni-dcc-storage-dev/ucsc-storage-client.tar.gz>
 # MAY2016	chrisw
 
 # imports
@@ -182,18 +185,6 @@ def setUuids(dataObj):
     id = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
     dataObj["workflow_uuid"] = id
 
-def getWorkflowUuid(sample_uuid, workflow_name, workflow_version):
-    """
-    Get a workflowUuid for use in this script.
-    """
-    keyList = []
-    keyList.append(sample_uuid)
-    keyList.append(workflow_name)
-    keyList.append(workflow_version)
-    s = "".join(keyList).encode('ascii', 'ignore').lower()
-    workflowUuid = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
-    return workflowUuid
-
 def getDataObj(dict, schema):
     """
     Pull data out from dict. Use the flattened schema to get the key names as well as validate.
@@ -283,29 +274,6 @@ def mkdir_p(path):
             pass
         else:
             raise
-    return None
-
-def getObj(dataObjs, queryObj):
-    """
-    Check to see if queryObj is contained in some object in dataObjs by checking for identical key:value pairs.
-    If match is found, return the matched object in dataObjs.
-    If no match is found, return None.
-    """
-    for dataObj in dataObjs:
-        foundMismatch = False
-        if not isinstance(dataObj, dict):
-            continue
-        for key in queryObj.keys():
-            queryVal = queryObj[key]
-            dataVal = dataObj[key]
-            if queryVal != dataVal:
-                foundMismatch = True
-                break
-        if foundMismatch == True:
-            continue
-        else:
-            return dataObj
-
     return None
 
 def getWorkflowObjects(flatMetadataObj):
@@ -427,50 +395,6 @@ def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
         numFilesWritten += writeJson(bundlePath, "metadata.json", metaObj)
 
     return numFilesWritten
-
-def uploadMultipleFilesViaExternalScript(filePaths):
-    """
-    1. Upload multiple files with the ucsc-storage-client/ucsc-upload.sh script.
-    2. Parse the output from ucsc-upload.sh to get the object ids of the uploads.
-    3. Return a mapping of filePath to object id.
-    """
-    startDatetime = getNow()
-
-    # check correct file paths
-    fullFilePaths = []
-    if not os.path.isfile("ucsc-storage-client/ucsc-upload.sh"):
-        logging.critical("missing file: %s\n" % ("ucsc-storage-client/ucsc-upload.sh"))
-    for filePath in filePaths:
-        fullFilePath = os.path.join(os.getcwd(), filePath)
-        if not os.path.isfile(fullFilePath):
-            pass
-#             logging.warning("missing file: %s\n" % (fullFilePath))
-        fullFilePaths.append(fullFilePath)
-
-    # build command string
-    command = ["/bin/bash", "ucsc-upload.sh"]
-    command.extend(fullFilePaths)
-    command = " ".join(command)
-    logging.debug("command:\t%s\n" % (command))
-
-    # execute script, capture output
-    try:
-        output = subprocess.check_output(command, cwd="ucsc-storage-client", stderr=subprocess.STDOUT, shell=True)
-        logging.debug("output:%s\n" % (str(output)))
-    except Exception as exc:
-        logging.exception("ERROR while uploading files")
-        output = ""
-    finally:
-        logging.info("done uploading files")
-
-    # parse output for object ids
-#     objectIdInfo = parseUploadOutputForObjectIds(output)
-
-    runTime = getTimeDelta(startDatetime)
-#     logging.info("upload took %s s for %s files." % (str(runTime), str(len(objectIdInfo.keys()))))
-    logging.info("upload took %s s." % (str(runTime)))
-
-    return None
 
 def setupLogging(logfileName, logFormat, logLevel, logToConsole=True):
     """
@@ -697,7 +621,7 @@ def main():
 
     logging.info("counts\t%s\n" % (json.dumps(counts)))
 
-    if counts["failedRegistration"] > 0 or counts["failedUploads"] > 0:
+    if len(counts["failedRegistration"]) > 0 or len(counts["failedUploads"]) > 0:
         logging.error("THERE WERE SOME FAILED PROCESSES !")
 
     runTime = getTimeDelta(startTime).total_seconds()

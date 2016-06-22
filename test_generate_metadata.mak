@@ -6,8 +6,8 @@ ACCESS_TOKEN=`cat ucsc-storage-client/accessToken`
 
 test2:
 	python ./generate_metadata.py \
-		-v \
 		--metadataSchema metadata_flattened.json \
+		--awsAccessToken $(ACCESS_TOKEN) \
 		$(XL_FILE) \
 	;
 
