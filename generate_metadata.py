@@ -23,6 +23,7 @@ import subprocess
 import datetime
 # import re
 import copy
+import pprint
 
 # methods and functions
 
@@ -553,6 +554,8 @@ def main():
             fileLines = readFileLines(fileName)
             reader = readTsv(fileLines)
             fileDataList = processFieldNames(reader)
+            #pp = pprint.PrettyPrinter(indent=4)
+            #pp.pprint(fileDataList)
 
         for data in fileDataList:
             metaObj = getDataObj(data, metadataSchema)

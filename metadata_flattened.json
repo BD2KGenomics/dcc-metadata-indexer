@@ -48,12 +48,6 @@
         },
         "file_path": {
             "type": "string"
-        },
-        "timestamp": {
-            "type": "string"
-        },
-        "schema_version": {
-            "type": "string"
         }
     }
 }
