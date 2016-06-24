@@ -343,7 +343,7 @@ def getWorkflowObjects(flatMetadataObj):
         strings.append(metaObj["workflow_uuid"].encode('ascii', 'ignore'))
         strings.append(metaObj["file_path"].encode('ascii', 'ignore'))
 
-        fileInfoObj["file_uuid"] = str(uuid.uuid5(uuid.NAMESPACE_URL, "".join(strings)))
+        fileInfoObj["file_uuid"] = str(uuid.uuid5(uuid.NAMESPACE_URL, "".join(strings).lower()))
 
     return commonObjMap
 
@@ -560,8 +560,8 @@ def main():
             fileLines = readFileLines(fileName)
             reader = readTsv(fileLines)
             fileDataList = processFieldNames(reader)
-            #pp = pprint.PrettyPrinter(indent=4)
-            #pp.pprint(fileDataList)
+            # pp = pprint.PrettyPrinter(indent=4)
+            # pp.pprint(fileDataList)
 
         for data in fileDataList:
             metaObj = getDataObj(data, metadataSchema)
