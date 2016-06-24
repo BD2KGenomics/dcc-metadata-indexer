@@ -338,6 +338,12 @@ def getWorkflowObjects(flatMetadataObj):
         fileInfoObj["file_type"] = metaObj["file_type"]
         fileInfoObj["file_path"] = metaObj["file_path"]
 
+        strings = []
+        strings.append(metaObj["workflow_uuid"].encode('ascii', 'ignore'))
+        strings.append(metaObj["file_path"].encode('ascii', 'ignore'))
+
+        fileInfoObj["file_uuid"] = str(uuid.uuid5(uuid.NAMESPACE_URL, "".join(strings)))
+
     return commonObjMap
 
 def writeJson(directory, fileName, jsonObj):

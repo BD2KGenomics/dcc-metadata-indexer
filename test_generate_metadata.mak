@@ -8,6 +8,7 @@ test2:
 	python ./generate_metadata.py \
 		--metadataSchema metadata_flattened.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
+		--skip-upload \
 		$(XL_FILE) \
 	;
 
