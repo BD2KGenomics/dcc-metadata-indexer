@@ -147,6 +147,18 @@ def processFieldNames(dictReaderObj):
             newDict[newKey] = dict[key]
     return newDataList
 
+def generateUuid5(nameComponents, namespace=uuid.NAMESPACE_URL):
+    """
+    generate a uuid5 where the name is the lower case of concatenation of nameComponents
+    """
+    strings = []
+    for nameComponent in nameComponents:
+        # was having some trouble with data coming out of openpyxl not being ascii
+        strings.append(nameComponent.encode('ascii', 'ignore'))
+    name = "".join(strings).lower()
+    id = str(uuid.uuid5(namespace, name))
+    return id
+
 def setUuids(dataObj):
     """
     Set donor_uuid, specimen_uuid, and sample_uuid for dataObj. Uses uuid.uuid5().
@@ -168,10 +180,9 @@ def setUuids(dataObj):
             if dataObj[field] is None:
                 logging.error("%s not found in %s" % (field, jsonPP(dataObj)))
                 return None
-            keyList.append(dataObj[field].encode('ascii', 'ignore'))
-        # was having some trouble with data coming out of openpyxl not being ascii
-        s = "".join(keyList).lower()
-        id = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
+            else:
+                keyList.append(dataObj[field])
+        id = generateUuid5(keyList)
         dataObj[uuidName] = id
 
     # must follow sample_uuid assignment
@@ -181,9 +192,9 @@ def setUuids(dataObj):
         if dataObj[field] is None:
             logging.error("%s not found in %s" % (field, jsonPP(dataObj)))
             return None
-        keyList.append(dataObj[field].encode('ascii', 'ignore'))
-    s = "".join(keyList).lower()
-    id = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
+        else:
+            keyList.append(dataObj[field])
+    id = generateUuid5(keyList)
     dataObj["workflow_uuid"] = id
 
 def getDataObj(dict, schema):
@@ -338,12 +349,7 @@ def getWorkflowObjects(flatMetadataObj):
         wf_outputsObj.append(fileInfoObj)
         fileInfoObj["file_type"] = metaObj["file_type"]
         fileInfoObj["file_path"] = metaObj["file_path"]
-
-        strings = []
-        strings.append(metaObj["workflow_uuid"].encode('ascii', 'ignore'))
-        strings.append(metaObj["file_path"].encode('ascii', 'ignore'))
-
-        fileInfoObj["file_uuid"] = str(uuid.uuid5(uuid.NAMESPACE_URL, "".join(strings).lower()))
+        fileInfoObj["file_uuid"] = generateUuid5([metaObj["workflow_uuid"], metaObj["file_path"]])
 
     return commonObjMap
 
