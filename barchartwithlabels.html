@@ -1,115 +1,181 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <head>
-	<title>Bar Chart</title>
-
+	<title>Dashboard</title>
 	<style>
+	   header{
+         text-align:center;
+         padding:5px; 
+      }
+      nav{
+          line-height:30px;
+          height:300px;
+          width:100px;
+          float:left;
+          padding:5px;
+      }
+      a:link, a:visited { 
+         color: #00458c;
+         text-decoration: underline;
+         cursor: auto;
+      }
 
-  .bar{
-    fill: steelblue;
-  }
+      a:link:active, a:visited:active { 
+         color: #F1B521;
+      }
+      .text { font-family: Arial, sans-serif;}
+      .bar{
+         fill: #00458c;
+      }
 
-  .bar:hover{
-    fill: brown;
-  }
+      .bar:hover{
+         fill: #F1B521;
+      }
 
-	.axis {
-	  font: 10px sans-serif;
-	}
+      .axis {
+        font: 10px arial;
+      }
 
-	.axis path,
-	.axis line {
-	  fill: none;
-	  stroke: #000;
-	  shape-rendering: crispEdges;
-	}
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+   
+      /* tooltip */
+      .d3-tip {
+        line-height: 1;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+        font-family: arial;
+        font-size: 10px;
+      }
 
+      /* Creates a small triangle extender for the tooltip */
+      .d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 10px;
+        width: 100%;
+        line-height: 1;
+        color: rgba(0, 0, 0, 0.8);
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+      }
+
+      /* Style northward tooltips differently */
+      .d3-tip.n:after {
+        margin: -1px 0 0 0;
+        top: 100%;
+        left: 0;
+      }
 	</style>
 </head>
 
-<body>
+<header>
+   <h1 class="text">Current Projects </h1>
+</header>
+<nav>
+   <a href="barchartwithlabels.html" class="text">Dashboard</a>
+</nav>
+<body style = "background-color:#F5F4EB;">
 	
 <script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
 
 <script>
-// set the dimensions of the canvas
-var margin = {top: 20, right: 20, bottom: 200, left: 40},
-    width = 600 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+   // set the dimensions of the canvas
+   var margin = {top: 20, right: 20, bottom: 200, left: 40},
+       width = 600 - margin.left - margin.right,
+       height = 500 - margin.top - margin.bottom;
 
 
-// set the ranges
-var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+   // set the ranges
+   var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
 
-var y = d3.scale.linear().range([height, 0]);
+   var y = d3.scale.linear().range([height, 0]);
 
-// define the axis
-var xAxis = d3.svg.axis()
-    .scale(x)
-    .orient("bottom")
-
-
-var yAxis = d3.svg.axis()
-    .scale(y)
-    .orient("left")
-    .ticks(10);
+   // define the axis
+   var xAxis = d3.svg.axis()
+       .scale(x)
+       .orient("bottom")
 
 
-// add the SVG element
-var svg = d3.select("body").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform", 
-          "translate(" + margin.left + "," + margin.top + ")");
+   var yAxis = d3.svg.axis()
+       .scale(y)
+       .orient("left")
+       .ticks(10);
+
+   var tip = d3.tip()
+     .attr('class', 'd3-tip')
+     .offset([-10, 0])
+     .html(function(d) {
+       return "Count: <span style='color:#F1B521'>" + d.Count + "</span>";
+   })
+
+   // add the SVG element
+   var svg = d3.select("body").append("svg")
+       .attr("width", width + margin.left + margin.right)
+       .attr("height", height + margin.top + margin.bottom)
+     .append("g")
+       .attr("transform", 
+             "translate(" + margin.left + "," + margin.top + ")");
+
+   svg.call(tip);
+   // load the data
+   d3.json("data.json", function(error, data) {
+
+       data.forEach(function(d) {
+           d.Label = d.Label;
+           d.Count = +d.Count;
+       });
+   
+     // scale the range of the data
+     x.domain(data.map(function(d) { return d.Label; }));
+     y.domain([0, d3.max(data, function(d) { return d.Count; })]);
+
+     // add axis
+     svg.append("g")
+         .attr("class", "x axis")
+         .attr("transform", "translate(0," + height + ")")
+         .call(xAxis)
+       .selectAll("text")
+         .style("text-anchor", "end")
+         .attr("dx", "-.8em")
+         .attr("dy", "-.55em")
+         .attr("transform", "rotate(-60)" );
+
+     svg.append("g")
+         .attr("class", "y axis")
+         .call(yAxis)
+       .append("text")
+         .attr("transform", "rotate(-90)")
+         .attr("y", 5)
+         .attr("dy", ".71em")
+         .style("text-anchor", "end")
+         .text("Count");
 
 
-// load the data
-d3.json("data.json", function(error, data) {
+     // Add bar chart
+     svg.selectAll("bar")
+         .data(data)
+       .enter().append("rect")
+         .attr("class", "bar")
+         .attr("x", function(d) { return x(d.Label); })
+         .attr("width", x.rangeBand())
+         .attr("y", function(d) { return y(d.Count); })
+         .attr("height", function(d) { return height - y(d.Count); })
+         .on('mouseover', tip.show)
+         .on('mouseout', tip.hide);
 
-    data.forEach(function(d) {
-        d.Label = d.Label;
-        d.Count = +d.Count;
-    });
-	
-  // scale the range of the data
-  x.domain(data.map(function(d) { return d.Label; }));
-  y.domain([0, d3.max(data, function(d) { return d.Count; })]);
-
-  // add axis
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis)
-    .selectAll("text")
-      .style("text-anchor", "end")
-      .attr("dx", "-.8em")
-      .attr("dy", "-.55em")
-      .attr("transform", "rotate(-60)" );
-
-  svg.append("g")
-      .attr("class", "y axis")
-      .call(yAxis)
-    .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 5)
-      .attr("dy", ".71em")
-      .style("text-anchor", "end")
-      .text("Count");
-
-
-  // Add bar chart
-  svg.selectAll("bar")
-      .data(data)
-    .enter().append("rect")
-      .attr("class", "bar")
-      .attr("x", function(d) { return x(d.Label); })
-      .attr("width", x.rangeBand())
-      .attr("y", function(d) { return y(d.Count); })
-      .attr("height", function(d) { return height - y(d.Count); });
-
-});
-
+   });
 </script>
 
 </body>
+
+</font>
+
