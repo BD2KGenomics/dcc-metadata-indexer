@@ -59,6 +59,8 @@ that clients will use in the field to prepare their samples.
 
 Take out `--skip-upload` if you want to perform upload, see below for more details.
 
+In case there are already existing bundle ID's that cause a collision on the S3 storage, you can specify the `--force-upload` switch to replace colliding bundle ID's with the current uploading version.
+
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
 ### Enabling Upload

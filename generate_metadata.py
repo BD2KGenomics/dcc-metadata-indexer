@@ -43,6 +43,8 @@ def getOptions():
 
     parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
 
+    parser.add_option("-r", "--receiptFile", action="store", default="receipt.tsv", type="string", dest="receiptFile", help="receipt file name. This tsv file is the receipt of the upload, with UUIDs filled in.")
+
     parser.add_option("--awsAccessToken", action="store", default="12345678-abcd-1234-abcdefghijkl", type="string", dest="awsAccessToken", help="access token for AWS looks something like 12345678-abcd-1234-abcdefghijkl.")
     parser.add_option("--metadataServerUrl", action="store", default="https://storage.ucsc-cgl.org:8444", type="string", dest="metadataServerUrl", help="URL for metadata server.")
     parser.add_option("--storageServerUrl", action="store", default="https://storage.ucsc-cgl.org:5431", type="string", dest="storageServerUrl", help="URL for storage server.")
@@ -218,17 +220,17 @@ def getDataObj(dict, schema):
     if (isValid):
         return dataObj
     else:
-        logging.error("validation FAILED for \t%s\n" % (jsonPP(dataObj)))
+        logging.error("validation FAILED for \t%s" % (jsonPP(dataObj)))
         return None
 
 def getDataDictFromXls(fileName, sheetName="Sheet1"):
     """
     Get list of dict objects from .xlsx,.xlsm,.xltx,.xltm.
     """
-    logging.debug("attempt to read %s as xls file\n" % (fileName))
+    logging.debug("attempt to read %s as xls file" % (fileName))
     workbook = openpyxl.load_workbook(fileName)
     sheetNames = workbook.get_sheet_names()
-    logging.debug("sheetNames:\t%s\n" % (str(sheetNames)))
+    logging.debug("sheetNames:\t%s" % (str(sheetNames)))
 
     worksheet = workbook.get_sheet_by_name(sheetName)
 
@@ -366,7 +368,7 @@ def writeJson(directory, fileName, jsonObj):
         json.dump(jsonObj, file, indent=4, separators=(',', ': '), sort_keys=True)
         success = 1
     except Exception as exc:
-        logging.exception("ERROR writing %s/%s\n" % (directory, fileName))
+        logging.exception("ERROR writing %s/%s" % (directory, fileName))
         success = 0
     finally:
         file.close()
@@ -454,11 +456,11 @@ def registerBundleUpload(metadataUrl, bundleDir, accessToken):
      command = " ".join(command)
 
      # !!! This may expose the access token !!!
-#      logging.debug("register upload command:\t%s\n" % (command))
+#      logging.debug("register upload command:\t%s" % (command))
 
      try:
          output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
-         logging.debug("output:%s\n" % (str(output)))
+         logging.debug("output:%s" % (str(output)))
      except Exception as exc:
          success = False
          # !!! logging.exception here may expose access token !!!
@@ -508,11 +510,11 @@ def performBundleUpload(metadataUrl, storageUrl, bundleDir, accessToken, force=F
     command = " ".join(command)
 
     # !!! This may expose the access token !!!
-#     logging.debug("perform upload command:\t%s\n" % (command))
+#     logging.debug("perform upload command:\t%s" % (command))
 
     try:
         output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
-        logging.debug("output:%s\n" % (str(output)))
+        logging.debug("output:%s" % (str(output)))
     except Exception as exc:
         success = False
         # !!! logging.exception here may expose access token !!!
@@ -530,7 +532,7 @@ def main():
     (options, args, parser) = getOptions()
 
     if len(args) == 0:
-        logging.critical("no input files\n")
+        logging.critical("no input files")
         sys.exit(1)
 
     if options.verbose:
@@ -544,8 +546,8 @@ def main():
     # !!! careful not to expose the access token !!!
     printOptions = copy.deepcopy(vars(options))
     printOptions.pop("awsAccessToken")
-    logging.debug('options:\t%s\n' % (str(printOptions)))
-    logging.debug('args:\t%s\n' % (str(args)))
+    logging.debug('options:\t%s' % (str(printOptions)))
+    logging.debug('args:\t%s' % (str(args)))
 
     tempDirName = os.path.basename(__file__) + "_temp"
 
@@ -561,8 +563,8 @@ def main():
             fileDataList = getDataDictFromXls(fileName)
         except Exception as exc:
             # attempt to process as tsv file
-            logging.info("couldn't read %s as excel file\n" % fileName)
-            logging.info("---now trying to read as tsv file\n")
+            logging.info("couldn't read %s as excel file" % fileName)
+            logging.info("---now trying to read as tsv file")
             fileLines = readFileLines(fileName)
             reader = readTsv(fileLines)
             fileDataList = processFieldNames(reader)
@@ -582,15 +584,16 @@ def main():
 
     # write metadata files and link data files
     numFilesWritten = writeDataBundleDirs(structuredWorkflowObjMap, options.metadataOutDir)
-    logging.info("number of metadata files written: %s\n" % (str(numFilesWritten)))
+    logging.info("number of metadata files written: %s" % (str(numFilesWritten)))
 
     if (options.skip_upload):
-        logging.info("Skipping data upload steps.\n")
+        logging.info("Skipping data upload steps.")
         runTime = getTimeDelta(startTime).total_seconds()
         logging.info("program ran for %s s." % str(runTime))
         return None
     else:
-        logging.info("Now attempting to upload data.\n")
+        logging.info("Now attempting to upload data.")
+        logging.info("If the upload seems to hang, it could be that the server doesn't recognize your IP.")
 
     # UPLOAD SECTION
     counts = {}
@@ -599,42 +602,40 @@ def main():
     counts["failedUploads"] = []
     counts["bundlesUploaded"] = 0
 
+    # first pass uploads data bundles
     for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
         if dirName == options.metadataOutDir:
             continue
         if len(subdirList) != 0:
             continue
-        for fileName in fileList:
-            if fileName == "metadata.json":
-                bundleDirFullPath = os.path.join(os.getcwd(), dirName)
-                logging.debug("found bundle directory at %s" % (bundleDirFullPath))
-                counts["bundlesFound"] += 1
+        if "metadata.json" in fileList:
+            bundleDirFullPath = os.path.join(os.getcwd(), dirName)
+            logging.debug("found bundle directory at %s" % (bundleDirFullPath))
+            counts["bundlesFound"] += 1
 
-                bundle_uuid = dirName
+            bundle_uuid = dirName
 
-                # register upload
-                args = {"accessToken":options.awsAccessToken, "bundleDir":dirName, "metadataUrl":options.metadataServerUrl}
-                regSuccess = registerBundleUpload(**args)
+            # register upload
+            args = {"accessToken":options.awsAccessToken, "bundleDir":dirName, "metadataUrl":options.metadataServerUrl}
+            regSuccess = registerBundleUpload(**args)
 
-                # perform upload
-                upSuccess = False
-                if regSuccess:
-                    args["storageUrl"] = options.storageServerUrl
-                    args["force"] = options.force_upload
-                    upSuccess = performBundleUpload(**args)
-                else:
-                    counts["failedRegistration"].append(bundle_uuid)
-
-                if upSuccess:
-                    counts["bundlesUploaded"] += 1
-                else:
-                    counts["failedUploads"].append(bundle_uuid)
-
-                break
+            # perform upload
+            upSuccess = False
+            if regSuccess:
+                args["storageUrl"] = options.storageServerUrl
+                args["force"] = options.force_upload
+                upSuccess = performBundleUpload(**args)
             else:
-                pass
+                counts["failedRegistration"].append(bundle_uuid)
 
-    logging.info("counts\t%s\n" % (json.dumps(counts)))
+            if upSuccess:
+                counts["bundlesUploaded"] += 1
+            else:
+                counts["failedUploads"].append(bundle_uuid)
+
+    logging.info("counts\t%s" % (json.dumps(counts)))
+
+    # TODO second pass generates receipt.tsv
 
     if len(counts["failedRegistration"]) > 0 or len(counts["failedUploads"]) > 0:
         logging.error("THERE WERE SOME FAILED PROCESSES !")

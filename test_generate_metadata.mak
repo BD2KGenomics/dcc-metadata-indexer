@@ -19,6 +19,7 @@ test:
 	python ./generate_metadata.py \
 		--metadataSchema metadata_flattened.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
+		--force-upload \
 		1.tmp \
 	;
 	\
