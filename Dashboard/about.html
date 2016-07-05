@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <head>
    <link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
-	<title>Dashboard</title>
+	<title>About</title>
 	<style>
 	   header{
          text-align:center;
@@ -115,55 +115,6 @@
          background-color: #555;
       }
       .text { font-family: 'Muli', sans-serif;}
-      
-      .bar{
-         fill: #00458c;
-      }
-
-      .bar:hover{
-         fill: #F1B521;
-      }
-
-      .axis {
-        font: 10px arial;
-      }
-
-      .axis path,
-      .axis line {
-        fill: none;
-        stroke: #000;
-        shape-rendering: crispEdges;
-      }
-   
-      /* tooltip */
-      .d3-tip {
-        line-height: 1;
-        padding: 12px;
-        background: #555;
-        color: #fff;
-        border-radius: 2px;
-        font-family: arial;
-        font-size: 10px;
-      }
-
-      /* Creates a small triangle extender for the tooltip */
-      .d3-tip:after {
-        box-sizing: border-box;
-        display: inline;
-        font-size: 10px;
-        width: 100%;
-        line-height: 1;
-        color: #555;
-        content: "\25BC";
-        position: absolute;
-        text-align: center;
-      }
-
-      /* Style northward tooltips differently */
-      .d3-tip.n:after {
-        margin: -1px 0 0 0;
-        top: 100%;
-        left: 0;
       }
 	</style>
 </head>
@@ -191,107 +142,13 @@
   <li><a href="about.html">About</a></li>
 </ul>
 <header class="text">
-   <h1>Current Projects </h1>
+   <h1>About</h1>
    <p> This website is still being tested. </p>
 </header>
-<nav>
-   <a href="index.html" class="text">Dashboard</a>
-</nav>
 <body style = "background-color:#F5F4EB;">
-	
-<script src="d3.v3.min.js"></script>
-<script src="d3.tip.v0.6.3.js"></script>
 
-<script>
-   // set the dimensions of the canvas
-   var margin = {top: 20, right: 20, bottom: 200, left: 40},
-       width = 600 - margin.left - margin.right,
-       height = 500 - margin.top - margin.bottom;
-
-
-   // set the ranges
-   var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
-
-   var y = d3.scale.linear().range([height, 0]);
-
-   // define the axis
-   var xAxis = d3.svg.axis()
-       .scale(x)
-       .orient("bottom")
-
-
-   var yAxis = d3.svg.axis()
-       .scale(y)
-       .orient("left")
-       .ticks(10);
-
-   var tip = d3.tip()
-     .attr('class', 'd3-tip')
-     .offset([-10, 0])
-     .html(function(d) {
-       return "Count: <span style='color:#F1B521'>" + d.Count + "</span>";
-   })
-
-   // add the SVG element
-   var svg = d3.select("body").append("svg")
-       .attr("width", width + margin.left + margin.right)
-       .attr("height", height + margin.top + margin.bottom)
-     .append("g")
-       .attr("transform", 
-             "translate(" + margin.left + "," + margin.top + ")");
-
-   svg.call(tip);
-   // load the data
-   d3.json("data.json", function(error, data) {
-
-       data.forEach(function(d) {
-           d.Label = d.Label;
-           d.Count = +d.Count;
-       });
-   
-     // scale the range of the data
-     x.domain(data.map(function(d) { return d.Label; }));
-     y.domain([0, d3.max(data, function(d) { return d.Count; })]);
-
-     // add axis
-     svg.append("g")
-         .attr("class", "x axis")
-         .attr("transform", "translate(0," + height + ")")
-         .call(xAxis)
-       .selectAll("text")
-         .style("text-anchor", "end")
-         .attr("dx", "-.8em")
-         .attr("dy", "-.55em")
-         .attr("transform", "rotate(-60)" );
-
-     svg.append("g")
-         .attr("class", "y axis")
-         .call(yAxis)
-       .append("text")
-         .attr("transform", "rotate(-90)")
-         .attr("y", 5)
-         .attr("dy", ".71em")
-         .style("text-anchor", "end")
-         .text("Count");
-
-
-     // Add bar chart
-     svg.selectAll("bar")
-         .data(data)
-       .enter().append("rect")
-         .attr("class", "bar")
-         .attr("x", function(d) { return x(d.Label); })
-         .attr("width", x.rangeBand())
-         .attr("y", function(d) { return y(d.Count); })
-         .attr("height", function(d) { return height - y(d.Count); })
-         .on('mouseover', tip.show)
-         .on('mouseout', tip.hide);
-
-   });
-</script>
 
 </body>
-<p class="text">Data Updated: </p>
 <footer class="text">
 <section style="color: white">UCSC Genomics Institute - Analysis Core 
 <ul class="text" style="float: right; font-size:50%; padding: 4px;">
