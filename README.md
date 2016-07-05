@@ -50,10 +50,11 @@ experimental designs and file upload types.  To do that we (Chris) developed a v
 TSV to JSON tool and this will ultimately form the basis of our helper applications
 that clients will use in the field to prepare their samples.
 
-    python generate_metadata.py -v \
+    python generate_metadata.py \
+		--metadataSchema metadata_flattened.json \
+		--outputDir output_metadata \
+		--awsAccessToken `cat ucsc-storage-client/accessToken` \
 		--skip-upload \
-		--biospecimenSchema biospecimen_flattened.json \
-		--analysisSchema analysis_flattened.json \
 		sample_tsv/sample.tsv
 
 Take out `--skip-upload` if you want to perform upload, see below for more details.
@@ -95,7 +96,7 @@ file in Chrome.  The commands below will display the second JSON document. On a 
 
 In the query_on_merge folder, you will find a queryable document, compact_single.json and a sample query, jquery1.
 Start by running Elasticsearch, then to add the compact_single.json to your node by
-    
+
     curl -XPUT http://localhost:9200/analysis_index/_bulk?pretty --data-binary @elasticsearch.jsonl
 
 Then check to see if index has been created. (Should have five documents).
@@ -116,7 +117,7 @@ Since merge.py now adds flags, you can find a queryable document, mergeflag.json
 
 However, the problem with this method is that only the first query is performed.
 
-esquery.py can perform all of the queries (elasticsearch needs to be installed. pip install elasticsearch). Run using: 
+esquery.py can perform all of the queries (elasticsearch needs to be installed. pip install elasticsearch). Run using:
 
     python esquery.py
 

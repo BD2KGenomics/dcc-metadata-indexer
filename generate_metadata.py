@@ -1,9 +1,13 @@
 # generage_metadata.py
-# Generate metadata files from a tsv file.
+# Generate and upload UCSC Core Genomics data bundles from information passed via excel or tsv file.
+#
 # See "helper client" in https://ucsc-cgl.atlassian.net/wiki/display/DEV/Storage+Service+-+Functional+Spec
+#
+# The upload portion of this script requires external java8 jars and other files from the private S3 bucket at <https://s3-us-west-2.amazonaws.com/beni-dcc-storage-dev/ucsc-storage-client.tar.gz>
 # MAY2016	chrisw
 
 # imports
+import logging
 from optparse import OptionParser
 import sys
 import csv
@@ -14,68 +18,97 @@ import openpyxl
 import json
 import uuid
 from sets import Set
-import shutil
-
-
-
+# import shutil
+import subprocess
+import datetime
 # import re
+import copy
+import pprint
 
 # methods and functions
 
 def getOptions():
-    "parse options"
+    """
+    parse options
+    """
     usage_text = []
     usage_text.append("%prog [options] [input Excel or tsv files]")
     usage_text.append("Data will be read from 'Sheet1' in the case of Excel file.")
 
     parser = OptionParser(usage="\n".join(usage_text))
-    parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose",
-                      help="Switch for verbose mode.")
+    parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose", help="Switch for verbose mode.")
+    parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload", help="Switch to skip upload. Metadata files will be generated only.")
 
-    parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload",
-                      help="Switch to skip upload. Metadata files will be generated only.")
+    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_flattened.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
 
-    parser.add_option("-b", "--biospecimenSchema", action="store", default="biospecimen_flattened.json", type="string",
-                      dest="biospecimenSchemaFileName", help="flattened json schema file for biospecimen")
-    parser.add_option("-a", "--analysisSchema", action="store", default="analysis_flattened.json", type="string",
-                      dest="analysisSchemaFileName", help="flattened json schema file for analysis")
+    parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
 
-    parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string",
-                      dest="metadataOutDir",
-                      help="output directory. In the case of colliding file names, the older file will be overwritten.")
+    parser.add_option("--awsAccessToken", action="store", default="12345678-abcd-1234-abcdefghijkl", type="string", dest="awsAccessToken", help="access token for AWS looks something like 12345678-abcd-1234-abcdefghijkl.")
+    parser.add_option("--metadataServerUrl", action="store", default="https://storage.ucsc-cgl.org:8444", type="string", dest="metadataServerUrl", help="URL for metadata server.")
+    parser.add_option("--storageServerUrl", action="store", default="https://storage.ucsc-cgl.org:5431", type="string", dest="storageServerUrl", help="URL for storage server.")
+    parser.add_option("--force-upload", action="store_true", default=False, dest="force_upload", help="Switch to force upload in case object ID already exists remotely. Overwrites existing bundle.")
 
     (options, args) = parser.parse_args()
 
     return (options, args, parser)
 
+def jsonPP(obj):
+    """
+    Get a pretty stringified JSON
+    """
+    str = json.dumps(obj, indent=4, separators=(',', ': '), sort_keys=True)
+    return str
 
-def log(msg, die=False):
-    if (verbose | die):
-        sys.stderr.write(msg)
-    if die:
-        sys.exit(1)
+def getNow():
+    """
+    Get a datetime object for utc NOW.
+    Convert to ISO 8601 format with datetime.isoformat()
+    """
+    now = datetime.datetime.utcnow()
+    return now
 
+def getTimeDelta(startDatetime):
+    """
+    get a timedelta object. Get seconds elapsed with timedelta.total_seconds().
+    """
+    endDatetime = datetime.datetime.utcnow()
+    timedeltaObj = endDatetime - startDatetime
+    return timedeltaObj
 
-def loadJsonSchema(fileName):
+def loadJsonObj(fileName):
+    """
+    Load a json object from a file.
+    """
     try:
         file = open(fileName, "r")
-        schema = json.load(file)
+        object = json.load(file)
         file.close()
     except Exception as exc:
-        log("Exception:%s\n" % (str(exc)), die=True)
+        logging.exception("loadJsonObj")
+    return object
+
+def loadJsonSchema(fileName):
+    """
+    Load a json schema (actually just an object) from a file.
+    """
+    schema = loadJsonObj(fileName)
     return schema
 
-
 def validateObjAgainstJsonSchema(obj, schema):
+    """
+    Validate an object against a schema.
+    """
     try:
         jsonschema.validate(obj, schema)
     except Exception as exc:
-        sys.stderr.write("Exception:%s\n" % (str(exc)))
+        logging.error("jsonschema.validate FAILED in validateObjAgainstJsonSchema: %s" % (str(exc)))
         return False
     return True
 
-
 def readFileLines(filename, strip=True):
+    """
+    Convenience method for getting an array of fileLines from a file.
+    """
     fileLines = []
     file = open(filename, 'r')
     for line in file.readlines():
@@ -85,21 +118,26 @@ def readFileLines(filename, strip=True):
     file.close()
     return fileLines
 
-
 def readTsv(fileLines, d="\t"):
+    """
+    convenience method for reading TSV file lines into csv.DictReader obj.
+    """
     reader = csv.DictReader(fileLines, delimiter=d)
     return reader
 
-
 def normalizePropertyName(inputStr):
-    "field names in the schema are all lower-snake-case"
-    newStr = inputStr.lower()
+    """
+    field names in the schema are all lower-snake-case
+    """
+    newStr = inputStr.encode('ascii', 'ignore').lower()
     newStr = newStr.replace(" ", "_")
+    newStr = newStr.strip()
     return newStr
 
-
 def processFieldNames(dictReaderObj):
-    "normalize the field names in a DictReader obj"
+    """
+    normalize the field names in a DictReader obj
+    """
     newDataList = []
     for dict in dictReaderObj:
         newDict = {}
@@ -109,8 +147,22 @@ def processFieldNames(dictReaderObj):
             newDict[newKey] = dict[key]
     return newDataList
 
+def generateUuid5(nameComponents, namespace=uuid.NAMESPACE_URL):
+    """
+    generate a uuid5 where the name is the lower case of concatenation of nameComponents
+    """
+    strings = []
+    for nameComponent in nameComponents:
+        # was having some trouble with data coming out of openpyxl not being ascii
+        strings.append(nameComponent.encode('ascii', 'ignore'))
+    name = "".join(strings).lower()
+    id = str(uuid.uuid5(namespace, name))
+    return id
 
 def setUuids(dataObj):
+    """
+    Set donor_uuid, specimen_uuid, and sample_uuid for dataObj. Uses uuid.uuid5().
+    """
     keyFieldsMapping = {}
     keyFieldsMapping["donor_uuid"] = ["center_name", "submitter_donor_id"]
 
@@ -120,41 +172,65 @@ def setUuids(dataObj):
     keyFieldsMapping["sample_uuid"] = list(keyFieldsMapping["specimen_uuid"])
     keyFieldsMapping["sample_uuid"].append("submitter_sample_id")
 
+#     keyFieldsMapping["workflow_uuid"] = ["sample_uuid", "workflow_name", "workflow_version"]
+
     for uuidName in keyFieldsMapping.keys():
         keyList = []
         for field in keyFieldsMapping[uuidName]:
-            keyList.append(dataObj[field])
-        # was having some trouble with data coming out of openpyxl not being ascii
-        s = "".join(keyList).encode('ascii', 'ignore').lower()
-        dataObj[uuidName] = str(uuid.uuid5(uuid.NAMESPACE_URL, s))
+            if dataObj[field] is None:
+                logging.error("%s not found in %s" % (field, jsonPP(dataObj)))
+                return None
+            else:
+                keyList.append(dataObj[field])
+        id = generateUuid5(keyList)
+        dataObj[uuidName] = id
 
+    # must follow sample_uuid assignment
+    workflow_uuid_keys = ["sample_uuid", "workflow_name", "workflow_version"]
+    keyList = []
+    for field in workflow_uuid_keys:
+        if dataObj[field] is None:
+            logging.error("%s not found in %s" % (field, jsonPP(dataObj)))
+            return None
+        else:
+            keyList.append(dataObj[field])
+    id = generateUuid5(keyList)
+    dataObj["workflow_uuid"] = id
 
 def getDataObj(dict, schema):
-    "Pull data out from dict. Use the flattened schema to get the key names as well as validate."
+    """
+    Pull data out from dict. Use the flattened schema to get the key names as well as validate.
+    If validation fails, return None.
+    """
     setUuids(dict)
 
+#     schema["properties"]["workflow_uuid"] = {"type": "string"}
     propNames = schema["properties"].keys()
 
     dataObj = {}
     for propName in propNames:
         dataObj[propName] = dict[propName]
 
+    if "workflow_uuid" in dict.keys():
+        dataObj["workflow_uuid"] = dict["workflow_uuid"]
+
     isValid = validateObjAgainstJsonSchema(dataObj, schema)
     if (isValid):
         return dataObj
     else:
-        sys.exit(1)
+        logging.error("validation FAILED for \t%s\n" % (jsonPP(dataObj)))
+        return None
 
-
-def getDataDictFromXls(fileName):
-    "can open .xlsx,.xlsm,.xltx,.xltm"
-    log("attempt to read %s as xls file\n" % (fileName))
+def getDataDictFromXls(fileName, sheetName="Sheet1"):
+    """
+    Get list of dict objects from .xlsx,.xlsm,.xltx,.xltm.
+    """
+    logging.debug("attempt to read %s as xls file\n" % (fileName))
     workbook = openpyxl.load_workbook(fileName)
     sheetNames = workbook.get_sheet_names()
-    log("sheetNames:\t%s\n" % (str(sheetNames)))
+    logging.debug("sheetNames:\t%s\n" % (str(sheetNames)))
 
-    # Hopefully, it will always be "Sheet1" !
-    worksheet = workbook.get_sheet_by_name("Sheet1")
+    worksheet = workbook.get_sheet_by_name(sheetName)
 
     headerRow = worksheet.rows[0]
     dataRows = worksheet.rows[1:]
@@ -179,140 +255,304 @@ def getDataDictFromXls(fileName):
 
     return data
 
+def ln_s(file_path, link_path):
+    """
+    ln -s
+    note: will not clobber existing file
+    """
+    try:
+        os.symlink(file_path, link_path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST:
+            if os.path.isdir(link_path):
+                logging.error("linking failed -> %s is an existing directory" % (link_path))
+            elif os.path.isfile(link_path):
+                logging.error("linking failed -> %s is an existing file" % (link_path))
+            elif os.path.islink(link_path):
+                logging.error("linking failed -> %s is an existing link" % (link_path))
+        else:
+            logging.error("raising error")
+            raise
+    return None
 
 def mkdir_p(path):
+    """
+    mkdir -p
+    """
     try:
         os.makedirs(path)
-    except OSError as exc:  # Python >2.5
+    except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else:
             raise
     return None
 
-
-def writeOutput(donorSpecSampleBioMap, donorAnaMap, outputDir):
+def getWorkflowObjects(flatMetadataObj):
+    """
+    For each flattened metadata object, build up a metadataObj with correct structure.
+    """
+    schema_version = "0.0.1"
     num_files_written = 0
-    num_files_written += writeBiospecimenOutput(donorSpecSampleBioMap, outputDir)
-    num_files_written += writeAnalysisOutput(donorAnaMap, outputDir)
-    return num_files_written
 
+    commonObjMap = {}
+    for metaObj in flatMetadataObj:
+        workflow_uuid = metaObj["workflow_uuid"]
+        if workflow_uuid in commonObjMap.keys():
+            pass
+        else:
+            workflowObj = {}
+            commonObjMap[workflow_uuid] = workflowObj
+            workflowObj["program"] = metaObj["program"]
+            workflowObj["project"] = metaObj["project"]
+            workflowObj["center_name"] = metaObj["center_name"]
+            workflowObj["submitter_donor_id"] = metaObj["submitter_donor_id"]
+            workflowObj["donor_uuid"] = metaObj["donor_uuid"]
 
-def writeBiospecimenOutput(donorSpecSampleBioMap, outputDir):
-    num_files_written = 0
-    for donor_uuid in donorSpecSampleBioMap.keys():
-        donorDir = os.path.join(outputDir, donor_uuid)
-        mkdir_p(donorDir)
+            workflowObj["timestamp"] = getNow().isoformat()
+            workflowObj["schema_version"] = schema_version
 
-        bioOutObj = {}
+            workflowObj["specimen"] = []
 
-        specSampleBioMap = donorSpecSampleBioMap[donor_uuid]
-        for specimen_uuid in specSampleBioMap.keys():
-            sampleBioMap = specSampleBioMap[specimen_uuid]
+            # add specimen
+            specObj = {}
+            workflowObj["specimen"].append(specObj)
+            specObj["submitter_specimen_id"] = metaObj["submitter_specimen_id"]
+            specObj["submitter_specimen_type"] = metaObj["submitter_specimen_type"]
+            specObj["specimen_uuid"] = metaObj["specimen_uuid"]
+            specObj["samples"] = []
 
-            specimenObj = {}
+            # add sample
+            sampleObj = {}
+            specObj["samples"].append(sampleObj)
+            sampleObj["submitter_sample_id"] = metaObj["submitter_sample_id"]
+            sampleObj["sample_uuid"] = metaObj["sample_uuid"]
 
-            for sample_uuid in sampleBioMap.keys():
-                bioObjStrings = sampleBioMap[sample_uuid]
+            # add workflow
+            workFlowObj = {}
+            analysis_type = metaObj["analysis_type"]
+            sampleObj[analysis_type] = workFlowObj
 
-                sampleObj = {}
+            workFlowObj["workflow_name"] = metaObj["workflow_name"]
+            workFlowObj["workflow_version"] = metaObj["workflow_version"]
+            workFlowObj["analysis_type"] = metaObj["analysis_type"]
+            workFlowObj["workflow_outputs"] = []
+            workFlowObj["bundle_uuid"] = metaObj["workflow_uuid"]
 
-                for bioObjString in bioObjStrings:
-                    bioObj = json.loads(bioObjString)
-                    specimen_uuid = bioObj["specimen_uuid"]
+        # retrieve workflow
+        workflowObj = commonObjMap[workflow_uuid]
+        analysis_type = metaObj["analysis_type"]
+        wf_outputsObj = workflowObj["specimen"][0]["samples"][0][analysis_type]["workflow_outputs"]
 
-                    if bioOutObj == {}:
-                        bioOutObj["program"] = bioObj["program"]
-                        bioOutObj["project"] = bioObj["project"]
-                        bioOutObj["center_name"] = bioObj["center_name"]
-                        bioOutObj["submitter_donor_id"] = bioObj["submitter_donor_id"]
-                        bioOutObj["donor_uuid"] = bioObj["donor_uuid"]
-                        bioOutObj["specimen"] = []
+        # add file info
+        fileInfoObj = {}
+        wf_outputsObj.append(fileInfoObj)
+        fileInfoObj["file_type"] = metaObj["file_type"]
+        fileInfoObj["file_path"] = metaObj["file_path"]
+        fileInfoObj["file_uuid"] = generateUuid5([metaObj["workflow_uuid"], metaObj["file_path"]])
 
-                    if (specimenObj == {}):
-                        specimenObj["submitter_specimen_id"] = bioObj["submitter_specimen_id"]
-                        specimenObj["submitter_specimen_type"] = bioObj["submitter_specimen_type"]
-                        specimenObj["specimen_uuid"] = bioObj["specimen_uuid"]
-                        specimenObj["samples"] = []
+    return commonObjMap
 
-                        bioOutObj["specimen"].append(specimenObj)
-
-                    if (sampleObj == {}):
-                        sampleObj["submitter_sample_id"] = bioObj["submitter_sample_id"]
-                        sampleObj["sample_uuid"] = bioObj["sample_uuid"]
-                        specimenObj["samples"].append(sampleObj)
-
-        # write biospecimen.json
-        filePath = os.path.join(donorDir, "biospecimen.json")
+def writeJson(directory, fileName, jsonObj):
+    """
+    Dump a json object to the specified directory/fileName. Creates directory if necessary.
+    NOTE: will clobber the existing file
+    """
+    success = None
+    try:
+        mkdir_p(directory)
+        filePath = os.path.join(directory, fileName)
         file = open(filePath, 'w')
-        json.dump(bioOutObj, file, indent=4, separators=(',', ': '))
-        num_files_written += 1
+        json.dump(jsonObj, file, indent=4, separators=(',', ': '), sort_keys=True)
+        success = 1
+    except Exception as exc:
+        logging.exception("ERROR writing %s/%s\n" % (directory, fileName))
+        success = 0
+    finally:
         file.close()
+    return success
 
-    return num_files_written
+def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
+    """
+    For each structuredMetaDataObj, prepare a data bundle dir for each workflow
+    """
+    numFilesWritten = 0
+    for workflow_uuid in structuredMetaDataObjMap.keys():
+        metaObj = structuredMetaDataObjMap[workflow_uuid]
 
+        # get outputDir (bundle_uuid)
+        bundlePath = os.path.join(outputDir, workflow_uuid)
 
-def writeAnalysisOutput(donorAnaMap, outputDir):
-    num_files_written = 0
-    for donor_uuid in donorAnaMap.keys():
-        donorDir = os.path.join(outputDir, donor_uuid)
-        mkdir_p(donorDir)
+        # get analysis_type
+        sampleObj = metaObj["specimen"][0]["samples"][0]
+        analysis_type = None
+        for obj in sampleObj.values():
+            if (isinstance(obj, dict)) and ("analysis_type" in obj.keys()):
+                analysis_type = obj["analysis_type"]
+                break
+        if analysis_type == None:
+            logging.error("no analysis found in %s" % (jsonPP(metaObj)))
+            continue
 
-        anaObjs = donorAnaMap[donor_uuid]
-        for idx in xrange(len(anaObjs)):
-            anaObj = anaObjs[idx]
-            anaOutObj = {}
-            anaOutObj["parent_uuids"] = []
-            anaOutObj["parent_uuids"].append(anaObj["sample_uuid"])
-            anaOutObj["workflow_name"] = anaObj["workflow_name"]
-            anaOutObj["workflow_version"] = anaObj["workflow_version"]
+        # link data file(s)
+        wf_outputsObj = sampleObj[analysis_type]["workflow_outputs"]
+        for outputObj in wf_outputsObj:
+            file_path = outputObj["file_path"]
+            fullFilePath = os.path.join(os.getcwd(), file_path)
+            filename = os.path.basename(file_path)
+            linkPath = os.path.join(bundlePath, filename)
+            mkdir_p(bundlePath)
+            ln_s(fullFilePath, linkPath)
 
-            anaOutObj["workflow_outputs"] = {}
+        # write metadata
+        numFilesWritten += writeJson(bundlePath, "metadata.json", metaObj)
 
-            underscore_filename = anaObj["file_path"].replace('.', '_')
+    return numFilesWritten
 
-            anaOutObj["workflow_outputs"][underscore_filename] = {}
+def setupLogging(logfileName, logFormat, logLevel, logToConsole=True):
+    """
+    Setup simultaneous logging to file and console.
+    """
+#     logFormat = "%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s"
+    logging.basicConfig(filename=logfileName, level=logging.NOTSET, format=logFormat)
+    if logToConsole:
+        console = logging.StreamHandler()
+        console.setLevel(logLevel)
+        formatter = logging.Formatter(logFormat)
+        console.setFormatter(formatter)
+        logging.getLogger('').addHandler(console)
+    return None
 
-            anaOutObj["workflow_outputs"][underscore_filename]["file_type_label"] = anaObj["file_type"]
-            anaOutObj["workflow_outputs"][underscore_filename]["file_path"] = anaObj["file_path"]
+def registerBundleUpload(metadataUrl, bundleDir, accessToken):
+     """
+     java
+         -Djavax.net.ssl.trustStore=ssl/cacerts
+         -Djavax.net.ssl.trustStorePassword=changeit
+         -Dserver.baseUrl=https://storage.ucsc-cgl.org:8444
+         -DaccessToken=${accessToken}
+         -jar dcc-metadata-client-0.0.16-SNAPSHOT/lib/dcc-metadata-client.jar
+         -i ${upload}
+         -o ${manifest}
+         -m manifest.txt
+     """
+     success = True
 
-            anaOutObj["analysis_type"] = anaObj["analysis_type"]
+     metadataClientJar = "ucsc-storage-client/dcc-metadata-client-0.0.16-SNAPSHOT/lib/dcc-metadata-client.jar"
+     trustStore = "ucsc-storage-client/ssl/cacerts"
+     trustStorePw = "changeit"
 
-            # write biospecimen.json
-            filePath = os.path.join(donorDir, str(idx) + "analysis.json")
-            file = open(filePath, 'w')
-            json.dump(anaOutObj, file, indent=4, separators=(',', ': '))
-            num_files_written += 1
-            file.close()
+     # build command string
+     command = ["java"]
+     command.append("-Djavax.net.ssl.trustStore=" + trustStore)
+     command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
+     command.append("-Dserver.baseUrl=" + str(metadataUrl))
+     command.append("-DaccessToken=" + str(accessToken))
+     command.append("-jar " + metadataClientJar)
+     command.append("-i " + str(bundleDir))
+     command.append("-o " + str(bundleDir))
+     command.append("-m manifest.txt")
+     command = " ".join(command)
 
-    return num_files_written
+     # !!! This may expose the access token !!!
+#      logging.debug("register upload command:\t%s\n" % (command))
 
+     try:
+         output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
+         logging.debug("output:%s\n" % (str(output)))
+     except Exception as exc:
+         success = False
+         # !!! logging.exception here may expose access token !!!
+         logging.error("ERROR while registering bundle %s" % bundleDir)
+         output = ""
+     finally:
+         logging.info("done registering bundle upload %s" % bundleDir)
+
+     return success
+
+def performBundleUpload(metadataUrl, storageUrl, bundleDir, accessToken, force=False):
+    """
+    Java
+        -Djavax.net.ssl.trustStore=ssl/cacerts
+        -Djavax.net.ssl.trustStorePassword=changeit
+        -Dmetadata.url=https://storage.ucsc-cgl.org:8444
+        -Dmetadata.ssl.enabled=true
+        -Dclient.ssl.custom=false
+        -Dstorage.url=https://storage.ucsc-cgl.org:5431
+        -DaccessToken=${accessToken}
+        -jar icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar upload
+        --manifest ${manifest}/manifest.txt
+    """
+    success = True
+
+    storageClientJar = "ucsc-storage-client/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar"
+    trustStore = "ucsc-storage-client/ssl/cacerts"
+    trustStorePw = "changeit"
+
+    # build command string
+    command = ["java"]
+    command.append("-Djavax.net.ssl.trustStore=" + trustStore)
+    command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
+    command.append("-Dmetadata.url=" + str(metadataUrl))
+    command.append("-Dmetadata.ssl.enabled=true")
+    command.append("-Dclient.ssl.custom=false")
+    command.append("-Dstorage.url=" + str(storageUrl))
+    command.append("-DaccessToken=" + str(accessToken))
+    command.append("-jar " + storageClientJar + " upload")
+
+    # force upload in case object id already exists remotely
+    if force:
+        command.append("--force")
+
+    manifestFilePath = os.path.join(bundleDir, "manifest.txt")
+    command.append("--manifest " + manifestFilePath)
+    command = " ".join(command)
+
+    # !!! This may expose the access token !!!
+#     logging.debug("perform upload command:\t%s\n" % (command))
+
+    try:
+        output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
+        logging.debug("output:%s\n" % (str(output)))
+    except Exception as exc:
+        success = False
+        # !!! logging.exception here may expose access token !!!
+        logging.error("ERROR while uploading files for bundle %s" % bundleDir)
+        output = ""
+    finally:
+        logging.info("done uploading bundle %s" % bundleDir)
+
+    return success
 
 #:####################################
 
 def main():
-    global verbose
+    startTime = getNow()
     (options, args, parser) = getOptions()
 
     if len(args) == 0:
-        sys.stderr.write("no input files\n")
+        logging.critical("no input files\n")
         sys.exit(1)
 
-    verbose = options.verbose
-    log('options:\t%s\n' % (str(options)))
-    log('args:\t%s\n' % (str(args)))
+    if options.verbose:
+        logLevel = logging.DEBUG
+    else:
+        logLevel = logging.INFO
+    logfileName = os.path.basename(__file__).replace(".py", ".log")
+    logFormat = "%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s"
+    setupLogging(logfileName, logFormat, logLevel)
 
-    # load bio schema
-    bioSchema = loadJsonSchema(options.biospecimenSchemaFileName)
+    # !!! careful not to expose the access token !!!
+    printOptions = copy.deepcopy(vars(options))
+    printOptions.pop("awsAccessToken")
+    logging.debug('options:\t%s\n' % (str(printOptions)))
+    logging.debug('args:\t%s\n' % (str(args)))
 
-    # load analysis schema
-    analysisSchema = loadJsonSchema(options.analysisSchemaFileName)
+    tempDirName = os.path.basename(__file__) + "_temp"
 
-    # map donor_uuid to map of specimen_uuid to map of sample_uuid to list of bioObj
-    donorSpecSampleBioMap = {}
+    # load flattened metadata schema
+    metadataSchema = loadJsonSchema(options.metadataSchemaFileName)
 
-    # map donor_uuid to list of anaObj
-    donorAnaMap = {}
+    flatMetadataObjs = []
 
     # iter over input files
     for fileName in args:
@@ -321,109 +561,88 @@ def main():
             fileDataList = getDataDictFromXls(fileName)
         except Exception as exc:
             # attempt to process as tsv file
-            sys.stderr.write("couldn't read %s as excel file\n" % fileName)
-            sys.stderr.write("---now trying to read as tsv file\n")
+            logging.info("couldn't read %s as excel file\n" % fileName)
+            logging.info("---now trying to read as tsv file\n")
             fileLines = readFileLines(fileName)
             reader = readTsv(fileLines)
             fileDataList = processFieldNames(reader)
+            # pp = pprint.PrettyPrinter(indent=4)
+            # pp.pprint(fileDataList)
 
         for data in fileDataList:
-            # build and validate bio obj
-            bioObj = getDataObj(data, bioSchema)
+            metaObj = getDataObj(data, metadataSchema)
 
-            # build and validate analysis obj
-            anaObj = getDataObj(data, analysisSchema)
-
-            # organize the data for assembling output objects
-            bioDonor = bioObj["donor_uuid"]
-            bioSpec = bioObj["specimen_uuid"]
-            bioSample = bioObj["sample_uuid"]
-            anaSample = anaObj["sample_uuid"]
-
-            if (bioSample != anaSample):
-                sys.stderr.write("sample_uuid mismatch: %s != %s\n" % (bioSample, anaSample))
+            if metaObj == None:
                 continue
 
-            if (not bioDonor in donorSpecSampleBioMap.keys()):
-                donorSpecSampleBioMap[bioDonor] = {}
+            flatMetadataObjs.append(metaObj)
 
-            if (not bioSpec in donorSpecSampleBioMap[bioDonor].keys()):
-                donorSpecSampleBioMap[bioDonor][bioSpec] = {}
+    # get structured workflow objects
+    structuredWorkflowObjMap = getWorkflowObjects(flatMetadataObjs)
 
-            if (not bioSample in donorSpecSampleBioMap[bioDonor][bioSpec].keys()):
-                donorSpecSampleBioMap[bioDonor][bioSpec][bioSample] = Set()
-
-            donorSpecSampleBioMap[bioDonor][bioSpec][bioSample].add(json.dumps(bioObj))
-
-            if (not bioDonor in donorAnaMap.keys()):
-                donorAnaMap[bioDonor] = []
-
-            donorAnaMap[bioDonor].append(anaObj)
-
-    # write output
-    num_files_written = writeOutput(donorSpecSampleBioMap, donorAnaMap, options.metadataOutDir)
-    sys.stderr.write("%s metadata files written to %s\n" % (str(num_files_written), options.metadataOutDir))
+    # write metadata files and link data files
+    numFilesWritten = writeDataBundleDirs(structuredWorkflowObjMap, options.metadataOutDir)
+    logging.info("number of metadata files written: %s\n" % (str(numFilesWritten)))
 
     if (options.skip_upload):
+        logging.info("Skipping data upload steps.\n")
+        runTime = getTimeDelta(startTime).total_seconds()
+        logging.info("program ran for %s s." % str(runTime))
         return None
+    else:
+        logging.info("Now attempting to upload data.\n")
 
-    log("Now attempting to upload data.\n")
+    # UPLOAD SECTION
+    counts = {}
+    counts["bundlesFound"] = 0
+    counts["failedRegistration"] = []
+    counts["failedUploads"] = []
+    counts["bundlesUploaded"] = 0
 
-    # TODO: so this upload mechanism is not great, need to cleanup, need to use symlinks since cp will take a long time on big files
-    num_files_uploaded = 0
     for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
         if dirName == options.metadataOutDir:
             continue
-        log('Found directory: %s\n' % dirName)
+        if len(subdirList) != 0:
+            continue
         for fileName in fileList:
-            if (fileName.endswith("analysis.json")):
-                log('\t%s\n' % fileName)
-                filePath = os.path.join(dirName, fileName)
+            if fileName == "metadata.json":
+                bundleDirFullPath = os.path.join(os.getcwd(), dirName)
+                logging.debug("found bundle directory at %s" % (bundleDirFullPath))
+                counts["bundlesFound"] += 1
 
-                # steps
-                # 1) make an upload dir
-                # 2) read this JSON
-                # 3) copy each of the files in the JSON to upload dir
-                # 4) modify JSON and write out to upload dir
-                # 5) perform upload
-                # 6) clean upload dir
+                bundle_uuid = dirName
 
-                file = open(filePath, "r")
-                metadataObj = json.load(file)
-                file.close()
-                if ("workflow_outputs" in metadataObj.keys()) and (metadataObj["workflow_outputs"].keys() > 0):
-                    # make temp dir
-                    upload_uuid = uuid.uuid4()
-                    os.makedirs("uploads/"+str(upload_uuid))
-                    for dataFileName in metadataObj["workflow_outputs"].keys():
-                        log("dataFileName: %s\n" % (metadataObj["workflow_outputs"][dataFileName]["file_path"]))
-                        file_basename = os.path.basename(metadataObj["workflow_outputs"][dataFileName]["file_path"])
-                        file_full_path = metadataObj["workflow_outputs"][dataFileName]["file_path"]
-                        # probably want to symlink in the future
-                        shutil.copyfile(file_full_path, "uploads/"+str(upload_uuid)+"/"+file_basename)
-                        metadataObj["workflow_outputs"][dataFileName]["file_path"] = file_basename
-                        num_files_written += 1
-                        #filePath = os.path.join(dataDir, metadataObj["workflow_outputs"])
-                        num_files_uploaded += 1
-                    afile = open( "uploads/"+str(upload_uuid)+"/analysis.json", "w")
-                    json.dump(metadataObj, afile, indent=4, separators=(',', ': '))
-                    afile.close()
-                    num_files_uploaded += 1
-                    # TODO: assumes the upload client is here, not a safe assumption
-                    # TODO: Emily, need to capture output here so I know the ID and Data Bundle ID
-                    # TODO: directly use the tools in the future, the script below actually copies the inputs again!!
-                    if os.path.isfile("ucsc-storage-client/ucsc-upload.sh"):
-                        exit_code = os.system("cd ucsc-storage-client; bash ucsc-upload.sh ../uploads/"+str(upload_uuid)+"/*")
-                        if exit_code != 0:
-                            print "ERROR UPLOADING!!!!"
-                            return None
-                        else:
-                            shutil.rmtree("uploads/"+str(upload_uuid))
+                # register upload
+                args = {"accessToken":options.awsAccessToken, "bundleDir":dirName, "metadataUrl":options.metadataServerUrl}
+                regSuccess = registerBundleUpload(**args)
 
-    sys.stderr.write("%s files uploaded\n" % (str(num_files_uploaded)))
+                # perform upload
+                upSuccess = False
+                if regSuccess:
+                    args["storageUrl"] = options.storageServerUrl
+                    args["force"] = options.force_upload
+                    upSuccess = performBundleUpload(**args)
+                else:
+                    counts["failedRegistration"].append(bundle_uuid)
 
+                if upSuccess:
+                    counts["bundlesUploaded"] += 1
+                else:
+                    counts["failedUploads"].append(bundle_uuid)
+
+                break
+            else:
+                pass
+
+    logging.info("counts\t%s\n" % (json.dumps(counts)))
+
+    if len(counts["failedRegistration"]) > 0 or len(counts["failedUploads"]) > 0:
+        logging.error("THERE WERE SOME FAILED PROCESSES !")
+
+    runTime = getTimeDelta(startTime).total_seconds()
+    logging.info("program ran for %s s." % str(runTime))
+    logging.shutdown()
     return None
-
 
 # main program section
 if __name__ == "__main__":

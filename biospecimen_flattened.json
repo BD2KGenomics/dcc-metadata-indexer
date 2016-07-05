@@ -33,6 +33,12 @@
         },
         "sample_uuid": {
             "type": "string"
+        },
+        "timestamp": {
+            "type": "string"
+        },
+        "schema_version": {
+            "type": "string"
         }
     }
 }
