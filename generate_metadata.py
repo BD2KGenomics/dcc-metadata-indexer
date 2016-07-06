@@ -18,12 +18,9 @@ import openpyxl
 import json
 import uuid
 from sets import Set
-# import shutil
 import subprocess
 import datetime
-# import re
 import copy
-import pprint
 
 # methods and functions
 
@@ -525,6 +522,87 @@ def performBundleUpload(metadataUrl, storageUrl, bundleDir, accessToken, force=F
 
     return success
 
+def parseUploadManifestFile(manifestFilePath):
+    '''
+    from the upload manifest file, get the file_uuid for each uploaded file
+    '''
+    bundle_uuid = None
+    idMapping = {}
+
+    fileLines = readFileLines(manifestFilePath)
+    for line in fileLines:
+        if bundle_uuid == None:
+            # first line contains bundle_uuid
+            fields = line.split(" ")
+            bundle_uuid = fields[-1]
+        elif line.startswith("#"):
+            # skip comment lines
+            pass
+        else:
+            # lines are in the form "file_uuid=file_path"
+            fields = line.split("=", 1)
+            fileName = os.path.basename(fields[1])
+            idMapping[fileName] = fields[0]
+
+    obj = {"bundle_uuid":bundle_uuid, "idMapping":idMapping}
+    return obj
+
+def collectReceiptData(manifestData, metadataObj):
+    '''
+    collect the data for the upload receipt file
+    The required fields are:
+    program project center_name submitter_donor_id donor_uuid submitter_specimen_id specimen_uuid submitter_specimen_type submitter_sample_id sample_uuid analysis_type workflow_name workflow_version file_type file_path file_uuid bundle_uuid metadata_uuid
+    '''
+    collectedData = []
+
+    commonData = {}
+    commonData["program"] = metadataObj["program"]
+    commonData["project"] = metadataObj["project"]
+    commonData["center_name"] = metadataObj["center_name"]
+    commonData["submitter_donor_id"] = metadataObj["submitter_donor_id"]
+    commonData["donor_uuid"] = metadataObj["donor_uuid"]
+
+    commonData["submitter_specimen_id"] = metadataObj["specimen"][0]["submitter_specimen_id"]
+    commonData["specimen_uuid"] = metadataObj["specimen"][0]["specimen_uuid"]
+    commonData["submitter_specimen_type"] = metadataObj["specimen"][0]["submitter_specimen_type"]
+
+    commonData["submitter_sample_id"] = metadataObj["specimen"][0]["samples"][0]["submitter_sample_id"]
+    commonData["sample_uuid"] = metadataObj["specimen"][0]["samples"][0]["sample_uuid"]
+    sampleKeys = metadataObj["specimen"][0]["samples"][0].keys()
+    sampleKeys.remove("submitter_sample_id")
+    sampleKeys.remove("sample_uuid")
+
+    commonData["analysis_type"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["analysis_type"]
+    commonData["workflow_name"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_name"]
+    commonData["workflow_version"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_version"]
+    commonData["bundle_uuid"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["bundle_uuid"]
+    commonData["metadata_uuid"] = manifestData["idMapping"]["metadata.json"]
+
+    workflow_outputs = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_outputs"]
+    for output in workflow_outputs:
+        data = copy.deepcopy(commonData)
+        data["file_type"] = output["file_type"]
+        data["file_path"] = output["file_path"]
+
+        fileName = os.path.basename(output["file_path"])
+        data["file_uuid"] = manifestData["idMapping"][fileName]
+
+        collectedData.append(data)
+
+    return collectedData
+
+def writeReceipt(collectedReceipts, receiptFileName, d="\t"):
+    '''
+    write an upload receipt file
+    '''
+    with open(receiptFileName, 'w') as receiptFile:
+        fieldnames = ["program", "project", "center_name", "submitter_donor_id", "donor_uuid", "submitter_specimen_id", "specimen_uuid", "submitter_specimen_type", "submitter_sample_id", "sample_uuid", "analysis_type", "workflow_name", "workflow_version", "file_type", "file_path", "file_uuid", "bundle_uuid", "metadata_uuid"]
+        writer = csv.DictWriter(receiptFile, fieldnames=fieldnames, delimiter=d)
+
+        writer.writeheader()
+        writer.writerows(collectedReceipts)
+    return None
+
 #:####################################
 
 def main():
@@ -568,8 +646,6 @@ def main():
             fileLines = readFileLines(fileName)
             reader = readTsv(fileLines)
             fileDataList = processFieldNames(reader)
-            # pp = pprint.PrettyPrinter(indent=4)
-            # pp.pprint(fileDataList)
 
         for data in fileDataList:
             metaObj = getDataObj(data, metadataSchema)
@@ -593,7 +669,7 @@ def main():
         return None
     else:
         logging.info("Now attempting to upload data.")
-        logging.info("If the upload seems to hang, it could be that the server doesn't recognize your IP.")
+        logging.info("If the upload seems to hang, it could be that the server doesn't recognize the IP.")
 
     # UPLOAD SECTION
     counts = {}
@@ -632,11 +708,34 @@ def main():
                 counts["bundlesUploaded"] += 1
             else:
                 counts["failedUploads"].append(bundle_uuid)
+        else:
+            logging.info("no metadata file found in %s" % dirName)
 
     logging.info("counts\t%s" % (json.dumps(counts)))
 
-    # TODO second pass generates receipt.tsv
+    # second pass generates receipt.tsv
+    logging.info("now generate upload receipt")
+    collectedReceipts = []
+    for dirName, subdirList, fileList in os.walk(options.metadataOutDir):
+        if dirName == options.metadataOutDir:
+            continue
+        if len(subdirList) != 0:
+            continue
+        if "manifest.txt" in fileList:
+            manifestFilePath = os.path.join(os.getcwd(), dirName, "manifest.txt")
+            manifestData = parseUploadManifestFile(manifestFilePath)
 
+            metadataFilePath = os.path.join(os.getcwd(), dirName, "metadata.json")
+            metadataObj = loadJsonObj(metadataFilePath)
+
+            receiptData = collectReceiptData(manifestData, metadataObj)
+            for data in receiptData:
+                collectedReceipts.append(data)
+        else:
+            logging.info("no manifest file found in %s" % dirName)
+    writeReceipt(collectedReceipts, options.receiptFile)
+
+    # final console output
     if len(counts["failedRegistration"]) > 0 or len(counts["failedUploads"]) > 0:
         logging.error("THERE WERE SOME FAILED PROCESSES !")
 
