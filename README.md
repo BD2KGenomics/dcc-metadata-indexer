@@ -57,6 +57,8 @@ that clients will use in the field to prepare their samples.
 		--skip-upload \
 		sample_tsv/sample.tsv
 
+A `receipt.tsv` file is generated for the upload, which is similar to the input metadata file, except with UUIDs filled in. There is an option to set a custom file name for the receipt.
+
 Take out `--skip-upload` if you want to perform upload, see below for more details.
 
 In case there are already existing bundle ID's that cause a collision on the S3 storage, you can specify the `--force-upload` switch to replace colliding bundle ID's with the current uploading version.
