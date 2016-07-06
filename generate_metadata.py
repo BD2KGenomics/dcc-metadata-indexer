@@ -35,8 +35,10 @@ def getOptions():
     parser = OptionParser(usage="\n".join(usage_text))
     parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose", help="Switch for verbose mode.")
     parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload", help="Switch to skip upload. Metadata files will be generated only.")
+    parser.add_option("-t", "--test", action="store_true", default=False, dest="test", help="Switch for development testing.")
 
-    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_flattened.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
+    parser.add_option("-i", "--inputMetadataSchema", action="store", default="input_metadata.json", type="string", dest="inputMetadataSchemaFileName", help="flattened json schema file for input metadata")
+    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_schema.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
 
     parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
 
@@ -287,7 +289,7 @@ def mkdir_p(path):
             raise
     return None
 
-def getWorkflowObjects(flatMetadataObj):
+def getWorkflowObjects(flatMetadataObjs):
     """
     For each flattened metadata object, build up a metadataObj with correct structure.
     """
@@ -295,7 +297,7 @@ def getWorkflowObjects(flatMetadataObj):
     num_files_written = 0
 
     commonObjMap = {}
-    for metaObj in flatMetadataObj:
+    for metaObj in flatMetadataObjs:
         workflow_uuid = metaObj["workflow_uuid"]
         if workflow_uuid in commonObjMap.keys():
             pass
@@ -588,6 +590,23 @@ def writeReceipt(collectedReceipts, receiptFileName, d="\t"):
         writer.writerows(collectedReceipts)
     return None
 
+def validateMetadataObjs(metadataObjs, jsonSchemaFile):
+    '''
+    validate metadata objects
+    '''
+    schema = loadJsonSchema(jsonSchemaFile)
+    valid = []
+    invalid = []
+    for metadataObj in metadataObjs:
+        isValid = validateObjAgainstJsonSchema(metadataObj, schema)
+        if isValid:
+            valid.append(metadataObj)
+        else:
+            invalid.append(metadataObj)
+
+    obj = {"valid":valid, "invalid":invalid}
+    return obj
+
 #:####################################
 
 def main():
@@ -614,8 +633,8 @@ def main():
 
     tempDirName = os.path.basename(__file__) + "_temp"
 
-    # load flattened metadata schema
-    metadataSchema = loadJsonSchema(options.metadataSchemaFileName)
+    # load flattened metadata schema for input validation
+    inputMetadataSchema = loadJsonSchema(options.inputMetadataSchemaFileName)
 
     flatMetadataObjs = []
 
@@ -633,7 +652,7 @@ def main():
             fileDataList = processFieldNames(reader)
 
         for data in fileDataList:
-            metaObj = getDataObj(data, metadataSchema)
+            metaObj = getDataObj(data, inputMetadataSchema)
 
             if metaObj == None:
                 continue
@@ -643,9 +662,29 @@ def main():
     # get structured workflow objects
     structuredWorkflowObjMap = getWorkflowObjects(flatMetadataObjs)
 
+    # validate metadata objects
+    # exit script before upload
+    validationResults = validateMetadataObjs(structuredWorkflowObjMap.values(), options.metadataSchemaFileName)
+    numInvalidResults = len(validationResults["invalid"])
+    if numInvalidResults != 0:
+        logging.critical("%s invalid metadata objects found: %s" % (numInvalidResults, jsonPP(validationResults["invalid"])))
+        sys.exit(1)
+    else:
+        logging.info("validated all metadata objects for output")
+
     # write metadata files and link data files
     numFilesWritten = writeDataBundleDirs(structuredWorkflowObjMap, options.metadataOutDir)
     logging.info("number of metadata files written: %s" % (str(numFilesWritten)))
+
+    if (options.test):
+        logging.info("code block for testing")
+        bundle_uuids = ["1329abd5-a293-5a20-a32e-a31b7f37799d", "1b385686-29cd-5977-85af-7df005b7d561", "250036a8-51ca-5172-ab8a-b561061d7bc1", "27e5bf8e-b88c-5302-9c3a-57cc484808b2", "433c5ef9-e4db-5602-923c-1d454a9baad5", "6f50c297-72c9-582c-8434-5cee55bd76c5", "94879018-4c59-5537-a913-a87c820c69de", "b50a1bf3-588a-5549-a104-1602e6d45f70"]
+        for bundle_uuid in bundle_uuids:
+            filePath = os.path.join("output_metadata", bundle_uuid, "metadata.json")
+            obj = loadJsonObj(filePath)
+            donor_uuid = obj["donor_uuid"]
+            logging.critical("donor_uuid: %s\tbundle_uuid: %s" % (jsonPP(donor_uuid), jsonPP(bundle_uuid)))
+        return None
 
     if (options.skip_upload):
         logging.info("Skipping data upload steps.")
