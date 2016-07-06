@@ -291,7 +291,7 @@ def getWorkflowObjects(flatMetadataObj):
     """
     For each flattened metadata object, build up a metadataObj with correct structure.
     """
-    schema_version = "0.0.1"
+    schema_version = "0.0.2"
     num_files_written = 0
 
     commonObjMap = {}
@@ -326,12 +326,11 @@ def getWorkflowObjects(flatMetadataObj):
             specObj["samples"].append(sampleObj)
             sampleObj["submitter_sample_id"] = metaObj["submitter_sample_id"]
             sampleObj["sample_uuid"] = metaObj["sample_uuid"]
+            sampleObj["analysis"] = []
 
             # add workflow
             workFlowObj = {}
-            analysis_type = metaObj["analysis_type"]
-            sampleObj[analysis_type] = workFlowObj
-
+            sampleObj["analysis"].append(workFlowObj)
             workFlowObj["workflow_name"] = metaObj["workflow_name"]
             workFlowObj["workflow_version"] = metaObj["workflow_version"]
             workFlowObj["analysis_type"] = metaObj["analysis_type"]
@@ -341,14 +340,13 @@ def getWorkflowObjects(flatMetadataObj):
         # retrieve workflow
         workflowObj = commonObjMap[workflow_uuid]
         analysis_type = metaObj["analysis_type"]
-        wf_outputsObj = workflowObj["specimen"][0]["samples"][0][analysis_type]["workflow_outputs"]
+        wf_outputsObj = workflowObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_outputs"]
 
         # add file info
         fileInfoObj = {}
         wf_outputsObj.append(fileInfoObj)
         fileInfoObj["file_type"] = metaObj["file_type"]
         fileInfoObj["file_path"] = metaObj["file_path"]
-        fileInfoObj["file_uuid"] = generateUuid5([metaObj["workflow_uuid"], metaObj["file_path"]])
 
     return commonObjMap
 
@@ -373,7 +371,8 @@ def writeJson(directory, fileName, jsonObj):
 
 def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
     """
-    For each structuredMetaDataObj, prepare a data bundle dir for each workflow
+    For each structuredMetaDataObj, prepare a data bundle dir for the workflow.
+    Assumes one data bundle per structuredMetaDataObj. That means 1 specimen, 1 sample, 1 analysis.
     """
     numFilesWritten = 0
     for workflow_uuid in structuredMetaDataObjMap.keys():
@@ -382,20 +381,9 @@ def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
         # get outputDir (bundle_uuid)
         bundlePath = os.path.join(outputDir, workflow_uuid)
 
-        # get analysis_type
-        sampleObj = metaObj["specimen"][0]["samples"][0]
-        analysis_type = None
-        for obj in sampleObj.values():
-            if (isinstance(obj, dict)) and ("analysis_type" in obj.keys()):
-                analysis_type = obj["analysis_type"]
-                break
-        if analysis_type == None:
-            logging.error("no analysis found in %s" % (jsonPP(metaObj)))
-            continue
-
         # link data file(s)
-        wf_outputsObj = sampleObj[analysis_type]["workflow_outputs"]
-        for outputObj in wf_outputsObj:
+        workflow_outputs = metaObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_outputs"]
+        for outputObj in workflow_outputs:
             file_path = outputObj["file_path"]
             fullFilePath = os.path.join(os.getcwd(), file_path)
             filename = os.path.basename(file_path)
@@ -568,17 +556,14 @@ def collectReceiptData(manifestData, metadataObj):
 
     commonData["submitter_sample_id"] = metadataObj["specimen"][0]["samples"][0]["submitter_sample_id"]
     commonData["sample_uuid"] = metadataObj["specimen"][0]["samples"][0]["sample_uuid"]
-    sampleKeys = metadataObj["specimen"][0]["samples"][0].keys()
-    sampleKeys.remove("submitter_sample_id")
-    sampleKeys.remove("sample_uuid")
 
-    commonData["analysis_type"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["analysis_type"]
-    commonData["workflow_name"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_name"]
-    commonData["workflow_version"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_version"]
-    commonData["bundle_uuid"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["bundle_uuid"]
+    commonData["analysis_type"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["analysis_type"]
+    commonData["workflow_name"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_name"]
+    commonData["workflow_version"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_version"]
+    commonData["bundle_uuid"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["bundle_uuid"]
     commonData["metadata_uuid"] = manifestData["idMapping"]["metadata.json"]
 
-    workflow_outputs = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_outputs"]
+    workflow_outputs = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_outputs"]
     for output in workflow_outputs:
         data = copy.deepcopy(commonData)
         data["file_type"] = output["file_type"]
