@@ -749,7 +749,9 @@ def main():
                 collectedReceipts.append(data)
         else:
             logging.info("no manifest file found in %s" % dirName)
-    writeReceipt(collectedReceipts, options.receiptFile)
+
+    receiptFilePath = os.path.join(options.metadataOutDir, options.receiptFile)
+    writeReceipt(collectedReceipts, receiptFilePath)
 
     # final console output
     if len(counts["failedRegistration"]) > 0 or len(counts["failedUploads"]) > 0:
