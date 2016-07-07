@@ -292,6 +292,7 @@ def mkdir_p(path):
 def getWorkflowObjects(flatMetadataObjs):
     """
     For each flattened metadata object, build up a metadataObj with correct structure.
+    TODO - This could be improved with jsonmerge and updated merge strategy in the metadata.jsonschema.
     """
     schema_version = "0.0.2"
     num_files_written = 0
