@@ -667,7 +667,9 @@ def main():
     validationResults = validateMetadataObjs(structuredWorkflowObjMap.values(), options.metadataSchemaFileName)
     numInvalidResults = len(validationResults["invalid"])
     if numInvalidResults != 0:
-        logging.critical("%s invalid metadata objects found: %s" % (numInvalidResults, jsonPP(validationResults["invalid"])))
+        logging.critical("%s invalid metadata objects found:" % (numInvalidResults))
+        for metaObj in validationResults["invalid"]:
+            logging.critical("INVALID: %s" % (json.dumps(metaObj)))
         sys.exit(1)
     else:
         logging.info("validated all metadata objects for output")
@@ -675,16 +677,6 @@ def main():
     # write metadata files and link data files
     numFilesWritten = writeDataBundleDirs(structuredWorkflowObjMap, options.metadataOutDir)
     logging.info("number of metadata files written: %s" % (str(numFilesWritten)))
-
-    if (options.test):
-        logging.info("code block for testing")
-        bundle_uuids = ["1329abd5-a293-5a20-a32e-a31b7f37799d", "1b385686-29cd-5977-85af-7df005b7d561", "250036a8-51ca-5172-ab8a-b561061d7bc1", "27e5bf8e-b88c-5302-9c3a-57cc484808b2", "433c5ef9-e4db-5602-923c-1d454a9baad5", "6f50c297-72c9-582c-8434-5cee55bd76c5", "94879018-4c59-5537-a913-a87c820c69de", "b50a1bf3-588a-5549-a104-1602e6d45f70"]
-        for bundle_uuid in bundle_uuids:
-            filePath = os.path.join("output_metadata", bundle_uuid, "metadata.json")
-            obj = loadJsonObj(filePath)
-            donor_uuid = obj["donor_uuid"]
-            logging.critical("donor_uuid: %s\tbundle_uuid: %s" % (jsonPP(donor_uuid), jsonPP(bundle_uuid)))
-        return None
 
     if (options.skip_upload):
         logging.info("Skipping data upload steps.")
