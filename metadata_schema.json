@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "metadata_schema@0.0.2",
+    "title": "metadata_schema",
     "description": "metadata record for a donor",
     "type": "object",
     "definitions": {
@@ -20,6 +20,15 @@
     },
     "required": ["program", "project", "center_name", "submitter_donor_id", "donor_uuid", "schema_version", "timestamp", "specimen"],
     "properties": {
+        "schema_version": {
+            "type": "string",
+            "pattern": "^0.0.2$"
+        },
+        "timestamp": {
+            "description": "ISO 8601 / RFC 3339",
+            "type": "string",
+            "format": "date-time"
+        },
         "program": {
             "type": "string"
         },
@@ -34,14 +43,6 @@
         },
         "donor_uuid": {
             "$ref": "#/definitions/uuid"
-        },
-        "schema_version": {
-            "type": "string"
-        },
-        "timestamp": {
-            "description": "ISO 8601 / RFC 3339",
-            "type": "string",
-            "format": "date-time"
         },
         "specimen": {
             "type": "array",
