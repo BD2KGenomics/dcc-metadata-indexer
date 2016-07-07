@@ -1,172 +1,35 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <head>
-   <link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
-	<title>Dashboard</title>
-	<style>
-	   header{
-         text-align:center;
-         padding:5px; 
-      }
-      nav{
-         line-height:30px;
-         height:300px;
-         width:100px;
-         float:left;
-         padding:5px;
-      }
-      ul {
-         list-style-type: none;
-         margin: 0;
-         padding: 0px 16px 0px 16px;
-         background-color: #555;
-      }
-      /* link colors for top navigation bar*/
-      li {
-         display: inline;
-      }
-      li a:link, li a:visited{
-         color: white;
-         padding: 8px 16px 8px 16px;
-         text-decoration: none;
-      }
-      /* Change the link color on hover */
-      li a:hover {
-         background-color: #f2f2f2;
-         color: #00458c;
-      }
-      
-      /* side navigation */
-      nav a:link, nav a:visited { 
-         color: #00458c;
-         text-decoration: underline;
-         cursor: auto;
-      }
-      nav a:link:active, nav a:visited:active { 
-         color: #F1B521;
-      }
-      
-      /* in general link colors*/
-      a:link, a:visited {
-         color: gray;
-         text-decoration: none;
-         cursor: auto;
-      }
-      a:link:active, a:visited:active {
-         color: gray;
-      }
-      .imglogo{
-         width:100%;
-         max-width:300px;
-      }
-      .imgcontainer{
-         width:50%
-      }
-      .imgcgl{
-         height:100px;
-      }
-      /* Dropdown Button */
-      .dropbtn {
-         display: inline-block;
-         padding: 8px 0px 8px 0px;
-         border: none;
-         cursor: pointer;
-      }
-      
-      /* The container <div> - needed to position the dropdown content */
-      .dropdown {
-         position: relative;
-         display: inline-block;
-      }
-
-      /* Dropdown Content (Hidden by Default) */
-      .dropdown-content {
-         display: none;
-         position: absolute;
-         background-color: white;
-         min-width: 160px;
-         box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      }
-
-      /* Links inside the dropdown */
-      .dropdown-content a {
-         color: #00458c;
-         padding: 8px 8px 8px 8px;
-         text-decoration: none;
-         display: block;
-      }
-
-      /* Change color of dropdown links on hover */
-      .dropdown-content a:hover {background-color: #f2f2f2}
-
-      /* Show the dropdown menu on hover */
-      .dropdown:hover .dropdown-content {
-         display: block;
-      }
-
-      /* Change the background color of the dropdown button when the dropdown content is shown */
-      .dropdown:hover .dropbtn {
-         background-color: gray;
-      }
-      
-      footer{
-         margin: 0;
-         padding: 8px 16px 8px 16px;
-         background-color: #555;
-      }
-      .text { font-family: 'Muli', sans-serif;}
-      
-      .bar{
-         fill: #00458c;
-      }
-
-      .bar:hover{
-         fill: #F1B521;
-      }
-
-      .axis {
-        font: 10px arial;
-      }
-
-      .axis path,
-      .axis line {
-        fill: none;
-        stroke: #000;
-        shape-rendering: crispEdges;
-      }
-   
-      /* tooltip */
-      .d3-tip {
-        line-height: 1;
-        padding: 12px;
-        background: #555;
-        color: #fff;
-        border-radius: 2px;
-        font-family: arial;
-        font-size: 10px;
-      }
-
-      /* Creates a small triangle extender for the tooltip */
-      .d3-tip:after {
-        box-sizing: border-box;
-        display: inline;
-        font-size: 10px;
-        width: 100%;
-        line-height: 1;
-        color: #555;
-        content: "\25BC";
-        position: absolute;
-        text-align: center;
-      }
-
-      /* Style northward tooltips differently */
-      .d3-tip.n:after {
-        margin: -1px 0 0 0;
-        top: 100%;
-        left: 0;
-      }
-	</style>
+<link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="mystyle.css">
+<script src="d3.v3.min.js"></script>
 </head>
+<style>
+body{
+   font-family: Muli;
+}
+
+.chart { 
+   background: #fff;
+   font: 10px;
+}
+
+.axis path, .axis line {
+   fill: none;
+   stroke: #000;
+   stroke-width: 2px;
+   shape-rendering: crispEdges;
+}
+
+button {
+   position: absolute;
+   right: 50px;
+   top: 10px;
+}
+
+</style>
+<body>
 <div class="imgcgl">
    <div class="imgcontainer">
       <a href="https://genomics.soe.ucsc.edu/">
@@ -182,116 +45,194 @@
    <div class="dropdown">
       <li class="dropbtn"><a href="projects.html">Projects</a></li>
       <div class="dropdown-content">
-         <a href="Project_1">Project 1</a>
-         <a href="Project_2">Project 2</a>
-         <a href="Project_3">Project 3</a>
+         <a href="project_1.html">Project 1</a>
+         <a href="project_2.html">Project 2</a>
+         <a href="project_3.html">Project 3</a>
       </div>
    </div>
   <li><a href="https://ucsc-cgl.atlassian.net/wiki/">Wiki</a></li>
   <li><a href="about.html">About</a></li>
 </ul>
 <header class="text">
-   <h1>Current Projects </h1>
-   <p> This website is still being tested. </p>
+   <h1>Analysis Dashboard</h1>
+   <p> The Analysis Dashboard allows you to track the status of your project.</p>
 </header>
-<nav>
-   <a href="index.html" class="text">Dashboard</a>
-</nav>
 <body style = "background-color:#F5F4EB;">
-	
-<script src="d3.v3.min.js"></script>
-<script src="d3.tip.v0.6.3.js"></script>
 
+<div class="chart">
 <script>
-   // set the dimensions of the canvas
-   var margin = {top: 20, right: 20, bottom: 200, left: 40},
-       width = 600 - margin.left - margin.right,
-       height = 500 - margin.top - margin.bottom;
+
+chart("data.csv", "blue");
+
+var datearray = [];
+var colorrange = [];
 
 
-   // set the ranges
-   var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+function chart(csvpath, color) {
 
-   var y = d3.scale.linear().range([height, 0]);
+if (color == "blue") {
+  colorrange = ["#00458c", "#0066cc", "#1a8cff", "#66b3ff", "#b3d9ff"];
+}
+strokecolor = colorrange[0];
 
-   // define the axis
-   var xAxis = d3.svg.axis()
-       .scale(x)
-       .orient("bottom")
+var format = d3.time.format("%m/%d/%y");
 
+var margin = {top: 20, right: 40, bottom: 30, left: 40};
+var width = document.body.clientWidth - margin.left - margin.right;
+var height = 400 - margin.top - margin.bottom;
 
-   var yAxis = d3.svg.axis()
-       .scale(y)
-       .orient("left")
-       .ticks(10);
+var tooltip = d3.select("body")
+   .append("div")
+   .attr("class", "remove")
+   .style("position", "absolute")
+   .style("z-index", "20")
+   .style("visibility", "hidden")
+   .style("top", "280px")
+   .style("left", "60px");
 
-   var tip = d3.tip()
-     .attr('class', 'd3-tip')
-     .offset([-10, 0])
-     .html(function(d) {
-       return "Count: <span style='color:#F1B521'>" + d.Count + "</span>";
-   })
+var x = d3.time.scale()
+   .range([0, width]);
 
-   // add the SVG element
-   var svg = d3.select("body").append("svg")
-       .attr("width", width + margin.left + margin.right)
-       .attr("height", height + margin.top + margin.bottom)
-     .append("g")
-       .attr("transform", 
-             "translate(" + margin.left + "," + margin.top + ")");
+var y = d3.scale.linear()
+   .range([height-10, 0]);
 
-   svg.call(tip);
-   // load the data
-   d3.json("data.json", function(error, data) {
+var z = d3.scale.ordinal()
+   .range(colorrange);
 
-       data.forEach(function(d) {
-           d.Label = d.Label;
-           d.Count = +d.Count;
-       });
-   
-     // scale the range of the data
-     x.domain(data.map(function(d) { return d.Label; }));
-     y.domain([0, d3.max(data, function(d) { return d.Count; })]);
+var xAxis = d3.svg.axis()
+   .scale(x)
+   .orient("bottom")
+   .ticks(d3.time.weeks);
 
-     // add axis
-     svg.append("g")
-         .attr("class", "x axis")
-         .attr("transform", "translate(0," + height + ")")
-         .call(xAxis)
-       .selectAll("text")
-         .style("text-anchor", "end")
-         .attr("dx", "-.8em")
-         .attr("dy", "-.55em")
-         .attr("transform", "rotate(-60)" );
+var yAxis = d3.svg.axis()
+   .scale(y);
 
-     svg.append("g")
-         .attr("class", "y axis")
-         .call(yAxis)
-       .append("text")
-         .attr("transform", "rotate(-90)")
-         .attr("y", 5)
-         .attr("dy", ".71em")
-         .style("text-anchor", "end")
-         .text("Count");
+var yAxisr = d3.svg.axis()
+   .scale(y);
 
+var stack = d3.layout.stack()
+   .offset("silhouette")
+   .values(function(d) { return d.values; })
+   .x(function(d) { return d.date; })
+   .y(function(d) { return d.value; });
 
-     // Add bar chart
-     svg.selectAll("bar")
-         .data(data)
-       .enter().append("rect")
-         .attr("class", "bar")
-         .attr("x", function(d) { return x(d.Label); })
-         .attr("width", x.rangeBand())
-         .attr("y", function(d) { return y(d.Count); })
-         .attr("height", function(d) { return height - y(d.Count); })
-         .on('mouseover', tip.show)
-         .on('mouseout', tip.hide);
+var nest = d3.nest()
+   .key(function(d) { return d.key; });
 
+var area = d3.svg.area()
+   .interpolate("cardinal")
+   .x(function(d) { return x(d.date); })
+   .y0(function(d) { return y(d.y0); })
+   .y1(function(d) { return y(d.y0 + d.y); });
+
+var svg = d3.select(".chart").append("svg")
+   .attr("width", width + margin.left + margin.right)
+   .attr("height", height + margin.top + margin.bottom)
+   .append("g")
+   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var graph = d3.csv(csvpath, function(data) {
+   data.forEach(function(d) {
+      d.date = format.parse(d.date);
+      d.value = +d.value;
    });
-</script>
 
+var layers = stack(nest.entries(data));
+
+   x.domain(d3.extent(data, function(d) { return d.date; }));
+   y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
+
+   svg.selectAll(".layer")
+      .data(layers)
+      .enter().append("path")
+      .attr("class", "layer")
+      .attr("d", function(d) { return area(d.values); })
+      .style("fill", function(d, i) { return z(i); });
+
+
+   svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+   svg.append("g")
+      .attr("class", "y axis")
+      .attr("transform", "translate(" + width + ", 0)")
+      .call(yAxis.orient("right"));
+
+   svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis.orient("left"));
+
+   svg.selectAll(".layer")
+      .attr("opacity", 1)
+      .on("mouseover", function(d, i) {
+      svg.selectAll(".layer").transition()
+         .duration(250)
+         .attr("opacity", function(d, j) {
+            return j != i ? 0.6 : 1;
+   })})
+
+   .on("mousemove", function(d, i) {
+      mousex = d3.mouse(this);
+      mousex = mousex[0];
+      var invertedx = x.invert(mousex);
+      invertedx = invertedx.getMonth() + invertedx.getDate();
+      var selected = (d.values);
+      for (var k = 0; k < selected.length; k++) {
+         datearray[k] = selected[k].date
+         datearray[k] = datearray[k].getMonth() + datearray[k].getDate();
+      }
+
+      mousedate = datearray.indexOf(invertedx);
+      pro = d.values[mousedate].value;
+
+      d3.select(this)
+      .classed("hover", true)
+      .attr("stroke", strokecolor)
+      .attr("stroke-width", "0.5px"), 
+      tooltip.html( "<p>" + d.key + "<br>" + pro + "</p>" ).style("visibility", "visible");
+      
+   })
+   .on("mouseout", function(d, i) {
+      svg.selectAll(".layer")
+      .transition()
+      .duration(250)
+      .attr("opacity", "1");
+      d3.select(this)
+      .classed("hover", false)
+      .attr("stroke-width", "0px"), tooltip.html( "<p>" + d.key + "<br>" + pro + "</p>" ).style("visibility", "hidden");
+   })
+    
+   var vertical = d3.select(".chart")
+      .append("div")
+      .attr("class", "remove")
+      .style("position", "absolute")
+      .style("z-index", "19")
+      .style("width", "1px")
+      .style("height", "380px")
+      .style("top", "275px")
+      .style("bottom", "30px")
+      .style("left", "0px")
+      .style("background", "#fff");
+
+   d3.select(".chart")
+      .on("mousemove", function(){  
+         mousex = d3.mouse(this);
+         mousex = mousex[0] + 5;
+         vertical.style("left", mousex + "px" )})
+      .on("mouseover", function(){  
+         mousex = d3.mouse(this);
+         mousex = mousex[0] + 5;
+         vertical.style("left", mousex + "px")});
+});
+}
+</script>
+</div>
+<br> <p> This website is still being tested. </p>
 </body>
-<p class="text">Data Updated: </p>
+
+
 <footer class="text">
 <section style="color: white">UCSC Genomics Institute - Analysis Core 
 <ul class="text" style="float: right; font-size:50%; padding: 4px;">
@@ -302,5 +243,6 @@
 </ul>
 </section>
 </footer>
+
 
 
