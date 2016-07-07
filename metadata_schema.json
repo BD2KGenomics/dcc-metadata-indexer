@@ -3,7 +3,21 @@
     "title": "metadata_schema@0.0.2",
     "description": "metadata record for a donor",
     "type": "object",
-    "definitions": {},
+    "definitions": {
+        "uuid": {
+            "description": "uuid with all lower case or all upper case characters",
+            "type": "string",
+            "oneOf": [
+                {
+                    "description": "lower case",
+                    "pattern": "^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$"
+                }, {
+                    "description": "upper case",
+                    "pattern": "^[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}$"
+                }
+            ]
+        }
+    },
     "required": ["program", "project", "center_name", "submitter_donor_id", "donor_uuid", "schema_version", "timestamp", "specimen"],
     "properties": {
         "program": {
@@ -19,13 +33,15 @@
             "type": "string"
         },
         "donor_uuid": {
-            "type": "string"
+            "$ref": "#/definitions/uuid"
         },
         "schema_version": {
             "type": "string"
         },
         "timestamp": {
-            "type": "string"
+            "description": "ISO 8601 / RFC 3339",
+            "type": "string",
+            "format": "date-time"
         },
         "specimen": {
             "type": "array",
@@ -37,7 +53,7 @@
                         "type": "string"
                     },
                     "specimen_uuid": {
-                        "type": "string"
+                        "$ref": "#/definitions/uuid"
                     },
                     "submitter_specimen_type": {
                         "type": "string"
@@ -52,7 +68,7 @@
                                     "type": "string"
                                 },
                                 "sample_uuid": {
-                                    "type": "string"
+                                    "$ref": "#/definitions/uuid"
                                 },
                                 "analysis": {
                                     "type": "array",
@@ -64,7 +80,7 @@
                                                 "type": "string"
                                             },
                                             "bundle_uuid": {
-                                                "type": "string"
+                                                "$ref": "#/definitions/uuid"
                                             },
                                             "workflow_name": {
                                                 "type": "string"
@@ -85,7 +101,7 @@
                                                             "type": "string"
                                                         },
                                                         "file_uuid": {
-                                                            "type": "string"
+                                                            "$ref": "#/definitions/uuid"
                                                         }
                                                     }
                                                 }
