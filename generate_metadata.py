@@ -14,6 +14,7 @@ import csv
 import os
 import errno
 import jsonschema
+import jsonmerge
 import openpyxl
 import json
 import uuid
@@ -21,6 +22,7 @@ from sets import Set
 import subprocess
 import datetime
 import copy
+import semver
 
 # methods and functions
 
@@ -292,7 +294,6 @@ def mkdir_p(path):
 def getWorkflowObjects(flatMetadataObjs):
     """
     For each flattened metadata object, build up a metadataObj with correct structure.
-    TODO - This could be improved with jsonmerge and updated merge strategy in the metadata.jsonschema.
     """
     schema_version = "0.0.2"
     num_files_written = 0
@@ -608,6 +609,82 @@ def validateMetadataObjs(metadataObjs, jsonSchemaFile):
     obj = {"valid":valid, "invalid":invalid}
     return obj
 
+def mergeDonors_jsonmerge(metadataObjs, jsonSchemaFile):
+    schema = loadJsonSchema(jsonSchemaFile)
+    merger = jsonmerge.Merger(schema)
+    donorObjMapping = {}
+    for metadataObj in metadataObjs:
+        donor_uuid = metadataObj["donor_uuid"]
+        if not donor_uuid in donorObjMapping.keys():
+            donorObjMapping[donor_uuid] = metadataObj
+            continue
+        storedObj = donorObjMapping[donor_uuid]
+        mergedObj = merger.merge(storedObj, metadataObj)
+        donorObjMapping[donor_uuid] = mergedObj
+    return donorObjMapping
+
+def mergeDonors(metadataObjs):
+    '''
+    merge data bundle metadata.json objects into correct donor objects
+    '''
+    donorMapping = {}
+
+    for metaObj in metadataObjs:
+        # check if donor exists
+        donor_uuid = metaObj["donor_uuid"]
+        if not donor_uuid in donorMapping:
+            donorMapping[donor_uuid] = metaObj
+            continue
+
+        # check if specimen exists
+        donorObj = donorMapping[donor_uuid]
+        specimen_uuid = metaObj["specimen"][0]["specimen_uuid"]
+
+        savedSpecUuids = set()
+        for savedSpecObj in donorObj["specimen"]:
+            savedSpecUuid = savedSpecObj["specimen_uuid"]
+            savedSpecUuids.add(savedSpecUuid)
+            if specimen_uuid == savedSpecUuid:
+                specObj = savedSpecObj
+
+        if not specimen_uuid in savedSpecUuids:
+            specObj = metaObj["specimen"][0]
+            donorObj["specimen"].append(specObj)
+            continue
+
+        # check if sample exists
+        sample_uuid = metaObj["specimen"][0]["samples"][0]["sample_uuid"]
+        savedSampleUuids = set()
+        for savedSampleObj in specObj["samples"]:
+            savedSampleUuid = savedSampleObj["sample_uuid"]
+            savedSampleUuids.add(savedSampleUuid)
+            if sample_uuid == savedSampleUuid:
+                sampleObj = savedSampleObj
+
+        if not sample_uuid in savedSampleUuids:
+            sampleObj = metaObj["specimen"][0]["samples"][0]
+            specObj["samples"].append(sampleObj)
+            continue
+
+        # check if analysis exists
+        analysis_type = metaObj["specimen"][0]["samples"][0]["analysis"][0]["analysis_type"]
+        savedAnalysisTypes = set()
+        for bundle in sampleObj["analysis"]:
+            savedAnalysisType = bundle["analysis_type"]
+            savedAnalysisTypes.add(savedAnalysisType)
+            if analysis_type == savedAnalysisType:
+                analysisObj = bundle
+
+        if not analysis_type in savedAnalysisTypes:
+            analysisObj = metaObj["specimen"][0]["samples"][0]["analysis"][0]
+            sampleObj["analysis"].append(analysisObj)
+            continue
+        else:
+            # TODO keep only latest version of analysis
+            pass
+
+    return donorMapping
+
 #:####################################
 
 def main():
@@ -662,6 +739,15 @@ def main():
 
     # get structured workflow objects
     structuredWorkflowObjMap = getWorkflowObjects(flatMetadataObjs)
+
+    if options.test:
+        donorObjMapping = mergeDonors(structuredWorkflowObjMap.values())
+        validationResults = validateMetadataObjs(structuredWorkflowObjMap.values(), options.metadataSchemaFileName)
+        numInvalidResults = len(validationResults["invalid"])
+        if numInvalidResults != 0:
+            logging.critical("%s invalid merged objects found:" % (numInvalidResults))
+        else:
+            logging.critical("All merged objects validated!!")
 
     # validate metadata objects
     # exit script before upload

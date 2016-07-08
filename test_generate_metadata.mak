@@ -9,7 +9,8 @@ test2:
 		--inputMetadataSchema input_metadata.json \
 		--metadataSchema metadata_schema.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
-		--force-upload \
+		--skip-upload \
+		--test \
 		$(XL_FILE) \
 	;
 
