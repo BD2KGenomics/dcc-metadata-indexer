@@ -14,11 +14,9 @@ import csv
 import os
 import errno
 import jsonschema
-import jsonmerge
 import openpyxl
 import json
 import uuid
-from sets import Set
 import subprocess
 import datetime
 import copy
@@ -680,7 +678,7 @@ def mergeDonors(metadataObjs):
             sampleObj["analysis"].append(analysisObj)
             continue
         else:
-            # TODO keep only latest version of analysis
+            # TODO keep only latest version of analysis, compare versions with semver.compare()
             pass
 
     return donorMapping
