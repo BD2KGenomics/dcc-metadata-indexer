@@ -8,7 +8,7 @@ test2:
 	python ./generate_metadata.py \
 		--metadataSchema metadata_flattened.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
-		--skip-upload \
+		--force-upload \
 		$(XL_FILE) \
 	;
 
@@ -19,6 +19,7 @@ test:
 	python ./generate_metadata.py \
 		--metadataSchema metadata_flattened.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
+		--force-upload \
 		1.tmp \
 	;
 	\
@@ -27,6 +28,8 @@ test:
 
 clean:
 	rm -rf output_metadata ;
+	\
+	rm -f receipt.tsv ;
 	\
 	rm -f generate_metadata.log ;
 	\

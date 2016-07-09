@@ -18,6 +18,14 @@ This repo also contains a merge tool, `merge_generated_metadata.py`, responsible
 
 ## Install
 
+### Ubuntu 14.04
+
+You need to make sure you have system level dependencies installed in the appropriate way for your OS.  For Ubuntu 14.04 you do:
+
+    sudo apt-get install python-dev libxml2-dev libxslt-dev lib32z1-dev
+
+### Python
+
 Use python 2.7.x.
 
 See [here](https://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/) for information on setting
@@ -57,7 +65,11 @@ that clients will use in the field to prepare their samples.
 		--skip-upload \
 		sample_tsv/sample.tsv
 
+A `receipt.tsv` file is generated for the upload, which is similar to the input metadata file, except with UUIDs filled in. There is an option to set a custom file name for the receipt.
+
 Take out `--skip-upload` if you want to perform upload, see below for more details.
+
+In case there are already existing bundle ID's that cause a collision on the S3 storage, you can specify the `--force-upload` switch to replace colliding bundle ID's with the current uploading version.
 
 Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
 
