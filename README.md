@@ -18,6 +18,14 @@ This repo also contains a merge tool, `merge_generated_metadata.py`, responsible
 
 ## Install
 
+### Ubuntu 14.04
+
+You need to make sure you have system level dependencies installed in the appropriate way for your OS.  For Ubuntu 14.04 you do:
+
+    sudo apt-get install python-dev libxml2-dev libxslt-dev lib32z1-dev
+
+### Python
+
 Use python 2.7.x.
 
 See [here](https://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/) for information on setting
