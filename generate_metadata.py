@@ -698,8 +698,10 @@ def main():
     else:
         logLevel = logging.INFO
     logfileName = os.path.basename(__file__).replace(".py", ".log")
+    mkdir_p(options.metadataOutDir)
+    logFilePath = os.path.join(options.metadataOutDir, logfileName)
     logFormat = "%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s"
-    setupLogging(logfileName, logFormat, logLevel)
+    setupLogging(logFilePath, logFormat, logLevel)
 
     # !!! careful not to expose the access token !!!
     printOptions = copy.deepcopy(vars(options))
@@ -765,6 +767,7 @@ def main():
 
     if (options.skip_upload):
         logging.info("Skipping data upload steps.")
+        logging.info("A detailed log is at: %s" % (logFilePath))
         runTime = getTimeDelta(startTime).total_seconds()
         logging.info("program ran for %s s." % str(runTime))
         return None
@@ -842,6 +845,7 @@ def main():
     if len(counts["failedRegistration"]) > 0 or len(counts["failedUploads"]) > 0:
         logging.error("THERE WERE SOME FAILED PROCESSES !")
 
+    logging.info("A detailed log is at: %s" % (logFilePath))
     runTime = getTimeDelta(startTime).total_seconds()
     logging.info("program ran for %s s." % str(runTime))
     logging.shutdown()

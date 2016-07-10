@@ -32,5 +32,3 @@ test:
 clean:
 	rm -rf output_metadata ;
 	\
-	rm -f generate_metadata.log ;
-	\
