@@ -447,12 +447,11 @@ def registerBundleUpload(metadataUrl, bundleDir, accessToken):
 
      try:
          output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
-         logging.debug("output:%s" % (str(output)))
      except Exception as exc:
          success = False
          # !!! logging.exception here may expose access token !!!
          logging.error("ERROR while registering bundle %s" % bundleDir)
-         output = ""
+         writeJarExceptionsToLog(exc.output)
      finally:
          logging.info("done registering bundle upload %s" % bundleDir)
 
@@ -501,16 +500,25 @@ def performBundleUpload(metadataUrl, storageUrl, bundleDir, accessToken, force=F
 
     try:
         output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
-        logging.debug("output:%s" % (str(output)))
-    except Exception as exc:
+    except subprocess.CalledProcessError as exc:
         success = False
         # !!! logging.exception here may expose access token !!!
         logging.error("ERROR while uploading files for bundle %s" % bundleDir)
-        output = ""
+        writeJarExceptionsToLog(exc.output)
     finally:
         logging.info("done uploading bundle %s" % bundleDir)
 
     return success
+
+def writeJarExceptionsToLog(errorOutput):
+    """
+    Output the 'ERROR' lines in the jar error output.s
+    """
+    for line in errorOutput.split("\n"):
+        line = line.strip()
+        if (line.find("ERROR") != -1) and (line.find("main]") == -1):
+            logging.error(line)
+    return None
 
 def parseUploadManifestFile(manifestFilePath):
     '''
