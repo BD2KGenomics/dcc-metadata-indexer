@@ -32,7 +32,17 @@ def getOptions():
     usage_text.append("%prog [options] [input Excel or tsv files]")
     usage_text.append("Data will be read from 'Sheet1' in the case of Excel file.")
 
-    parser = OptionParser(usage="\n".join(usage_text))
+    description_text = []
+    description_text.append("This is the data upload tool for UCSC-CGL. The following steps are performed to successfully upload data to the UCSC-CGL servers:")
+    description_text.append("1- Data bundles are generated from the input files.")
+    description_text.append("2- The newly generated metadata.json files are validated.")
+    description_text.append("3- Each data bundle upload is registered with the server. A manifest.txt file is generated in this step.")
+    description_text.append("4- Each data bundle upload is uploaded to the server.")
+    description_text.append("5- Newly assigned UUIDs for the upload are recorded in an upload receipt file.")
+    description_text.append("The ucsc-storage-client directory must be installed in the same directory that this tool is run.")
+
+
+    parser = OptionParser(usage="\n".join(usage_text), description="\n".join(description_text))
     parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose", help="Switch for verbose mode.")
     parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload", help="Switch to skip upload. Metadata files will be generated only.")
     parser.add_option("-t", "--test", action="store_true", default=False, dest="test", help="Switch for development testing.")
@@ -512,7 +522,7 @@ def performBundleUpload(metadataUrl, storageUrl, bundleDir, accessToken, force=F
 
 def writeJarExceptionsToLog(errorOutput):
     """
-    Output the 'ERROR' lines in the jar error output.s
+    Output the 'ERROR' lines in the jar error output.
     """
     for line in errorOutput.split("\n"):
         line = line.strip()
