@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "metadata_schema",
-    "description": "metadata record for a donor",
+    "description": "This is UCSC Genomics Core's schema for a sample donor's metadata record.",
     "type": "object",
     "definitions": {
         "uuid": {
@@ -113,6 +113,93 @@
                             }
                         }
                     }
+                }
+            }
+        }
+        ,
+        "missing_items": {
+            "description": "record parent_uuids of missing items",
+            "type": "object",
+            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment" , "normal_germline_variants" , "tumor_somatic_variants", "normal_rnaseq_variants" , "tumor_rnaseq_variants"],
+            "properties": {
+                "normal_sequence": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "tumor_sequence": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "normal_alignment": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "tumor_alignment": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "normal_germline_variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "tumor_somatic_variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "normal_rnaseq_variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "tumor_rnaseq_variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                }
+            }
+        },
+        "flags": {
+            "description": "Indicate whether or not a workflow is complete",
+            "type": "object",
+            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment", "normal_rnaseq_variants" , "tumor_rnaseq_variants", "normal_germline_variants", "tumor_somatic_variants"],
+            "properties": {
+                "normal_sequence": {
+                    "type": "boolean"
+                },
+                "tumor_sequence": {
+                    "type": "boolean"
+                },
+                "normal_alignment": {
+                    "type": "boolean"
+                },
+                "tumor_alignment": {
+                    "type": "boolean"
+                },
+                "normal_rnaseq_variants": {
+                    "type": "boolean"
+                },
+                "tumor_rnaseq_variants": {
+                    "type": "boolean"
+                },
+                "normal_germline_variants": {
+                    "type": "boolean"
+                },
+                "tumor_somatic_variants": {
+                    "type": "boolean"
                 }
             }
         }
