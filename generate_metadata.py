@@ -625,20 +625,6 @@ def validateMetadataObjs(metadataObjs, jsonSchemaFile):
     obj = {"valid":valid, "invalid":invalid}
     return obj
 
-def mergeDonors_jsonmerge(metadataObjs, jsonSchemaFile):
-    schema = loadJsonSchema(jsonSchemaFile)
-    merger = jsonmerge.Merger(schema)
-    donorObjMapping = {}
-    for metadataObj in metadataObjs:
-        donor_uuid = metadataObj["donor_uuid"]
-        if not donor_uuid in donorObjMapping.keys():
-            donorObjMapping[donor_uuid] = metadataObj
-            continue
-        storedObj = donorObjMapping[donor_uuid]
-        mergedObj = merger.merge(storedObj, metadataObj)
-        donorObjMapping[donor_uuid] = mergedObj
-    return donorObjMapping
-
 def mergeDonors(metadataObjs):
     '''
     merge data bundle metadata.json objects into correct donor objects
