@@ -10,6 +10,7 @@ test2:
 		--metadataSchema metadata_schema.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
 		--test \
+		--skip-upload \
 		$(XL_FILE) \
 	;
 

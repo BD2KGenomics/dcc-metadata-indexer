@@ -4,6 +4,11 @@
     "description": "This is UCSC Genomics Core's schema for a sample donor's metadata record.",
     "type": "object",
     "definitions": {
+        "schema_version": {
+            "description": "The version of this schema is ...",
+            "type": "string",
+            "pattern": "^0.0.2$"
+        },
         "uuid": {
             "description": "uuid with all lower case or all upper case characters",
             "type": "string",
@@ -16,13 +21,56 @@
                     "pattern": "^[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}$"
                 }
             ]
+        },
+        "analysis": {
+            "description": "This schema is in the definitions so that it can be referenced for pipeline-generated metadata.",
+            "type": "object",
+            "required": ["analysis_type", "bundle_uuid", "workflow_name", "workflow_version", "workflow_outputs"],
+            "properties": {
+                "analysis_type": {
+                    "type": "string"
+                },
+                "parent_uuids": {
+                    "description": "parent UUIDs for this workflow",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/uuid"
+                    }
+                },
+                "bundle_uuid": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "workflow_name": {
+                    "type": "string"
+                },
+                "workflow_version": {
+                    "type": "string"
+                },
+                "workflow_outputs": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["file_path", "file_type"],
+                        "properties": {
+                            "file_path": {
+                                "type": "string"
+                            },
+                            "file_type": {
+                                "type": "string"
+                            },
+                            "file_uuid": {
+                                "$ref": "#/definitions/uuid"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "required": ["program", "project", "center_name", "submitter_donor_id", "donor_uuid", "schema_version", "timestamp", "specimen"],
     "properties": {
         "schema_version": {
-            "type": "string",
-            "pattern": "^0.0.2$"
+            "$ref": "#/definitions/schema_version"
         },
         "timestamp": {
             "description": "ISO 8601 / RFC 3339",
@@ -74,40 +122,7 @@
                                 "analysis": {
                                     "type": "array",
                                     "items": {
-                                        "type": "object",
-                                        "required": ["analysis_type", "bundle_uuid", "workflow_name", "workflow_version", "workflow_outputs"],
-                                        "properties": {
-                                            "analysis_type": {
-                                                "type": "string"
-                                            },
-                                            "bundle_uuid": {
-                                                "$ref": "#/definitions/uuid"
-                                            },
-                                            "workflow_name": {
-                                                "type": "string"
-                                            },
-                                            "workflow_version": {
-                                                "type": "string"
-                                            },
-                                            "workflow_outputs": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object",
-                                                    "required": ["file_path", "file_type"],
-                                                    "properties": {
-                                                        "file_path": {
-                                                            "type": "string"
-                                                        },
-                                                        "file_type": {
-                                                            "type": "string"
-                                                        },
-                                                        "file_uuid": {
-                                                            "$ref": "#/definitions/uuid"
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        "$ref": "#/definitions/analysis"
                                     }
                                 }
                             }
@@ -115,8 +130,7 @@
                     }
                 }
             }
-        }
-        ,
+        },
         "missing_items": {
             "description": "record parent_uuids of missing items",
             "type": "object",
