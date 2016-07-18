@@ -4,6 +4,11 @@
     "description": "This is UCSC Genomics Core's schema for a sample donor's metadata record.",
     "type": "object",
     "definitions": {
+        "time_stamp": {
+            "description": "ISO 8601 / RFC 3339",
+            "type": "string",
+            "format": "date-time"
+        },
         "schema_version": {
             "description": "The version of this schema is ...",
             "type": "string",
@@ -46,6 +51,10 @@
                 "workflow_version": {
                     "type": "string"
                 },
+                "timestamp": {
+                    "description": "We want this time stamp in detached analysis data, but not required when uploading via upload tool.",
+                    "$ref": "#/definitions/time_stamp"
+                },
                 "workflow_outputs": {
                     "type": "array",
                     "items": {
@@ -73,9 +82,7 @@
             "$ref": "#/definitions/schema_version"
         },
         "timestamp": {
-            "description": "ISO 8601 / RFC 3339",
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/definitions/time_stamp"
         },
         "program": {
             "type": "string"
@@ -92,12 +99,6 @@
         "donor_uuid": {
             "$ref": "#/definitions/uuid"
         },
-        "analysis": {
-            "type": "array",
-            "items": {
-                "$ref": "#/definitions/analysis"
-            }
-        },
         "specimen": {
             "type": "array",
             "items": {
@@ -112,12 +113,6 @@
                     },
                     "submitter_specimen_type": {
                         "type": "string"
-                    },
-                    "analysis": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/definitions/analysis"
-                        }
                     },
                     "samples": {
                         "type": "array",
