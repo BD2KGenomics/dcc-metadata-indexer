@@ -92,6 +92,12 @@
         "donor_uuid": {
             "$ref": "#/definitions/uuid"
         },
+        "analysis": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/analysis"
+            }
+        },
         "specimen": {
             "type": "array",
             "items": {
@@ -106,6 +112,12 @@
                     },
                     "submitter_specimen_type": {
                         "type": "string"
+                    },
+                    "analysis": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/analysis"
+                        }
                     },
                     "samples": {
                         "type": "array",
