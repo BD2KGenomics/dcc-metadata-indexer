@@ -33,6 +33,7 @@ def load_json_obj(json_path):
     """
 
     json_file = open(json_path, 'r')
+    print type(json_file)
     json_obj = json.load(json_file)
     json_file.close()
 
@@ -40,13 +41,28 @@ def load_json_obj(json_path):
 
 
 def load_json_arr(input_dir, data_arr,schema):
-    for file in os.listdir(input_dir):
-        current_file = os.path.join(input_dir, file)
-        json_obj = load_json_obj(current_file)
-        if validate_json(json_obj,schema):
-            data_arr.append(json_obj)
+    """
+    :param input_dir: Directory that contains the json files
+    :param data_arr: Empty array
+    :param schema: Schema that the user provides
+
+    Gets all of the json files, converts them into objects and stores
+    them in an array.
+    """
+    for folder in os.listdir(input_dir):
+        current_folder= os.path.join(input_dir, folder)
+        if os.path.isdir(current_folder):
+            for file in os.listdir(current_folder):
+                #if file == "metadata.json":
+                current_file = os.path.join(current_folder, file)
+                print current_file
+                json_obj = load_json_obj(current_file)
+                if validate_json(json_obj,schema):
+                    data_arr.append(json_obj)
+                else:
+                    print "Json was not compatible with the schema"
         else:
-            print "Json was not compatible with the schema"
+            print "Not a directory"
 
 
 def validate_json(json_obj,schema):
@@ -69,6 +85,8 @@ def mergeDonors(metadataObjs):
     donorMapping = {}
 
     for metaObj in metadataObjs:
+        #if metaObj["parent_uuid"] exists:
+            #insert_detached_metadata(metaObj,donorMapping)
         # check if donor exists
         donor_uuid = metaObj["donor_uuid"]
         if not donor_uuid in donorMapping:
@@ -205,7 +223,9 @@ def main():
     schema = load_json_obj(args.metadataSchema)
     data_arr = []
     load_json_arr(data_input, data_arr,schema)
+    
     donor_uuid_to_obj = mergeDonors(data_arr)
+
     generate_flags(donor_uuid_to_obj)
     create_json_file(donor_uuid_to_obj,schema)
 
