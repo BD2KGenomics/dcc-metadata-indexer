@@ -8,6 +8,7 @@ import semver
 import logging
 import sys
 import os
+import os.path
 import argparse
 import json
 import jsonschema
@@ -17,7 +18,6 @@ def input_Options():
     """
     Creates the parse options
     """
-    
     parser = argparse.ArgumentParser(description='Directory that contains Json files.')
     parser.add_argument('-d', '--directory', help='Directory that contains the json metadata files')
     parser.add_argument('-m', '--metadataSchema', help='File that contains the metadata schema')
@@ -54,13 +54,13 @@ def load_json_arr(input_dir, data_arr,schema):
         current_folder = os.path.join(input_dir, folder)
         if os.path.isdir(current_folder):
             for file in os.listdir(current_folder):
-                if file.endswith(".json"):
-                    current_file = os.path.join(current_folder, file)
-                    json_obj = load_json_obj(current_file)
-                    if validate_json(json_obj, schema):
-                        data_arr.append(json_obj)
-                    else:
-                        print "Json was not compatible with the schema"
+                #if file.endswith(".json"):
+                current_file = os.path.join(current_folder, file)
+                json_obj = load_json_obj(current_file)
+                if validate_json(json_obj, schema):
+                    data_arr.append(json_obj)
+                else:
+                    print "Json was not compatible with the schema"
 
 
 def validate_json(json_obj,schema):
