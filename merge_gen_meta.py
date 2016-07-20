@@ -35,6 +35,7 @@ def load_json_obj(json_path):
     json_file = open(json_path, 'r')
     print type(json_file)
     json_obj = json.load(json_file)
+    print json_obj
     json_file.close()
 
     return json_obj
@@ -50,19 +51,16 @@ def load_json_arr(input_dir, data_arr,schema):
     them in an array.
     """
     for folder in os.listdir(input_dir):
-        current_folder= os.path.join(input_dir, folder)
+        current_folder = os.path.join(input_dir, folder)
         if os.path.isdir(current_folder):
             for file in os.listdir(current_folder):
-                #if file == "metadata.json":
-                current_file = os.path.join(current_folder, file)
-                print current_file
-                json_obj = load_json_obj(current_file)
-                if validate_json(json_obj,schema):
-                    data_arr.append(json_obj)
-                else:
-                    print "Json was not compatible with the schema"
-        else:
-            print "Not a directory"
+                if file.endswith(".json"):
+                    current_file = os.path.join(current_folder, file)
+                    json_obj = load_json_obj(current_file)
+                    if validate_json(json_obj, schema):
+                        data_arr.append(json_obj)
+                    else:
+                        print "Json was not compatible with the schema"
 
 
 def validate_json(json_obj,schema):

@@ -8,7 +8,7 @@
     {
       "samples": [
         {
-          "analysis": {
+          "analysis": [{
             "analysis_type": "sequence_upload",
             "bundle_uuid": "697e0740-d302-5699-b4fb-04c3352565c8",
             "workflow_name": "Sequence Uploader",
@@ -19,9 +19,9 @@
                 "file_uuid": "15adb41a-f0ee-5334-994e-0641d8eb9beb"
               }
             ],
-            "workflow_version": "1.0.2"
-			"timestamp": "2016-07-19T17:13:30.491517"
-          },
+            "workflow_version": "1.0.2",
+	    "timestamp": "2016-07-19T17:13:30.491517"
+          }],
           "sample_uuid": "8f2f5091-a6de-5b05-a2b1-331f582f4b41",
           "submitter_sample_id": "S123472b1"
         }
