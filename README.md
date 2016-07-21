@@ -8,7 +8,7 @@ First, there are JSON schema, see `analysis_flattened.json` and `biospecimen_fla
 
 Second, this repo contains a `generate_metadata.py` script that takes a TSV format and converts it into metadata JSON documents (and also has an option for uploading, we use this for bulk uploads to our system).
 
-This repo also contains a merge tool, `merge_generated_metadata.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
+This repo also contains a merge tool, `merge_gen_meta.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
 
 1. query the storage system for all metadata.json
 1. group the related metadata.json documents, all the docs for a given donor are grouped together
@@ -97,7 +97,7 @@ using the output from the generate_metadata.py script.
 
     python merge_gen_meta.py --directory output_metadata_7_20/ --metadataSchema metadata_schema.json
 
-This produces a `validated.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
+This produces a `validated.jsonl` and a `invalid.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
 Now to view the output for the first line use the following:
 
     cat validated.jsonl | head -1 | json_pp | less -S
@@ -148,7 +148,7 @@ Goal: create sample single donor documents and perform queries on them.
 
 1. Install the needed packages as described above.
 1. Generate metadata for multiple donors using `generate_metadata.py`, see command above
-1. Create single donor documents using `merge_generated_metadata.py`, see command above
+1. Create single donor documents using `merge_gen_meta.py`, see command above
 1. Load into ES index, see `curl -XPUT` command above
 1. Run the queries using `esquery.py`, see command above
 1. Optionally, deleted the index using the `curl -XDELETE` command above
