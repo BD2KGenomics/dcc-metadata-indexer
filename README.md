@@ -95,18 +95,18 @@ it easy to avoid in the future. The file is based on [this](https://docs.google.
 This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
 using the output from the generate_metadata.py script.
 
-    python merge_generated_metadata.py `for i in output_metadata/*; do echo -n "$i "; done`
+    python merge_gen_meta.py --directory output_metadata_7_20/ --metadataSchema metadata_schema.json
 
-This produces a `merge.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
+This produces a `validated.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
 Now to view the output for the first line use the following:
 
-    cat merge.jsonl | head -1 | json_pp | less -S
+    cat validated.jsonl | head -1 | json_pp | less -S
 
 You can also examine this in Chrome using the JSONView extension.  Make sure you select
 the option to allow viewing of local JSON files before you attempt to load this
 file in Chrome.  The commands below will display the second JSON document. On a Mac:
 
-    cat merge.jsonl | head -2 | tail -1 | json_pp > temp.json
+    cat validated.jsonl | head -2 | tail -1 | json_pp > temp.json
     open -a Google\ Chrome temp.json
 
 ## Load and Query Elasticsearch

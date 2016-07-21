@@ -1,4 +1,4 @@
-#   Author: Jean Rodriguez
+#   Authors: Jean Rodriguez & Chris Wong
 #   Date: July
 #   Description:This script merges metadata json files into one jsonl file. Each json object is grouped by donor and then each individual
 #   Donor object is merged into one jsonl file.
@@ -6,12 +6,18 @@
 
 import semver
 import logging
-import sys
 import os
 import os.path
 import argparse
 import json
 import jsonschema
+import datetime
+import re
+#import dateutil
+
+
+first_write = dict()
+index_index = 0
 
 
 def input_Options():
@@ -33,9 +39,7 @@ def load_json_obj(json_path):
     """
 
     json_file = open(json_path, 'r')
-    print type(json_file)
     json_obj = json.load(json_file)
-    print json_obj
     json_file.close()
 
     return json_obj
@@ -54,13 +58,13 @@ def load_json_arr(input_dir, data_arr,schema):
         current_folder = os.path.join(input_dir, folder)
         if os.path.isdir(current_folder):
             for file in os.listdir(current_folder):
-                #if file.endswith(".json"):
-                current_file = os.path.join(current_folder, file)
-                json_obj = load_json_obj(current_file)
-                if validate_json(json_obj, schema):
-                    data_arr.append(json_obj)
-                else:
-                    print "Json was not compatible with the schema"
+                if file.endswith(".json"):
+                    current_file = os.path.join(current_folder, file)
+                    json_obj = load_json_obj(current_file)
+                    if validate_json(json_obj, schema):
+                        data_arr.append(json_obj)
+                    else:
+                        print "Json was not compatible with the schema"
 
 
 def validate_json(json_obj,schema):
@@ -75,6 +79,47 @@ def validate_json(json_obj,schema):
         return False
     return True
 
+
+def insert_detached_metadata(detachedObjs, uuid_mapping):
+    for de_Obj in detachedObjs:
+        parent_uuid= de_Obj["parent_uuid"]
+        de_analysis_type = de_Obj["analysis"]["analysis_type"]
+        donor_obj= uuid_mapping[parent_uuid]
+        for specimen in donor_obj["specimen"]:
+            for sample in specimen["samples"]:
+                for analysis in sample["analysis"]:
+
+                    # This code is used in the mergeDonor() function
+                    # Think about making a function for this part
+                    donor_analysis_type= analysis["analysis_type"]
+                    savedAnalysisTypes = set()
+                    savedAnalysisTypes.add(donor_analysis_type)
+                    if donor_analysis_type == donor_analysis_type:
+                        analysisObj = analysis
+
+                    if not donor_analysis_type in savedAnalysisTypes:
+                        specimen["analysis"].append(analysis)
+                        continue
+                    else:
+                        new_workflow_version = analysis["workflow_version"]
+                        new_timestamp = analysis["timestamp"]
+
+                        saved_version = analysisObj["workflow_version"]
+                        # current is older than new
+                        if semver.compare(saved_version, new_workflow_version) == -1:
+                            sample["analysis"].discard(analysisObj)
+                            sample["analysis"].append(analysisObj)
+                        if semver.compare(saved_version, new_workflow_version) == 0:
+                            # use the timestamp
+                            if "timestamp" in sample and "timestamp" in analysisObj:
+                                saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
+                                new_timestamp = dateutil.parser.parse(analysis["timestamp"])
+
+                                timestamp_diff = saved_timestamp - new_timestamp
+                                if timestamp_diff.total_seconds() > 0:
+                                    sample["analysis"].discard(analysisObj)
+                                    sample["analysis"].append(analysisObj)
+                                    
 
 def mergeDonors(metadataObjs):
     '''
@@ -110,7 +155,7 @@ def mergeDonors(metadataObjs):
                 continue
 
             # check if sample exists
-            for sample in specimen["sample"]:
+            for sample in specimen["samples"]:
                 sample_uuid = sample["sample_uuid"]
 
                 savedSampleUuids = set()
@@ -148,71 +193,109 @@ def mergeDonors(metadataObjs):
                         # TODO keep only latest version of analysis, compare versions with semver.compare()
                         # new_workflow_version = metaObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_version"]
                         new_workflow_version= bundle["workflow_version"]
-                        new_timestamp = bundle["timestamp"]
-
+                        
                         saved_version= analysisObj["workflow_version"]
                             # current is older than new
                         if semver.compare(saved_version, new_workflow_version) == -1:
-                            sampleObj["analysis"].discard(analysisObj)
-                            sampleObj["analysis"].append(analysisObj)
+                            sampleObj["analysis"].remove(analysisObj)
+                            sampleObj["analysis"].append(bundle)
                         if semver.compare(saved_version, new_workflow_version) == 0:
-                            # use the timestamp
+                            # use the timestamp to determine which analysis to choose
+                            """
                             if "timestamp" in bundle and "timestamp" in analysisObj :
                                 saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
                                 new_timestamp= dateutil.parser.parse(bundle["timestamp"])
 
                                 timestamp_diff = saved_timestamp - new_timestamp
                                 if timestamp_diff.total_seconds() > 0:
-                                    sampleObj["analysis"].discard(analysisObj)
-                                    sampleObj["analysis"].append(analysisObj)
+                                    sampleObj["analysis"].remove(analysisObj)
+                                    sampleObj["analysis"].append(bundle)
+                           """
 
     return donorMapping
-
-
-def generate_flags(donor_uuid_to_obj):
-    """
-    :param donor_uuid_to_obj: Dictionary that contains the donor_uuid mapped with the json object
-
-    Generates the flags and adds it into each donor json object
-    """
-    for key in donor_uuid_to_obj:
-        flags = {"sequence_upload": False,
-                 "alignment": False,
-                 "germline_variant_calling": False,
-                 "somatic_variant_calling": False,
-                 "rna_seq_quantification": False}
-        
-        specimen_list = donor_uuid_to_obj[key]["specimen"]
-        for specimen in specimen_list:
-            samples_list= specimen["samples"]
-            for samples in samples_list:
-                analysis_list= samples["analysis"]
-                for analysis in analysis_list:
-                    analysis_type= analysis["analysis_type"]
-                    flag_list = flags.keys()
-                    if analysis_type in flag_list:
-                        flags[analysis_type] = True
-        donor_uuid_to_obj[key]["flags"]= flags
         
         
-def create_json_file(donor_uuid_to_obj,schema):
-    """
-    :param donor_uuid_to_obj: Dictionary that contains the donor_uuid mapped with the json object
-    :param schema:  Schema provided by the user json Object
+        
+def validate_Donor(uuid_mapping, schema):
+    valid = []
+    invalid = []
 
-    Stores all of the json objects into the "merge.jsonl" file
-    """
-    jsonl_file = open("merge.jsonl", "w")
-    for uuid in donor_uuid_to_obj:
-        if validate_json(donor_uuid_to_obj[uuid],schema):
-            json.dump(donor_uuid_to_obj[uuid], jsonl_file)
-            jsonl_file.write("\n")
+    for uuid in uuid_mapping:
+        donor_Obj = uuid_mapping[uuid]
+        if validate_json(donor_Obj, schema):
+            valid.append(donor_Obj)
         else:
-            # maybe all of the json Objects that are not valid can be stored in a variable
-            # so that it can appear at the end of the execution of the program
-            print "json file with UUID:" + str(uuid) + " not valid"
+            invalid.append(donor_Obj)
+    return valid, invalid
 
-    jsonl_file.close()
+def allHaveItems(itemsName, regex, items):
+    total_samples = 0
+    matching_samples = 0
+    for specimen in items['specimen']:
+        if re.search(regex, specimen['submitter_specimen_type']):
+            for sample in specimen['samples']:
+                total_samples += 1
+                if itemsName in sample:
+                    matching_samples += 1
+    print regex
+    print itemsName
+    print "total_samples: ", total_samples
+    print "total_samples: ", matching_samples
+    
+    return(total_samples == matching_samples)
+
+def arrayMissingItems(itemsName, regex, items):
+    results = []
+    for specimen in items['specimen']:
+        if re.search(regex, specimen['submitter_specimen_type']):
+            for sample in specimen['samples']:
+                if itemsName not in sample:
+                    results.append(sample['submitter_sample_id'])
+    return(results)
+
+def createFlags(uuid_to_donor):
+    for uuid in uuid_to_donor:
+        result= uuid_to_donor[uuid]
+        print uuid
+        
+        flagsWithStr = {'all_normal_sequence_exists_flag' : allHaveItems('sequence_upload', "^Normal - ", result),
+                        'all_tumor_sequences_exists_flag': allHaveItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                        'all_normal_alignment_exists_flag': allHaveItems('alignment', "^Normal - ", result),
+                        'all_tumor_alignment_exists_flag': allHaveItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                        'all_normal_germline_variants_exists_flag': allHaveItems('germline_variant_calling', "^Normal - ", result),
+                        'all_tumor_somatic_variants_exists_flag': allHaveItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                        'all_normal_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Normal - ", result),
+                        'all_tumor_rnaseq_variants_exists_flag': allHaveItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
+        flagsWithArrs = {'normal_sequence_missing_array' : arrayMissingItems('sequence_upload', "^Normal - ", result) ,
+                        'tumor_sequences_missing_array' : arrayMissingItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result) ,
+                        'normal_alignment_missing_array': arrayMissingItems('alignment', "^Normal - ", result),
+                        'tumor_alignment_missing_array': arrayMissingItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                        'normal_germline_variants_missing_array': arrayMissingItems('germline_variant_calling', "^Normal - ", result),
+                        'tumor_somatic_variants_missing_array': arrayMissingItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                        'normal_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Normal - ", result),
+                        'tumor_rnaseq_variants_missing_array': arrayMissingItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
+        result['flags'] = flagsWithStr
+        result['missing_items'] = flagsWithArrs
+        
+   
+    
+def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
+    global index_index
+    for donor in result:
+        if filename not in first_write:
+            with open(filename, 'w') as outfile:
+                if filename == ES_file_name:
+                    outfile.write('{"index":{"_id":"' + str(index_index) + '","_type":"meta"}}\n')
+                json.dump(donor, outfile)
+                outfile.write('\n')
+            first_write[filename] = "true"
+        else:
+            with open(filename, 'a') as outfile:
+                if filename == ES_file_name:
+                    outfile.write('{"index":{"_id":"' + str(index_index) + '","_type":"meta"}}\n')
+                json.dump(donor, outfile)
+                outfile.write('\n')
+    index_index += 1
 
 
 def main():
@@ -220,12 +303,25 @@ def main():
     data_input = args.directory
     schema = load_json_obj(args.metadataSchema)
     data_arr = []
-    load_json_arr(data_input, data_arr,schema)
-    
-    donor_uuid_to_obj = mergeDonors(data_arr)
+    load_json_arr(data_input, data_arr, schema)
 
-    generate_flags(donor_uuid_to_obj)
-    create_json_file(donor_uuid_to_obj,schema)
+    donorLevelObjs = []
+    detachedObjs = []
+    for metaobj in data_arr:
+        if "donor_uuid" in metaobj:
+            donorLevelObjs.append(metaobj)
+        elif "parent_uuids" in data_arr:
+            detachedObjs.append(metaobj)
+
+    uuid_mapping = mergeDonors(donorLevelObjs)
+    insert_detached_metadata(detachedObjs, uuid_mapping)
+
+    createFlags(uuid_mapping)
+
+    (validated, invalid) = validate_Donor(uuid_mapping,schema)
+
+    dumpResult(validated, "validated.jsonl")
+    dumpResult(invalid, "invalid.jsonl")
 
 
 if __name__ == "__main__":

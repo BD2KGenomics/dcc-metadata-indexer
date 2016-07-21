@@ -1,0 +1,36 @@
+{
+    "center_name": "Stanford",
+    "donor_uuid": "dc123cfd-6e09-5635-b81f-bce781244892",
+    "program": "TEST",
+    "project": "TEST",
+    "schema_version": "0.0.2",
+    "specimen": [
+        {
+            "samples": [
+                {
+                    "analysis": [
+                        {
+                            "analysis_type": "germline_variant_calling",
+                            "bundle_uuid": "314ae2cb-3ae4-578c-9a5c-ec414f6eeb6e",
+                            "workflow_name": "germline-gatk",
+                            "workflow_outputs": [
+                                {
+                                    "file_path": "sample_upload_files/germline.vcf",
+                                    "file_type": "vcf"
+                                }
+                            ],
+                            "workflow_version": "2.1.1"
+                        }
+                    ],
+                    "sample_uuid": "942b29a5-d0f8-5a80-a3b1-e9a8a50363f5",
+                    "submitter_sample_id": "S368291a1"
+                }
+            ],
+            "specimen_uuid": "9a5a1dd7-7ed6-5c52-b86e-71c6e2d4a156",
+            "submitter_specimen_id": "S368291a",
+            "submitter_specimen_type": "Normal - blood derived"
+        }
+    ],
+    "submitter_donor_id": "S368291",
+    "timestamp": "2016-07-20T21:39:38.985910"
+}

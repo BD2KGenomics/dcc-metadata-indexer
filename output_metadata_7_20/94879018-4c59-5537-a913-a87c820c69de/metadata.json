@@ -1,0 +1,36 @@
+{
+    "center_name": "Stanford",
+    "donor_uuid": "0f1d53cb-9ef8-58ba-8db6-4eae42ee4316",
+    "program": "TEST",
+    "project": "TEST",
+    "schema_version": "0.0.2",
+    "specimen": [
+        {
+            "samples": [
+                {
+                    "analysis": [
+                        {
+                            "analysis_type": "rna_seq_quantification",
+                            "bundle_uuid": "94879018-4c59-5537-a913-a87c820c69de",
+                            "workflow_name": "rnaseq-cgl",
+                            "workflow_outputs": [
+                                {
+                                    "file_path": "sample_upload_files/gene_expression.rsem",
+                                    "file_type": "rsem"
+                                }
+                            ],
+                            "workflow_version": "3.2.1"
+                        }
+                    ],
+                    "sample_uuid": "efd00a1d-604e-5e65-bf88-1c1464f14faa",
+                    "submitter_sample_id": "S627291a1"
+                }
+            ],
+            "specimen_uuid": "92511bd2-d5d8-51f4-8c0c-1cb53d54c6bf",
+            "submitter_specimen_id": "S627291a",
+            "submitter_specimen_type": "Normal - blood derived"
+        }
+    ],
+    "submitter_donor_id": "S627291",
+    "timestamp": "2016-07-20T21:39:38.985873"
+}
