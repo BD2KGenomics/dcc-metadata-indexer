@@ -61,10 +61,8 @@ def load_json_arr(input_dir, data_arr,schema):
                 if file.endswith(".json"):
                     current_file = os.path.join(current_folder, file)
                     json_obj = load_json_obj(current_file)
-                    if validate_json(json_obj, schema):
-                        data_arr.append(json_obj)
-                    else:
-                        print "Json was not compatible with the schema"
+                    data_arr.append(json_obj)
+                    
 
 
 def validate_json(json_obj,schema):
@@ -128,8 +126,6 @@ def mergeDonors(metadataObjs):
     donorMapping = {}
 
     for metaObj in metadataObjs:
-        #if metaObj["parent_uuid"] exists:
-            #insert_detached_metadata(metaObj,donorMapping)
         # check if donor exists
         donor_uuid = metaObj["donor_uuid"]
         if not donor_uuid in donorMapping:
@@ -138,8 +134,6 @@ def mergeDonors(metadataObjs):
 
         # check if specimen exists
         donorObj = donorMapping[donor_uuid]
-
-        #specimen_uuid = metaObj["specimen"][0]["specimen_uuid"]
         for specimen in metaObj["specimen"]:
             specimen_uuid = specimen["specimen_uuid"]
 
@@ -166,7 +160,6 @@ def mergeDonors(metadataObjs):
                         sampleObj = savedSampleObj
 
                 if not sample_uuid in savedSampleUuids:
-                    # sampleObj = metaObj["specimen"][0]["samples"][0]
                     specObj["samples"].append(sample)
                     continue
 
@@ -183,15 +176,12 @@ def mergeDonors(metadataObjs):
                             analysisObj = savedBundle
 
                     if not analysis_type in savedAnalysisTypes:
-                        # analysisObj = metaObj["specimen"][0]["samples"][0]["analysis"][0]
                         sampleObj["analysis"].append(bundle)
                         continue
                     else:
                         # compare 2 analysis to keep only most relevant one
                         # saved is analysisObj
                         # currently being considered is bundle
-                        # TODO keep only latest version of analysis, compare versions with semver.compare()
-                        # new_workflow_version = metaObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_version"]
                         new_workflow_version= bundle["workflow_version"]
                         
                         saved_version= analysisObj["workflow_version"]
@@ -236,10 +226,6 @@ def allHaveItems__old(itemsName, regex, items):
                 total_samples += 1
                 if itemsName in sample:
                     matching_samples += 1
-    print regex
-    print itemsName
-    print "total_samples: ", total_samples
-    print "total_samples: ", matching_samples
     
     return(total_samples == 1 and matching_samples == 1)
 
@@ -265,30 +251,29 @@ def arrayMissingItems(itemsName, regex, items):
             for sample in specimen['samples']:
                 for analysis in sample['analysis']:
                     if analysis["analysis_type"] != itemsName:
-                        results.append(sample['submitter_sample_id'])
+                        results.append(sample['sample_uuid'])
     return(results)
 
 def createFlags(uuid_to_donor):
     for uuid in uuid_to_donor:
         result= uuid_to_donor[uuid]
-        print uuid
         
         flagsWithStr = {'normal_sequence' : allHaveItems('sequence_upload', "^Normal - ", result),
                         'tumor_sequence': allHaveItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
                         'normal_alignment': allHaveItems('alignment', "^Normal - ", result),
                         'tumor_alignment': allHaveItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                        'normal_germline_variants': allHaveItems('germline_variant_calling', "^Normal - ", result),
-                        'tumor_somatic_variants': allHaveItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
                         'normal_rnaseq_variants': allHaveItems('rna_seq_quantification', "^Normal - ", result),
-                        'tumor_rnaseq_variants': allHaveItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
+                        'tumor_rnaseq_variants': allHaveItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                        'normal_germline_variants': allHaveItems('germline_variant_calling', "^Normal - ", result),
+                        'tumor_somatic_variants': allHaveItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
         flagsWithArrs = {'normal_sequence' : arrayMissingItems('sequence_upload', "^Normal - ", result) ,
-                        'tumor_sequence' : arrayMissingItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result) ,
-                        'normal_alignment': arrayMissingItems('alignment', "^Normal - ", result),
-                        'tumor_alignment': arrayMissingItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                        'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", result),
-                        'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                        'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", result),
-                        'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
+                         'tumor_sequence' : arrayMissingItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result) ,
+                         'normal_alignment': arrayMissingItems('alignment', "^Normal - ", result),
+                         'tumor_alignment': arrayMissingItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                         'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", result),
+                         'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
+                         'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", result),
+                         'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
         result['flags'] = flagsWithStr
         result['missing_items'] = flagsWithArrs
         
@@ -322,12 +307,14 @@ def main():
 
     donorLevelObjs = []
     detachedObjs = []
+    print "arr ", data_arr 
     for metaobj in data_arr:
         if "donor_uuid" in metaobj:
             donorLevelObjs.append(metaobj)
-        elif "parent_uuids" in data_arr:
+        elif "parent_uuids" in metaobj:
             detachedObjs.append(metaobj)
     print "Detached: ", detachedObjs
+    print "Attached: ", donorLevelObjs
 
     uuid_mapping = mergeDonors(donorLevelObjs)
     insert_detached_metadata(detachedObjs, uuid_mapping)

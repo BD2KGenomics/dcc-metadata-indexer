@@ -1,5 +1,5 @@
 {
-	"analysis": {
+
 		"parent_uuid": ["0f1d53cb-9ef8-58ba-8db6-4eae42ee4316"],
 		"analysis_type": "sequence_upload",
 		"bundle_uuid": "b01b387f-ebc5-59d4-a2cb-7bf8eab61ea4",
@@ -10,5 +10,5 @@
 		}],
 		"workflow_version": "1.0.0",
 		"timestamp": "2016-07-20T21:39:38.985854"
-	}
+
 }
