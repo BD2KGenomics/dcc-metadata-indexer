@@ -45,11 +45,10 @@ def load_json_obj(json_path):
     return json_obj
 
 
-def load_json_arr(input_dir, data_arr,schema):
+def load_json_arr(input_dir, data_arr):
     """
     :param input_dir: Directory that contains the json files
     :param data_arr: Empty array
-    :param schema: Schema that the user provides
 
     Gets all of the json files, converts them into objects and stores
     them in an array.
@@ -80,43 +79,48 @@ def validate_json(json_obj,schema):
 
 def insert_detached_metadata(detachedObjs, uuid_mapping):
     for de_Obj in detachedObjs:
-        parent_uuid= de_Obj["parent_uuid"]
-        de_analysis_type = de_Obj["analysis"]["analysis_type"]
-        donor_obj= uuid_mapping[parent_uuid]
-        for specimen in donor_obj["specimen"]:
-            for sample in specimen["samples"]:
-                for analysis in sample["analysis"]:
+        de_analysis_type = de_Obj["analysis_type"]
+        parent_uuids= de_Obj["parent_uuids"]
+        saved_obj= uuid_mapping
+        saved_uuid= set()
+        for parent_uuid in parent_uuids:
+            donor_obj= uuid_mapping[parent_uuid]
+            saved_object= uuid_mapping[parent_uuid]
+            for specimen in donor_obj["specimen"]:
+                for sample in specimen["samples"]:
+                    for analysis in sample["analysis"]:
 
-                    # This code is used in the mergeDonor() function
-                    # Think about making a function for this part
-                    donor_analysis_type= analysis["analysis_type"]
-                    savedAnalysisTypes = set()
-                    savedAnalysisTypes.add(donor_analysis_type)
-                    if donor_analysis_type == donor_analysis_type:
-                        analysisObj = analysis
+                        # This code is used in the mergeDonor() function
+                        # Think about making a function for this part
+                        donor_analysis_type= analysis["analysis_type"]
+                        savedAnalysisTypes = set()
+                        savedAnalysisTypes.add(donor_analysis_type)
+                        if donor_analysis_type == de_analysis_type:
+                            analysisObj = analysis
+                            
+                        #print "####__ Analysis__####: ",analysis
+                        if not donor_analysis_type in savedAnalysisTypes:
+                            specimen["analysis"].append(analysis)
+                            continue
+                        else:
+                            new_workflow_version = analysis["workflow_version"]
+                            new_timestamp = analysis["timestamp"]
 
-                    if not donor_analysis_type in savedAnalysisTypes:
-                        specimen["analysis"].append(analysis)
-                        continue
-                    else:
-                        new_workflow_version = analysis["workflow_version"]
-                        new_timestamp = analysis["timestamp"]
+                            saved_version = analysisObj["workflow_version"]
+                            # current is older than new
+                            if semver.compare(saved_version, new_workflow_version) == -1:
+                                sample["analysis"].remove(analysisObj)
+                                sample["analysis"].append(analysisObj)
+                            if semver.compare(saved_version, new_workflow_version) == 0:
+                                # use the timestamp
+                                if "timestamp" in sample and "timestamp" in analysisObj:
+                                    saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
+                                    new_timestamp = dateutil.parser.parse(analysis["timestamp"])
 
-                        saved_version = analysisObj["workflow_version"]
-                        # current is older than new
-                        if semver.compare(saved_version, new_workflow_version) == -1:
-                            sample["analysis"].remove(analysisObj)
-                            sample["analysis"].append(analysisObj)
-                        if semver.compare(saved_version, new_workflow_version) == 0:
-                            # use the timestamp
-                            if "timestamp" in sample and "timestamp" in analysisObj:
-                                saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
-                                new_timestamp = dateutil.parser.parse(analysis["timestamp"])
-
-                                timestamp_diff = saved_timestamp - new_timestamp
-                                if timestamp_diff.total_seconds() > 0:
-                                    sample["analysis"].remove(analysisObj)
-                                    sample["analysis"].append(analysisObj)
+                                    timestamp_diff = saved_timestamp - new_timestamp
+                                    if timestamp_diff.total_seconds() > 0:
+                                        sample["analysis"].remove(analysisObj)
+                                        sample["analysis"].append(analysisObj)
                                     
 
 def mergeDonors(metadataObjs):
@@ -158,7 +162,7 @@ def mergeDonors(metadataObjs):
                     savedSampleUuids.add(savedSampleUuid)
                     if sample_uuid == savedSampleUuid:
                         sampleObj = savedSampleObj
-
+                # print "####__sampleObj__####: ", sampleObj
                 if not sample_uuid in savedSampleUuids:
                     specObj["samples"].append(sample)
                     continue
@@ -250,8 +254,9 @@ def arrayMissingItems(itemsName, regex, items):
         if re.search(regex, specimen['submitter_specimen_type']):
             for sample in specimen['samples']:
                 for analysis in sample['analysis']:
-                    if analysis["analysis_type"] != itemsName:
+                    if analysis["analysis_type"] != itemsName and sample['sample_uuid'] not in results:
                         results.append(sample['sample_uuid'])
+                     
     return(results)
 
 def createFlags(uuid_to_donor):
@@ -286,6 +291,7 @@ def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
             with open(filename, 'w') as outfile:
                 if filename == ES_file_name:
                     outfile.write('{"index":{"_id":"' + str(index_index) + '","_type":"meta"}}\n')
+                    index_index += 1
                 json.dump(donor, outfile)
                 outfile.write('\n')
             first_write[filename] = "true"
@@ -293,9 +299,9 @@ def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
             with open(filename, 'a') as outfile:
                 if filename == ES_file_name:
                     outfile.write('{"index":{"_id":"' + str(index_index) + '","_type":"meta"}}\n')
+                    index_index += 1
                 json.dump(donor, outfile)
                 outfile.write('\n')
-    index_index += 1
 
 
 def main():
@@ -303,21 +309,18 @@ def main():
     data_input = args.directory
     schema = load_json_obj(args.metadataSchema)
     data_arr = []
-    load_json_arr(data_input, data_arr, schema)
+    load_json_arr(data_input, data_arr)
 
     donorLevelObjs = []
-    detachedObjs = []
-    print "arr ", data_arr 
+    detachedObjs = [] 
     for metaobj in data_arr:
         if "donor_uuid" in metaobj:
             donorLevelObjs.append(metaobj)
         elif "parent_uuids" in metaobj:
             detachedObjs.append(metaobj)
-    print "Detached: ", detachedObjs
-    print "Attached: ", donorLevelObjs
 
     uuid_mapping = mergeDonors(donorLevelObjs)
-    insert_detached_metadata(detachedObjs, uuid_mapping)
+    # insert_detached_metadata(detachedObjs, uuid_mapping)
 
     createFlags(uuid_mapping)
 
@@ -325,6 +328,7 @@ def main():
 
     dumpResult(validated, "validated.jsonl")
     dumpResult(invalid, "invalid.jsonl")
+    dumpResult(validated, 'elasticsearch.jsonl')
 
 
 if __name__ == "__main__":
