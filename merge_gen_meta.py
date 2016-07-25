@@ -1,5 +1,5 @@
 #   Authors: Jean Rodriguez & Chris Wong
-#   Date: July
+#   Date: July 2016
 #   Description:This script merges metadata json files into one jsonl file. Each json object is grouped by donor and then each individual
 #   Donor object is merged into one jsonl file.
 #
