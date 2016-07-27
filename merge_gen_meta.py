@@ -27,6 +27,8 @@ def input_Options():
     parser = argparse.ArgumentParser(description='Directory that contains Json files.')
     parser.add_argument('-d', '--directory', help='Directory that contains the json metadata files')
     parser.add_argument('-m', '--metadataSchema', help='File that contains the metadata schema')
+    parser.add_argument('-s', '--skip_Program_Test', help='Lets user skip certain json files that contain a specific program test')
+    parser.add_argument('-o', '--only_Program_Test', help='Lets user include certain json files that contain a specific program  test')
 
     args = parser.parse_args()
     return args
@@ -63,7 +65,20 @@ def load_json_arr(input_dir, data_arr):
                     data_arr.append(json_obj)
                     
 
-
+def skip_Prog_Test(donorLevelObjs, option):
+    for json_obj in donorLevelObjs:
+        program = json_obj["program"]
+        if program == option:
+            donorLevelObjs.remove(json_obj)
+            
+            
+def only_prog_option(donorLevelObjs,only_program_option):
+    for json_obj in donorLevelObjs:
+        program = json_obj["program"]
+        if program != option:
+            donorLevelObjs.remove(json_obj)
+            
+            
 def validate_json(json_obj,schema):
     """
     :param json_obj:
@@ -78,49 +93,66 @@ def validate_json(json_obj,schema):
 
 
 def insert_detached_metadata(detachedObjs, uuid_mapping):
-    for de_Obj in detachedObjs:
-        de_analysis_type = de_Obj["analysis_type"]
-        parent_uuids= de_Obj["parent_uuids"]
-        saved_obj= uuid_mapping
-        saved_uuid= set()
-        for parent_uuid in parent_uuids:
-            donor_obj= uuid_mapping[parent_uuid]
-            saved_object= uuid_mapping[parent_uuid]
+    for parent_uuid in detachedObjs["parent_uuids"]:
+        for key in uuid_mapping:
+            donor_obj= uuid_mapping[key]
+            donor_uuid = donor_obj["donor_uuid"]
+            # Check if it needs to be inserted in the donor section
+            if parent_uuid== donor_uuid:
+                if "analysis" in donor_obj:
+                    donor_obj["analysis"].append(detachedObjs)
+                else:
+                    donor_obj["analysis"]= [detachedObjs]
+            # Check if it needs to be inserted in the specimen section
             for specimen in donor_obj["specimen"]:
+                specimen_uuid =specimen["specimen_uuid"]
+                if specimen_uuid == parent_uuid:
+                    if "analysis" in specimen:
+                        specimen["analysis"].append(detachedObjs)
+                    else:
+                        specimen["analysis"]= [detachedObjs]
+                # Check if it needs to be inserted in the sample section
                 for sample in specimen["samples"]:
-                    for analysis in sample["analysis"]:
+                    sample_uuid= sample["sample_uuid"]
+                    if sample_uuid == parent_uuid:
 
-                        # This code is used in the mergeDonor() function
-                        # Think about making a function for this part
-                        donor_analysis_type= analysis["analysis_type"]
+                        analysis_type = detachedObjs["analysis_type"]
                         savedAnalysisTypes = set()
-                        savedAnalysisTypes.add(donor_analysis_type)
-                        if donor_analysis_type == de_analysis_type:
-                            analysisObj = analysis
-                            
-                        #print "####__ Analysis__####: ",analysis
-                        if not donor_analysis_type in savedAnalysisTypes:
-                            specimen["analysis"].append(analysis)
+                        
+                        for donor_analysis in sample["analysis"]:
+                            savedAnalysisType = donor_analysis["analysis_type"]
+                            savedAnalysisTypes.add(savedAnalysisType)
+                            if analysis_type == savedAnalysisType:
+                                analysisObj = donor_analysis
+                        
+                        if not analysis_type in savedAnalysisTypes:
+                            sample["analysis"].append(detachedObjs)
                             continue
                         else:
-                            new_workflow_version = analysis["workflow_version"]
-                            new_timestamp = analysis["timestamp"]
-
+                            # compare 2 analysis to keep only most relevant one
+                            # saved is analysisObj
+                            # currently being considered is new_analysis
+                            new_workflow_version = detachedObjs["workflow_version"]
+                        
                             saved_version = analysisObj["workflow_version"]
                             # current is older than new
                             if semver.compare(saved_version, new_workflow_version) == -1:
                                 sample["analysis"].remove(analysisObj)
-                                sample["analysis"].append(analysisObj)
+                                sample["analysis"].append(detachedObjs)
                             if semver.compare(saved_version, new_workflow_version) == 0:
                                 # use the timestamp
-                                if "timestamp" in sample and "timestamp" in analysisObj:
+                                if "timestamp" in detachedObjs and "timestamp" in analysisObj:
                                     saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
-                                    new_timestamp = dateutil.parser.parse(analysis["timestamp"])
-
+                                    new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
+                        
                                     timestamp_diff = saved_timestamp - new_timestamp
                                     if timestamp_diff.total_seconds() > 0:
                                         sample["analysis"].remove(analysisObj)
-                                        sample["analysis"].append(analysisObj)
+                                        sample["analysis"].append(detachedObjs)
+                            
+                            
+                        
+                        
                                     
 
 def mergeDonors(metadataObjs):
@@ -221,17 +253,7 @@ def validate_Donor(uuid_mapping, schema):
             invalid.append(donor_Obj)
     return valid, invalid
 
-def allHaveItems__old(itemsName, regex, items):
-    total_samples = 0
-    matching_samples = 0
-    for specimen in items['specimen']:
-        if re.search(regex, specimen['submitter_specimen_type']):
-            for sample in specimen['samples']:
-                total_samples += 1
-                if itemsName in sample:
-                    matching_samples += 1
-    
-    return(total_samples == 1 and matching_samples == 1)
+
 
 def allHaveItems(itemsName, regex, items):
     total_samples = 0
@@ -241,6 +263,7 @@ def allHaveItems(itemsName, regex, items):
             total_samples += 1
             for sample in specimen['samples']:
                 for analysis in sample['analysis']:
+                    
                     if analysis["analysis_type"] == itemsName:
                         analysis_match += 1
     if total_samples > 0 and analysis_match > 0:
@@ -248,16 +271,49 @@ def allHaveItems(itemsName, regex, items):
     else:
         return False
 
+
 def arrayMissingItems(itemsName, regex, items):
+    analysis_type = False
     results = []
     for specimen in items['specimen']:
         if re.search(regex, specimen['submitter_specimen_type']):
             for sample in specimen['samples']:
                 for analysis in sample['analysis']:
-                    if analysis["analysis_type"] != itemsName and sample['sample_uuid'] not in results:
-                        results.append(sample['sample_uuid'])
-                     
-    return(results)
+                    
+                    if analysis["analysis_type"] == itemsName:
+                        analysis_type = True
+                        break
+                
+                if not analysis_type:
+                    results.append(sample['sample_uuid'])
+                    
+                analysis_type = False
+               
+    return results
+
+def create_missing_items(uuid_to_donor):
+    for uuid in uuid_to_donor:
+        json_object = uuid_to_donor[uuid]
+        flagsWithArrs = {'normal_sequence': arrayMissingItems('sequence_upload', "^Normal - ", json_object),
+                         'tumor_sequence': arrayMissingItems('sequence_upload',
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                             json_object),
+                         'normal_alignment': arrayMissingItems('alignment', "^Normal - ", json_object),
+                         'tumor_alignment': arrayMissingItems('alignment',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                              json_object),
+                         'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object),
+                         'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                                    json_object),
+                         'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object),
+                         'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
+                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                                     json_object)}
+
+
+        json_object['missing_items'] = flagsWithArrs
+    
 
 def createFlags(uuid_to_donor):
     for uuid in uuid_to_donor:
@@ -318,12 +374,24 @@ def main():
             donorLevelObjs.append(metaobj)
         elif "parent_uuids" in metaobj:
             detachedObjs.append(metaobj)
+            
+    # Skip Program Test Option
+    skip_prog_option= args.skip_Program_Test
+    if skip_prog_option:
+        skip_Prog_Test(donorLevelObjs, skip_prog_option)
+        
+    # Use Only Program Test Option
+    only_program_option= args.only_Program_Test
+    if only_program_option:
+        only_prog_option(donorLevelObjs,only_program_option)
 
     uuid_mapping = mergeDonors(donorLevelObjs)
-    # insert_detached_metadata(detachedObjs, uuid_mapping)
-
-    createFlags(uuid_mapping)
-
+    for de_obj in detachedObjs:
+        insert_detached_metadata(de_obj, uuid_mapping)
+    
+    create_missing_items(uuid_mapping)
+    
+    
     (validated, invalid) = validate_Donor(uuid_mapping,schema)
 
     dumpResult(validated, "validated.jsonl")
