@@ -25,58 +25,10 @@
                     "pattern": "^[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}$"
                 }
             ]
-        },
-        "analysis": {
-            "description": "This schema is in the definitions so that it can be referenced for pipeline-generated metadata.",
-            "type": "object",
-            "required": ["analysis_type", "bundle_uuid", "workflow_name", "workflow_version", "workflow_outputs"],
-            "properties": {
-                "analysis_type": {
-                    "type": "string"
-                },
-                "parent_uuids": {
-                    "description": "parent UUIDs for this workflow",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/uuid"
-                    }
-                },
-                "bundle_uuid": {
-                    "$ref": "#/definitions/uuid"
-                },
-                "workflow_name": {
-                    "type": "string"
-                },
-                "workflow_version": {
-                    "type": "string"
-                },
-                "timestamp": {
-                    "description": "We want this time stamp in detached analysis data, but not required when uploading via upload tool.",
-                    "$ref": "#/definitions/time_stamp"
-                },
-                "workflow_outputs": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "required": ["file_path", "file_type"],
-                        "properties": {
-                            "file_path": {
-                                "type": "string"
-                            },
-                            "file_type": {
-                                "type": "string"
-                            },
-                            "file_uuid": {
-                                "$ref": "#/definitions/uuid"
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "type": "object",
-    "required": ["parent_uuids", "analysis_type", "bundle_uuid", "workflow_name", "workflow_version", "workflow_outputs"],
+    "required": ["parent_uuids", "timestamp", "analysis_type", "bundle_uuid", "workflow_name", "workflow_version", "workflow_outputs"],
     "properties": {
         "analysis_type": {
             "type": "string"
