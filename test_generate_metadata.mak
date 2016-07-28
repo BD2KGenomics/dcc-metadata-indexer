@@ -29,6 +29,13 @@ test:
 	rm -f 1.tmp ;
 	\
 
+merge:
+	python ./merge_gen_meta.py \
+		--directory output_metadata_7_20/ \
+		--metadataSchema metadata_schema.json \
+	;
+	\
+
 clean:
 	rm -rf output_metadata ;
 	\
