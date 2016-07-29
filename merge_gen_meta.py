@@ -93,9 +93,12 @@ def validate_json(json_obj,schema):
 
 
 def insert_detached_metadata(detachedObjs, uuid_mapping):
+    
+    de_timestamp =  dateutil.parser.parse(detachedObjs["timestamp"])
     for parent_uuid in detachedObjs["parent_uuids"]:
         for key in uuid_mapping:
             donor_obj= uuid_mapping[key]
+            donor_timestamp=  dateutil.parser.parse(donor_obj["timestamp"])
             donor_uuid = donor_obj["donor_uuid"]
             # Check if it needs to be inserted in the donor section
             if parent_uuid== donor_uuid:
@@ -124,6 +127,7 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                             savedAnalysisTypes.add(savedAnalysisType)
                             if analysis_type == savedAnalysisType:
                                 analysisObj = donor_analysis
+                  
                         
                         if not analysis_type in savedAnalysisTypes:
                             sample["analysis"].append(detachedObjs)
@@ -146,11 +150,14 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                                     new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
                         
                                     timestamp_diff = saved_timestamp - new_timestamp
-                                    if timestamp_diff.total_seconds() > 0:
+                                    if timestamp_diff.total_seconds() < 0:
                                         sample["analysis"].remove(analysisObj)
                                         sample["analysis"].append(detachedObjs)
-                            
-                            
+                        
+            timestamp_diff = donor_timestamp - de_timestamp
+            if timestamp_diff.total_seconds() < 0:
+                donor_obj["timestamp"] = detachedObjs["timestamp"]
+            
                         
                         
                                     
@@ -160,12 +167,15 @@ def mergeDonors(metadataObjs):
     merge data bundle metadata.json objects into correct donor objects
     '''
     donorMapping = {}
+    uuid_to_timestamp={}
 
     for metaObj in metadataObjs:
         # check if donor exists
         donor_uuid = metaObj["donor_uuid"]
+        
         if not donor_uuid in donorMapping:
             donorMapping[donor_uuid] = metaObj
+            uuid_to_timestamp[donor_uuid]= [metaObj["timestamp"]]
             continue
 
         # check if specimen exists
@@ -213,6 +223,10 @@ def mergeDonors(metadataObjs):
 
                     if not analysis_type in savedAnalysisTypes:
                         sampleObj["analysis"].append(bundle)
+                        
+                        # timestamp mapping
+                        if "timestamp" in bundle:
+                            uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
                         continue
                     else:
                         # compare 2 analysis to keep only most relevant one
@@ -222,20 +236,33 @@ def mergeDonors(metadataObjs):
                         
                         saved_version= analysisObj["workflow_version"]
                             # current is older than new
+                        
                         if semver.compare(saved_version, new_workflow_version) == -1:
                             sampleObj["analysis"].remove(analysisObj)
                             sampleObj["analysis"].append(bundle)
+                            # timestamp mapping
+                            if "timestamp" in bundle:
+                                uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
+                                
                         if semver.compare(saved_version, new_workflow_version) == 0:
                             # use the timestamp to determine which analysis to choose
-                            
                             if "timestamp" in bundle and "timestamp" in analysisObj :
                                 saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
                                 new_timestamp= dateutil.parser.parse(bundle["timestamp"])
-
                                 timestamp_diff = saved_timestamp - new_timestamp
-                                if timestamp_diff.total_seconds() > 0:
+                                
+                                if timestamp_diff.total_seconds() < 0:
                                     sampleObj["analysis"].remove(analysisObj)
                                     sampleObj["analysis"].append(bundle)
+                                    # timestamp mapping
+                                    if "timestamp" in bundle:
+                                        uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
+                                        
+    # Get the  most recent timstamp from uuid_to_timestamp(for each donor) and use donorMapping to substitute it
+    print uuid_to_timestamp
+    for uuid in uuid_to_timestamp:
+        timestamp_list= uuid_to_timestamp[uuid]
+        donorMapping[uuid]["timestamp"] = max(timestamp_list)
                                     
     return donorMapping
         
@@ -396,7 +423,7 @@ def main():
 
     dumpResult(validated, "validated.jsonl")
     dumpResult(invalid, "invalid.jsonl")
-    dumpResult(validated, 'elasticsearch.jsonl')
+    #dumpResult(validated, 'elasticsearch.jsonl')
 
 
 if __name__ == "__main__":
