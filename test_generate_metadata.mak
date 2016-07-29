@@ -6,9 +6,11 @@ ACCESS_TOKEN=`cat ucsc-storage-client/accessToken`
 
 test2:
 	python ./generate_metadata.py \
-		--metadataSchema metadata_flattened.json \
+		--inputMetadataSchema input_metadata.json \
+		--metadataSchema metadata_schema.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
-		--force-upload \
+		--test \
+		--skip-upload \
 		$(XL_FILE) \
 	;
 
@@ -17,7 +19,8 @@ test:
 	> 1.tmp ;
 	\
 	python ./generate_metadata.py \
-		--metadataSchema metadata_flattened.json \
+		--inputMetadataSchema input_metadata.json \
+		--metadataSchema metadata_schema.json \
 		--awsAccessToken $(ACCESS_TOKEN) \
 		--force-upload \
 		1.tmp \
@@ -26,10 +29,13 @@ test:
 	rm -f 1.tmp ;
 	\
 
+merge:
+	python ./merge_gen_meta.py \
+		--directory output_metadata_7_20/ \
+		--metadataSchema metadata_schema.json \
+	;
+	\
+
 clean:
 	rm -rf output_metadata ;
-	\
-	rm -f receipt.tsv ;
-	\
-	rm -f generate_metadata.log ;
 	\

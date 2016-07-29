@@ -1,0 +1,119 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "metadata_schema@0.0.2",
+    "description": "metadata record for a donor",
+    "type": "object",
+    "definitions": {
+        "uuid": {
+            "description": "uuid with all lower case or all upper case characters",
+            "type": "string",
+            "oneOf": [
+                {
+                    "description": "lower case",
+                    "pattern": "^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$"
+                }, {
+                    "description": "upper case",
+                    "pattern": "^[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}$"
+                }
+            ]
+        }
+    },
+    "required": ["program", "project", "center_name", "submitter_donor_id", "donor_uuid", "schema_version", "timestamp", "specimen"],
+    "properties": {
+        "program": {
+            "type": "string"
+        },
+        "project": {
+            "type": "string"
+        },
+        "center_name": {
+            "type": "string"
+        },
+        "submitter_donor_id": {
+            "type": "string"
+        },
+        "donor_uuid": {
+            "$ref": "#/definitions/uuid"
+        },
+        "schema_version": {
+            "type": "string"
+        },
+        "timestamp": {
+            "description": "ISO 8601 / RFC 3339",
+            "type": "string",
+            "format": "date-time"
+        },
+        "specimen": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["submitter_specimen_id", "specimen_uuid", "submitter_specimen_type", "samples"],
+                "properties": {
+                    "submitter_specimen_id": {
+                        "type": "string"
+                    },
+                    "specimen_uuid": {
+                        "$ref": "#/definitions/uuid"
+                    },
+                    "submitter_specimen_type": {
+                        "type": "string"
+                    },
+                    "samples": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["submitter_sample_id", "sample_uuid", "analysis"],
+                            "properties": {
+                                "submitter_sample_id": {
+                                    "type": "string"
+                                },
+                                "sample_uuid": {
+                                    "$ref": "#/definitions/uuid"
+                                },
+                                "analysis": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "required": ["analysis_type", "bundle_uuid", "workflow_name", "workflow_version", "workflow_outputs"],
+                                        "properties": {
+                                            "analysis_type": {
+                                                "type": "string"
+                                            },
+                                            "bundle_uuid": {
+                                                "$ref": "#/definitions/uuid"
+                                            },
+                                            "workflow_name": {
+                                                "type": "string"
+                                            },
+                                            "workflow_version": {
+                                                "type": "string"
+                                            },
+                                            "workflow_outputs": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "required": ["file_path", "file_type"],
+                                                    "properties": {
+                                                        "file_path": {
+                                                            "type": "string"
+                                                        },
+                                                        "file_type": {
+                                                            "type": "string"
+                                                        },
+                                                        "file_uuid": {
+                                                            "$ref": "#/definitions/uuid"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

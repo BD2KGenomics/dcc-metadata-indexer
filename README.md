@@ -41,7 +41,7 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver
 
 Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html)
  [here](http://conda.pydata.org/docs/test-drive.html), and [here](http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html)
@@ -49,7 +49,7 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
 
     conda create -n schemas-project python=2.7.11
     source activate schemas-project
-    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver
 
 ## Generate Test Metadata (and Optionally Upload Data to Storage Service)
 
@@ -59,19 +59,24 @@ TSV to JSON tool and this will ultimately form the basis of our helper applicati
 that clients will use in the field to prepare their samples.
 
     python generate_metadata.py \
-		--metadataSchema metadata_flattened.json \
+		--inputMetadataSchema input_metadata.json \
+		--metadataSchema metadata_schema.json \
 		--outputDir output_metadata \
+		--receiptFile receipt.tsv \
 		--awsAccessToken `cat ucsc-storage-client/accessToken` \
 		--skip-upload \
 		sample_tsv/sample.tsv
 
-A `receipt.tsv` file is generated for the upload, which is similar to the input metadata file, except with UUIDs filled in. There is an option to set a custom file name for the receipt.
+  - `input_metadata.json` is a json schema used to do a very basic validation on input data.
+  - `metadata_schema.json` is a json schema used to validate output metadata.json files.
+  - `output_metadata` is the directory where the metadata files will be written.
+  - `receipt.tsv` is the upload confirmation file where assigned UUIDs are recorded. Find it in `output_metadata` after a successful upload.
 
 Take out `--skip-upload` if you want to perform upload, see below for more details.
 
 In case there are already existing bundle ID's that cause a collision on the S3 storage, you can specify the `--force-upload` switch to replace colliding bundle ID's with the current uploading version.
 
-Now look in the `output_metadata` directory for per-donor directories that contain metadata files for each analysis event.
+Now look in the `output_metadata` directory for per-bundle directories that contain metadata files for each analysis workflow.
 
 ### Enabling Upload
 

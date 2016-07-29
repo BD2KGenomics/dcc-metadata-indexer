@@ -17,10 +17,10 @@ import jsonschema
 import openpyxl
 import json
 import uuid
-from sets import Set
 import subprocess
 import datetime
 import copy
+import semver
 
 # methods and functions
 
@@ -32,11 +32,23 @@ def getOptions():
     usage_text.append("%prog [options] [input Excel or tsv files]")
     usage_text.append("Data will be read from 'Sheet1' in the case of Excel file.")
 
-    parser = OptionParser(usage="\n".join(usage_text))
+    description_text = []
+    description_text.append("This is the data upload tool for UCSC-CGL. The following steps are performed to successfully upload data to the UCSC-CGL servers:")
+    description_text.append("1- Data bundles are generated from the input files.")
+    description_text.append("2- The newly generated metadata.json files are validated.")
+    description_text.append("3- Each data bundle upload is registered with the server. A manifest.txt file is generated in this step.")
+    description_text.append("4- Each data bundle upload is uploaded to the server.")
+    description_text.append("5- Newly assigned UUIDs for the upload are recorded in an upload receipt file.")
+    description_text.append("The ucsc-storage-client directory must be installed in the same directory that this tool is run.")
+
+
+    parser = OptionParser(usage="\n".join(usage_text), description="\n".join(description_text))
     parser.add_option("-v", "--verbose", action="store_true", default=False, dest="verbose", help="Switch for verbose mode.")
     parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload", help="Switch to skip upload. Metadata files will be generated only.")
+    parser.add_option("-t", "--test", action="store_true", default=False, dest="test", help="Switch for development testing.")
 
-    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_flattened.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
+    parser.add_option("-i", "--inputMetadataSchema", action="store", default="input_metadata.json", type="string", dest="inputMetadataSchemaFileName", help="flattened json schema file for input metadata")
+    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_schema.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
 
     parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
 
@@ -287,15 +299,15 @@ def mkdir_p(path):
             raise
     return None
 
-def getWorkflowObjects(flatMetadataObj):
+def getWorkflowObjects(flatMetadataObjs):
     """
     For each flattened metadata object, build up a metadataObj with correct structure.
     """
-    schema_version = "0.0.1"
+    schema_version = "0.0.2"
     num_files_written = 0
 
     commonObjMap = {}
-    for metaObj in flatMetadataObj:
+    for metaObj in flatMetadataObjs:
         workflow_uuid = metaObj["workflow_uuid"]
         if workflow_uuid in commonObjMap.keys():
             pass
@@ -326,12 +338,11 @@ def getWorkflowObjects(flatMetadataObj):
             specObj["samples"].append(sampleObj)
             sampleObj["submitter_sample_id"] = metaObj["submitter_sample_id"]
             sampleObj["sample_uuid"] = metaObj["sample_uuid"]
+            sampleObj["analysis"] = []
 
             # add workflow
             workFlowObj = {}
-            analysis_type = metaObj["analysis_type"]
-            sampleObj[analysis_type] = workFlowObj
-
+            sampleObj["analysis"].append(workFlowObj)
             workFlowObj["workflow_name"] = metaObj["workflow_name"]
             workFlowObj["workflow_version"] = metaObj["workflow_version"]
             workFlowObj["analysis_type"] = metaObj["analysis_type"]
@@ -341,14 +352,13 @@ def getWorkflowObjects(flatMetadataObj):
         # retrieve workflow
         workflowObj = commonObjMap[workflow_uuid]
         analysis_type = metaObj["analysis_type"]
-        wf_outputsObj = workflowObj["specimen"][0]["samples"][0][analysis_type]["workflow_outputs"]
+        wf_outputsObj = workflowObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_outputs"]
 
         # add file info
         fileInfoObj = {}
         wf_outputsObj.append(fileInfoObj)
         fileInfoObj["file_type"] = metaObj["file_type"]
         fileInfoObj["file_path"] = metaObj["file_path"]
-        fileInfoObj["file_uuid"] = generateUuid5([metaObj["workflow_uuid"], metaObj["file_path"]])
 
     return commonObjMap
 
@@ -373,7 +383,8 @@ def writeJson(directory, fileName, jsonObj):
 
 def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
     """
-    For each structuredMetaDataObj, prepare a data bundle dir for each workflow
+    For each structuredMetaDataObj, prepare a data bundle dir for the workflow.
+    Assumes one data bundle per structuredMetaDataObj. That means 1 specimen, 1 sample, 1 analysis.
     """
     numFilesWritten = 0
     for workflow_uuid in structuredMetaDataObjMap.keys():
@@ -382,20 +393,9 @@ def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
         # get outputDir (bundle_uuid)
         bundlePath = os.path.join(outputDir, workflow_uuid)
 
-        # get analysis_type
-        sampleObj = metaObj["specimen"][0]["samples"][0]
-        analysis_type = None
-        for obj in sampleObj.values():
-            if (isinstance(obj, dict)) and ("analysis_type" in obj.keys()):
-                analysis_type = obj["analysis_type"]
-                break
-        if analysis_type == None:
-            logging.error("no analysis found in %s" % (jsonPP(metaObj)))
-            continue
-
         # link data file(s)
-        wf_outputsObj = sampleObj[analysis_type]["workflow_outputs"]
-        for outputObj in wf_outputsObj:
+        workflow_outputs = metaObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_outputs"]
+        for outputObj in workflow_outputs:
             file_path = outputObj["file_path"]
             fullFilePath = os.path.join(os.getcwd(), file_path)
             filename = os.path.basename(file_path)
@@ -457,12 +457,11 @@ def registerBundleUpload(metadataUrl, bundleDir, accessToken):
 
      try:
          output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
-         logging.debug("output:%s" % (str(output)))
      except Exception as exc:
          success = False
          # !!! logging.exception here may expose access token !!!
          logging.error("ERROR while registering bundle %s" % bundleDir)
-         output = ""
+         writeJarExceptionsToLog(exc.output)
      finally:
          logging.info("done registering bundle upload %s" % bundleDir)
 
@@ -511,16 +510,25 @@ def performBundleUpload(metadataUrl, storageUrl, bundleDir, accessToken, force=F
 
     try:
         output = subprocess.check_output(command, cwd=os.getcwd(), stderr=subprocess.STDOUT, shell=True)
-        logging.debug("output:%s" % (str(output)))
-    except Exception as exc:
+    except subprocess.CalledProcessError as exc:
         success = False
         # !!! logging.exception here may expose access token !!!
         logging.error("ERROR while uploading files for bundle %s" % bundleDir)
-        output = ""
+        writeJarExceptionsToLog(exc.output)
     finally:
         logging.info("done uploading bundle %s" % bundleDir)
 
     return success
+
+def writeJarExceptionsToLog(errorOutput):
+    """
+    Output the 'ERROR' lines in the jar error output.
+    """
+    for line in errorOutput.split("\n"):
+        line = line.strip()
+        if (line.find("ERROR") != -1) and (line.find("main]") == -1):
+            logging.error(line)
+    return None
 
 def parseUploadManifestFile(manifestFilePath):
     '''
@@ -568,17 +576,14 @@ def collectReceiptData(manifestData, metadataObj):
 
     commonData["submitter_sample_id"] = metadataObj["specimen"][0]["samples"][0]["submitter_sample_id"]
     commonData["sample_uuid"] = metadataObj["specimen"][0]["samples"][0]["sample_uuid"]
-    sampleKeys = metadataObj["specimen"][0]["samples"][0].keys()
-    sampleKeys.remove("submitter_sample_id")
-    sampleKeys.remove("sample_uuid")
 
-    commonData["analysis_type"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["analysis_type"]
-    commonData["workflow_name"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_name"]
-    commonData["workflow_version"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_version"]
-    commonData["bundle_uuid"] = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["bundle_uuid"]
+    commonData["analysis_type"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["analysis_type"]
+    commonData["workflow_name"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_name"]
+    commonData["workflow_version"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_version"]
+    commonData["bundle_uuid"] = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["bundle_uuid"]
     commonData["metadata_uuid"] = manifestData["idMapping"]["metadata.json"]
 
-    workflow_outputs = metadataObj["specimen"][0]["samples"][0][sampleKeys[0]]["workflow_outputs"]
+    workflow_outputs = metadataObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_outputs"]
     for output in workflow_outputs:
         data = copy.deepcopy(commonData)
         data["file_type"] = output["file_type"]
@@ -603,6 +608,85 @@ def writeReceipt(collectedReceipts, receiptFileName, d="\t"):
         writer.writerows(collectedReceipts)
     return None
 
+def validateMetadataObjs(metadataObjs, jsonSchemaFile):
+    '''
+    validate metadata objects
+    '''
+    schema = loadJsonSchema(jsonSchemaFile)
+    valid = []
+    invalid = []
+    for metadataObj in metadataObjs:
+        isValid = validateObjAgainstJsonSchema(metadataObj, schema)
+        if isValid:
+            valid.append(metadataObj)
+        else:
+            invalid.append(metadataObj)
+
+    obj = {"valid":valid, "invalid":invalid}
+    return obj
+
+def mergeDonors(metadataObjs):
+    '''
+    merge data bundle metadata.json objects into correct donor objects
+    '''
+    donorMapping = {}
+
+    for metaObj in metadataObjs:
+        # check if donor exists
+        donor_uuid = metaObj["donor_uuid"]
+        if not donor_uuid in donorMapping:
+            donorMapping[donor_uuid] = metaObj
+            continue
+
+        # check if specimen exists
+        donorObj = donorMapping[donor_uuid]
+        specimen_uuid = metaObj["specimen"][0]["specimen_uuid"]
+
+        savedSpecUuids = set()
+        for savedSpecObj in donorObj["specimen"]:
+            savedSpecUuid = savedSpecObj["specimen_uuid"]
+            savedSpecUuids.add(savedSpecUuid)
+            if specimen_uuid == savedSpecUuid:
+                specObj = savedSpecObj
+
+        if not specimen_uuid in savedSpecUuids:
+            specObj = metaObj["specimen"][0]
+            donorObj["specimen"].append(specObj)
+            continue
+
+        # check if sample exists
+        sample_uuid = metaObj["specimen"][0]["samples"][0]["sample_uuid"]
+        savedSampleUuids = set()
+        for savedSampleObj in specObj["samples"]:
+            savedSampleUuid = savedSampleObj["sample_uuid"]
+            savedSampleUuids.add(savedSampleUuid)
+            if sample_uuid == savedSampleUuid:
+                sampleObj = savedSampleObj
+
+        if not sample_uuid in savedSampleUuids:
+            sampleObj = metaObj["specimen"][0]["samples"][0]
+            specObj["samples"].append(sampleObj)
+            continue
+
+        # check if analysis exists
+        analysis_type = metaObj["specimen"][0]["samples"][0]["analysis"][0]["analysis_type"]
+        savedAnalysisTypes = set()
+        for bundle in sampleObj["analysis"]:
+            savedAnalysisType = bundle["analysis_type"]
+            savedAnalysisTypes.add(savedAnalysisType)
+            if analysis_type == savedAnalysisType:
+                analysisObj = bundle
+
+        if not analysis_type in savedAnalysisTypes:
+            analysisObj = metaObj["specimen"][0]["samples"][0]["analysis"][0]
+            sampleObj["analysis"].append(analysisObj)
+            continue
+        else:
+            # TODO keep only latest version of analysis, compare versions with semver.compare()
+            pass
+
+    return donorMapping
+
 #:####################################
 
 def main():
@@ -618,8 +702,10 @@ def main():
     else:
         logLevel = logging.INFO
     logfileName = os.path.basename(__file__).replace(".py", ".log")
+    mkdir_p(options.metadataOutDir)
+    logFilePath = os.path.join(options.metadataOutDir, logfileName)
     logFormat = "%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s"
-    setupLogging(logfileName, logFormat, logLevel)
+    setupLogging(logFilePath, logFormat, logLevel)
 
     # !!! careful not to expose the access token !!!
     printOptions = copy.deepcopy(vars(options))
@@ -629,8 +715,8 @@ def main():
 
     tempDirName = os.path.basename(__file__) + "_temp"
 
-    # load flattened metadata schema
-    metadataSchema = loadJsonSchema(options.metadataSchemaFileName)
+    # load flattened metadata schema for input validation
+    inputMetadataSchema = loadJsonSchema(options.inputMetadataSchemaFileName)
 
     flatMetadataObjs = []
 
@@ -648,7 +734,7 @@ def main():
             fileDataList = processFieldNames(reader)
 
         for data in fileDataList:
-            metaObj = getDataObj(data, metadataSchema)
+            metaObj = getDataObj(data, inputMetadataSchema)
 
             if metaObj == None:
                 continue
@@ -658,12 +744,34 @@ def main():
     # get structured workflow objects
     structuredWorkflowObjMap = getWorkflowObjects(flatMetadataObjs)
 
+    if options.test:
+        donorObjMapping = mergeDonors(structuredWorkflowObjMap.values())
+        validationResults = validateMetadataObjs(structuredWorkflowObjMap.values(), options.metadataSchemaFileName)
+        numInvalidResults = len(validationResults["invalid"])
+        if numInvalidResults != 0:
+            logging.critical("%s invalid merged objects found:" % (numInvalidResults))
+        else:
+            logging.critical("All merged objects validated!!")
+
+    # validate metadata objects
+    # exit script before upload
+    validationResults = validateMetadataObjs(structuredWorkflowObjMap.values(), options.metadataSchemaFileName)
+    numInvalidResults = len(validationResults["invalid"])
+    if numInvalidResults != 0:
+        logging.critical("%s invalid metadata objects found:" % (numInvalidResults))
+        for metaObj in validationResults["invalid"]:
+            logging.critical("INVALID: %s" % (json.dumps(metaObj)))
+        sys.exit(1)
+    else:
+        logging.info("validated all metadata objects for output")
+
     # write metadata files and link data files
     numFilesWritten = writeDataBundleDirs(structuredWorkflowObjMap, options.metadataOutDir)
     logging.info("number of metadata files written: %s" % (str(numFilesWritten)))
 
     if (options.skip_upload):
         logging.info("Skipping data upload steps.")
+        logging.info("A detailed log is at: %s" % (logFilePath))
         runTime = getTimeDelta(startTime).total_seconds()
         logging.info("program ran for %s s." % str(runTime))
         return None
@@ -733,12 +841,15 @@ def main():
                 collectedReceipts.append(data)
         else:
             logging.info("no manifest file found in %s" % dirName)
-    writeReceipt(collectedReceipts, options.receiptFile)
+
+    receiptFilePath = os.path.join(options.metadataOutDir, options.receiptFile)
+    writeReceipt(collectedReceipts, receiptFilePath)
 
     # final console output
     if len(counts["failedRegistration"]) > 0 or len(counts["failedUploads"]) > 0:
         logging.error("THERE WERE SOME FAILED PROCESSES !")
 
+    logging.info("A detailed log is at: %s" % (logFilePath))
     runTime = getTimeDelta(startTime).total_seconds()
     logging.info("program ran for %s s." % str(runTime))
     logging.shutdown()
