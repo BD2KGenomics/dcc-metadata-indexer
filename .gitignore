@@ -64,3 +64,4 @@ target/
 # custom
 output_metadata
 ucsc-storage-client
+ucsc-storage2-client
