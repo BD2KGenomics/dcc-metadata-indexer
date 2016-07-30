@@ -1,8 +1,10 @@
 #   Authors: Jean Rodriguez & Chris Wong
 #   Date: July 2016
+#
 #   Description:This script merges metadata json files into one jsonl file. Each json object is grouped by donor and then each individual
 #   Donor object is merged into one jsonl file.
 #
+#   Usage: python merge_gen_meta.py --directory output_metadata_7_20/ --metadataSchema metadata_schema.json
 
 import semver
 import logging
@@ -29,6 +31,8 @@ def input_Options():
     parser.add_argument('-m', '--metadataSchema', help='File that contains the metadata schema')
     parser.add_argument('-s', '--skip_Program_Test', help='Lets user skip certain json files that contain a specific program test')
     parser.add_argument('-o', '--only_Program_Test', help='Lets user include certain json files that contain a specific program  test')
+    #parser.add_argument('-r', '--skip_Project_Test', help='Lets user skip certain json files that contain a specific program test')
+    #parser.add_argument('-t', '--only_Project_Test', help='Lets user include certain json files that contain a specific program  test')
 
     args = parser.parse_args()
     return args
@@ -75,7 +79,7 @@ def skip_Prog_Test(donorLevelObjs, option):
 def only_prog_option(donorLevelObjs,only_program_option):
     for json_obj in donorLevelObjs:
         program = json_obj["program"]
-        if program != option:
+        if program != only_program_option:
             donorLevelObjs.remove(json_obj)
             
             
@@ -157,10 +161,7 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
             timestamp_diff = donor_timestamp - de_timestamp
             if timestamp_diff.total_seconds() < 0:
                 donor_obj["timestamp"] = detachedObjs["timestamp"]
-            
-                        
-                        
-                                    
+                                               
 
 def mergeDonors(metadataObjs):
     '''
@@ -259,14 +260,12 @@ def mergeDonors(metadataObjs):
                                         uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
                                         
     # Get the  most recent timstamp from uuid_to_timestamp(for each donor) and use donorMapping to substitute it
-    print uuid_to_timestamp
     for uuid in uuid_to_timestamp:
         timestamp_list= uuid_to_timestamp[uuid]
         donorMapping[uuid]["timestamp"] = max(timestamp_list)
                                     
     return donorMapping
-        
-        
+               
         
 def validate_Donor(uuid_mapping, schema):
     valid = []
@@ -282,22 +281,13 @@ def validate_Donor(uuid_mapping, schema):
 
 
 
-def allHaveItems(itemsName, regex, items):
-    total_samples = 0
-    analysis_match = 0
-    for specimen in items['specimen']:
-        if re.search(regex, specimen['submitter_specimen_type']):
-            total_samples += 1
-            for sample in specimen['samples']:
-                for analysis in sample['analysis']:
-                    
-                    if analysis["analysis_type"] == itemsName:
-                        analysis_match += 1
-    if total_samples > 0 and analysis_match > 0:
-        return(total_samples == analysis_match)
-    else:
-        return False
-
+def allHaveItems(lenght):
+    result= False
+    if lenght == 0:
+        result =True
+    
+    return result
+    
 
 def arrayMissingItems(itemsName, regex, items):
     analysis_type = False
@@ -318,7 +308,8 @@ def arrayMissingItems(itemsName, regex, items):
                
     return results
 
-def create_missing_items(uuid_to_donor):
+
+def createFlags(uuid_to_donor):
     for uuid in uuid_to_donor:
         json_object = uuid_to_donor[uuid]
         flagsWithArrs = {'normal_sequence': arrayMissingItems('sequence_upload', "^Normal - ", json_object),
@@ -337,36 +328,47 @@ def create_missing_items(uuid_to_donor):
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                                      json_object)}
-
-
+        
+        normal_sequence= len(flagsWithArrs["normal_sequence"])
+        normal_alignment= len(flagsWithArrs["normal_alignment"])
+        normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
+        normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
+        
+        tumor_sequence= len(flagsWithArrs["tumor_sequence"])
+        tumor_alignment= len(flagsWithArrs["tumor_alignment"])
+        tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
+        tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
+        
+        flagsWithStr = {'normal_sequence' :allHaveItems(normal_sequence),
+                        'tumor_sequence': allHaveItems(tumor_sequence),
+                        'normal_alignment': allHaveItems(normal_alignment),
+                        'tumor_alignment': allHaveItems(tumor_alignment),
+                        'normal_rnaseq_variants': allHaveItems(normal_rnaseq_variants),
+                        'tumor_rnaseq_variants': allHaveItems(tumor_rnaseq_variants),
+                        'normal_germline_variants': allHaveItems(normal_germline_variants),
+                        'tumor_somatic_variants': allHaveItems(tumor_somatic_variants)}
+        
+        
+        
+        normal_sum= normal_germline_variants + normal_rnaseq_variants + normal_alignment + normal_sequence
+        if normal_sum==0:
+            flagsWithStr["normal_sequence"]= False
+            flagsWithStr["normal_alignment"]= False
+            flagsWithStr["normal_rnaseq_variants"]= False
+            flagsWithStr["normal_germline_variants"]= False
+        
+        tumor_sum= tumor_somatic_variants + tumor_rnaseq_variants + tumor_alignment + tumor_sequence
+        if tumor_sum==0:
+            flagsWithStr["tumor_sequence"]= False
+            flagsWithStr["tumor_alignment"]= False
+            flagsWithStr["tumor_rnaseq_variants"]= False
+            flagsWithStr["tumor_somatic_variants"]= False
+        
+        
+        json_object['flags'] = flagsWithStr
         json_object['missing_items'] = flagsWithArrs
     
-
-def createFlags(uuid_to_donor):
-    for uuid in uuid_to_donor:
-        result= uuid_to_donor[uuid]
-        
-        flagsWithStr = {'normal_sequence' : allHaveItems('sequence_upload', "^Normal - ", result),
-                        'tumor_sequence': allHaveItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                        'normal_alignment': allHaveItems('alignment', "^Normal - ", result),
-                        'tumor_alignment': allHaveItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                        'normal_rnaseq_variants': allHaveItems('rna_seq_quantification', "^Normal - ", result),
-                        'tumor_rnaseq_variants': allHaveItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                        'normal_germline_variants': allHaveItems('germline_variant_calling', "^Normal - ", result),
-                        'tumor_somatic_variants': allHaveItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
-        flagsWithArrs = {'normal_sequence' : arrayMissingItems('sequence_upload', "^Normal - ", result) ,
-                         'tumor_sequence' : arrayMissingItems('sequence_upload', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result) ,
-                         'normal_alignment': arrayMissingItems('alignment', "^Normal - ", result),
-                         'tumor_alignment': arrayMissingItems('alignment', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                         'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", result),
-                         'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result),
-                         'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", result),
-                         'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling', "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -", result)}
-        result['flags'] = flagsWithStr
-        result['missing_items'] = flagsWithArrs
-        
-   
-    
+          
 def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
     global index_index
     for donor in result:
@@ -392,10 +394,14 @@ def main():
     data_input = args.directory
     schema = load_json_obj(args.metadataSchema)
     data_arr = []
+    
+    # Loads the json files and stores them into an array.
     load_json_arr(data_input, data_arr)
-
+    
     donorLevelObjs = []
     detachedObjs = [] 
+    
+    # Separates the detached anlaysis obj from the donor obj
     for metaobj in data_arr:
         if "donor_uuid" in metaobj:
             donorLevelObjs.append(metaobj)
@@ -412,18 +418,21 @@ def main():
     if only_program_option:
         only_prog_option(donorLevelObjs,only_program_option)
 
+    # Inserts the detached analysis to the merged donor obj
     uuid_mapping = mergeDonors(donorLevelObjs)
     for de_obj in detachedObjs:
         insert_detached_metadata(de_obj, uuid_mapping)
     
-    create_missing_items(uuid_mapping)
+    # Creates and adds the flags and missingItems to each donor obj
+    createFlags(uuid_mapping)
     
-    
+    # Validates each donor obj
     (validated, invalid) = validate_Donor(uuid_mapping,schema)
-
+    
+    # Creates the jsonl files 
     dumpResult(validated, "validated.jsonl")
     dumpResult(invalid, "invalid.jsonl")
-    #dumpResult(validated, 'elasticsearch.jsonl')
+    dumpResult(validated, 'elasticsearch.jsonl')
 
 
 if __name__ == "__main__":
