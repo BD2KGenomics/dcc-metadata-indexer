@@ -67,22 +67,22 @@ def load_json_arr(input_dir, data_arr):
                     current_file = os.path.join(current_folder, file)
                     json_obj = load_json_obj(current_file)
                     data_arr.append(json_obj)
-                    
+
 
 def skip_Prog_Test(donorLevelObjs, option):
     for json_obj in donorLevelObjs:
         program = json_obj["program"]
         if program == option:
             donorLevelObjs.remove(json_obj)
-            
-            
+
+
 def only_prog_option(donorLevelObjs,only_program_option):
     for json_obj in donorLevelObjs:
         program = json_obj["program"]
         if program != only_program_option:
             donorLevelObjs.remove(json_obj)
-            
-            
+
+
 def validate_json(json_obj,schema):
     """
     :param json_obj:
@@ -97,7 +97,7 @@ def validate_json(json_obj,schema):
 
 
 def insert_detached_metadata(detachedObjs, uuid_mapping):
-    
+
     de_timestamp =  dateutil.parser.parse(detachedObjs["timestamp"])
     for parent_uuid in detachedObjs["parent_uuids"]:
         for key in uuid_mapping:
@@ -125,14 +125,14 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
 
                         analysis_type = detachedObjs["analysis_type"]
                         savedAnalysisTypes = set()
-                        
+
                         for donor_analysis in sample["analysis"]:
                             savedAnalysisType = donor_analysis["analysis_type"]
                             savedAnalysisTypes.add(savedAnalysisType)
                             if analysis_type == savedAnalysisType:
                                 analysisObj = donor_analysis
-                  
-                        
+
+
                         if not analysis_type in savedAnalysisTypes:
                             sample["analysis"].append(detachedObjs)
                             continue
@@ -141,7 +141,7 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                             # saved is analysisObj
                             # currently being considered is new_analysis
                             new_workflow_version = detachedObjs["workflow_version"]
-                        
+
                             saved_version = analysisObj["workflow_version"]
                             # current is older than new
                             if semver.compare(saved_version, new_workflow_version) == -1:
@@ -152,16 +152,16 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                                 if "timestamp" in detachedObjs and "timestamp" in analysisObj:
                                     saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
                                     new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
-                        
+
                                     timestamp_diff = saved_timestamp - new_timestamp
                                     if timestamp_diff.total_seconds() < 0:
                                         sample["analysis"].remove(analysisObj)
                                         sample["analysis"].append(detachedObjs)
-                        
+
             timestamp_diff = donor_timestamp - de_timestamp
             if timestamp_diff.total_seconds() < 0:
                 donor_obj["timestamp"] = detachedObjs["timestamp"]
-                                               
+
 
 def mergeDonors(metadataObjs):
     '''
@@ -173,7 +173,7 @@ def mergeDonors(metadataObjs):
     for metaObj in metadataObjs:
         # check if donor exists
         donor_uuid = metaObj["donor_uuid"]
-        
+
         if not donor_uuid in donorMapping:
             donorMapping[donor_uuid] = metaObj
             uuid_to_timestamp[donor_uuid]= [metaObj["timestamp"]]
@@ -224,7 +224,7 @@ def mergeDonors(metadataObjs):
 
                     if not analysis_type in savedAnalysisTypes:
                         sampleObj["analysis"].append(bundle)
-                        
+
                         # timestamp mapping
                         if "timestamp" in bundle:
                             uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
@@ -234,39 +234,39 @@ def mergeDonors(metadataObjs):
                         # saved is analysisObj
                         # currently being considered is bundle
                         new_workflow_version= bundle["workflow_version"]
-                        
+
                         saved_version= analysisObj["workflow_version"]
                             # current is older than new
-                        
+
                         if semver.compare(saved_version, new_workflow_version) == -1:
                             sampleObj["analysis"].remove(analysisObj)
                             sampleObj["analysis"].append(bundle)
                             # timestamp mapping
                             if "timestamp" in bundle:
                                 uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
-                                
+
                         if semver.compare(saved_version, new_workflow_version) == 0:
                             # use the timestamp to determine which analysis to choose
                             if "timestamp" in bundle and "timestamp" in analysisObj :
                                 saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
                                 new_timestamp= dateutil.parser.parse(bundle["timestamp"])
                                 timestamp_diff = saved_timestamp - new_timestamp
-                                
+
                                 if timestamp_diff.total_seconds() < 0:
                                     sampleObj["analysis"].remove(analysisObj)
                                     sampleObj["analysis"].append(bundle)
                                     # timestamp mapping
                                     if "timestamp" in bundle:
                                         uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
-                                        
+
     # Get the  most recent timstamp from uuid_to_timestamp(for each donor) and use donorMapping to substitute it
     for uuid in uuid_to_timestamp:
         timestamp_list= uuid_to_timestamp[uuid]
         donorMapping[uuid]["timestamp"] = max(timestamp_list)
-                                    
+
     return donorMapping
-               
-        
+
+
 def validate_Donor(uuid_mapping, schema):
     valid = []
     invalid = []
@@ -285,9 +285,9 @@ def allHaveItems(lenght):
     result= False
     if lenght == 0:
         result =True
-    
+
     return result
-    
+
 
 def arrayMissingItems(itemsName, regex, items):
     analysis_type = False
@@ -296,16 +296,16 @@ def arrayMissingItems(itemsName, regex, items):
         if re.search(regex, specimen['submitter_specimen_type']):
             for sample in specimen['samples']:
                 for analysis in sample['analysis']:
-                    
+
                     if analysis["analysis_type"] == itemsName:
                         analysis_type = True
                         break
-                
+
                 if not analysis_type:
                     results.append(sample['sample_uuid'])
-                    
+
                 analysis_type = False
-               
+
     return results
 
 
@@ -317,7 +317,11 @@ def createFlags(uuid_to_donor):
                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                              json_object),
                          'normal_alignment': arrayMissingItems('alignment', "^Normal - ", json_object),
+                         'normal_alignment_qc_report': arrayMissingItems('alignment_qc_report', "^Normal - ", json_object),
                          'tumor_alignment': arrayMissingItems('alignment',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                              json_object),
+                         'tumor_alignment_qc_report': arrayMissingItems('alignment_qc_report',
                                                               "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                               json_object),
                          'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object),
@@ -328,47 +332,51 @@ def createFlags(uuid_to_donor):
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                                      json_object)}
-        
+
         normal_sequence= len(flagsWithArrs["normal_sequence"])
         normal_alignment= len(flagsWithArrs["normal_alignment"])
+        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment_qc_report"])
         normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
         normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
-        
+
         tumor_sequence= len(flagsWithArrs["tumor_sequence"])
         tumor_alignment= len(flagsWithArrs["tumor_alignment"])
+        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment_qc_report"])
         tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
         tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
-        
+
         flagsWithStr = {'normal_sequence' :allHaveItems(normal_sequence),
                         'tumor_sequence': allHaveItems(tumor_sequence),
                         'normal_alignment': allHaveItems(normal_alignment),
+                        'normal_alignment_qc_report': allHaveItems(normal_alignment_qc_report),
                         'tumor_alignment': allHaveItems(tumor_alignment),
+                        'tumor_alignment_qc_report': allHaveItems(tumor_alignment_qc_report),
                         'normal_rnaseq_variants': allHaveItems(normal_rnaseq_variants),
                         'tumor_rnaseq_variants': allHaveItems(tumor_rnaseq_variants),
                         'normal_germline_variants': allHaveItems(normal_germline_variants),
                         'tumor_somatic_variants': allHaveItems(tumor_somatic_variants)}
-        
-        
-        
+
+
+
         normal_sum= normal_germline_variants + normal_rnaseq_variants + normal_alignment + normal_sequence
         if normal_sum==0:
             flagsWithStr["normal_sequence"]= False
             flagsWithStr["normal_alignment"]= False
             flagsWithStr["normal_rnaseq_variants"]= False
             flagsWithStr["normal_germline_variants"]= False
-        
+
         tumor_sum= tumor_somatic_variants + tumor_rnaseq_variants + tumor_alignment + tumor_sequence
         if tumor_sum==0:
             flagsWithStr["tumor_sequence"]= False
             flagsWithStr["tumor_alignment"]= False
             flagsWithStr["tumor_rnaseq_variants"]= False
             flagsWithStr["tumor_somatic_variants"]= False
-        
-        
+
+
         json_object['flags'] = flagsWithStr
         json_object['missing_items'] = flagsWithArrs
-    
-          
+
+
 def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
     global index_index
     for donor in result:
@@ -394,25 +402,25 @@ def main():
     data_input = args.directory
     schema = load_json_obj(args.metadataSchema)
     data_arr = []
-    
+
     # Loads the json files and stores them into an array.
     load_json_arr(data_input, data_arr)
-    
+
     donorLevelObjs = []
-    detachedObjs = [] 
-    
+    detachedObjs = []
+
     # Separates the detached anlaysis obj from the donor obj
     for metaobj in data_arr:
         if "donor_uuid" in metaobj:
             donorLevelObjs.append(metaobj)
         elif "parent_uuids" in metaobj:
             detachedObjs.append(metaobj)
-            
+
     # Skip Program Test Option
     skip_prog_option= args.skip_Program_Test
     if skip_prog_option:
         skip_Prog_Test(donorLevelObjs, skip_prog_option)
-        
+
     # Use Only Program Test Option
     only_program_option= args.only_Program_Test
     if only_program_option:
@@ -422,14 +430,14 @@ def main():
     uuid_mapping = mergeDonors(donorLevelObjs)
     for de_obj in detachedObjs:
         insert_detached_metadata(de_obj, uuid_mapping)
-    
+
     # Creates and adds the flags and missingItems to each donor obj
     createFlags(uuid_mapping)
-    
+
     # Validates each donor obj
     (validated, invalid) = validate_Donor(uuid_mapping,schema)
-    
-    # Creates the jsonl files 
+
+    # Creates the jsonl files
     dumpResult(validated, "validated.jsonl")
     dumpResult(invalid, "invalid.jsonl")
     dumpResult(validated, 'elasticsearch.jsonl')
@@ -437,4 +445,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
