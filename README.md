@@ -54,6 +54,10 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
     pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver 
 
 
+### Elasticsearch
+
+See https://www.elastic.co/ for instructions for installing Elasticsearch on your platform.  For the Mac and Linux, just download the zip/tar, extract it, and execute `bin/elasticsearch` and you should have a running Elasticsearch service.
+
 ## Generate Test Metadata (and Optionally Upload Data to Storage Service)
 
 We need to create a bunch of JSON documents for multiple donors and multiple
