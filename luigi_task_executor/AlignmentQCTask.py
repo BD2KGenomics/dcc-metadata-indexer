@@ -1,5 +1,6 @@
 import luigi
 import json
+import time
 from datetime import datetime
 from elasticsearch import Elasticsearch
 
@@ -17,6 +18,7 @@ class AlignmentQCTaskWorker(luigi.Task):
         f = self.output().open('w')
         print >>f, "hi there"
         f.close()
+        time.sleep(20)
 
     def output(self):
         return luigi.LocalTarget('/tmp/foo-worker-%s.tzt' % self.param)
@@ -27,12 +29,13 @@ class AlignmentQCCoordinator(luigi.Task):
 
     def requires(self):
         es = Elasticsearch([{'host': self.es_index_host, 'port': self.es_index_port}])
-# TODO: customize query to find only suitible donors 
+# TODO: customize query to find only suitible donors
         res = es.search(index="analysis_index", body={"query": {"match_all": {}}})
 
         print("Got %d Hits:" % res['hits']['total'])
         for hit in res['hits']['hits']:
             print("%(donor_uuid)s %(center_name)s %(project)s" % hit["_source"])
+            time.sleep(20)
 # LEFT OFF WITH: traverse the structure, pull out info to parameterize bamstats!
         return AlignmentQCTaskWorker(param=self.es_index_port)
 
