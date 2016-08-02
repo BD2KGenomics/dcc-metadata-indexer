@@ -303,7 +303,7 @@ def getWorkflowObjects(flatMetadataObjs):
     """
     For each flattened metadata object, build up a metadataObj with correct structure.
     """
-    schema_version = "0.0.2"
+    schema_version = "0.0.3"
     num_files_written = 0
 
     commonObjMap = {}
@@ -627,63 +627,104 @@ def validateMetadataObjs(metadataObjs, jsonSchemaFile):
 
 def mergeDonors(metadataObjs):
     '''
-    merge data bundle metadata.json objects into correct donor objects
+    Merge data bundle metadata.json objects into correct donor objects.
     '''
     donorMapping = {}
+    uuid_to_timestamp = {}
 
     for metaObj in metadataObjs:
         # check if donor exists
         donor_uuid = metaObj["donor_uuid"]
+
         if not donor_uuid in donorMapping:
             donorMapping[donor_uuid] = metaObj
+            uuid_to_timestamp[donor_uuid] = [metaObj["timestamp"]]
             continue
 
         # check if specimen exists
         donorObj = donorMapping[donor_uuid]
-        specimen_uuid = metaObj["specimen"][0]["specimen_uuid"]
+        for specimen in metaObj["specimen"]:
+            specimen_uuid = specimen["specimen_uuid"]
 
-        savedSpecUuids = set()
-        for savedSpecObj in donorObj["specimen"]:
-            savedSpecUuid = savedSpecObj["specimen_uuid"]
-            savedSpecUuids.add(savedSpecUuid)
-            if specimen_uuid == savedSpecUuid:
-                specObj = savedSpecObj
+            savedSpecUuids = set()
+            for savedSpecObj in donorObj["specimen"]:
+                savedSpecUuid = savedSpecObj["specimen_uuid"]
+                savedSpecUuids.add(savedSpecUuid)
+                if specimen_uuid == savedSpecUuid:
+                    specObj = savedSpecObj
 
-        if not specimen_uuid in savedSpecUuids:
-            specObj = metaObj["specimen"][0]
-            donorObj["specimen"].append(specObj)
-            continue
+            if not specimen_uuid in savedSpecUuids:
+                donorObj["specimen"].append(specimen)
+                continue
 
-        # check if sample exists
-        sample_uuid = metaObj["specimen"][0]["samples"][0]["sample_uuid"]
-        savedSampleUuids = set()
-        for savedSampleObj in specObj["samples"]:
-            savedSampleUuid = savedSampleObj["sample_uuid"]
-            savedSampleUuids.add(savedSampleUuid)
-            if sample_uuid == savedSampleUuid:
-                sampleObj = savedSampleObj
+            # check if sample exists
+            for sample in specimen["samples"]:
+                sample_uuid = sample["sample_uuid"]
 
-        if not sample_uuid in savedSampleUuids:
-            sampleObj = metaObj["specimen"][0]["samples"][0]
-            specObj["samples"].append(sampleObj)
-            continue
+                savedSampleUuids = set()
+                for savedSampleObj in specObj["samples"]:
+                    savedSampleUuid = savedSampleObj["sample_uuid"]
+                    savedSampleUuids.add(savedSampleUuid)
+                    if sample_uuid == savedSampleUuid:
+                        sampleObj = savedSampleObj
 
-        # check if analysis exists
-        analysis_type = metaObj["specimen"][0]["samples"][0]["analysis"][0]["analysis_type"]
-        savedAnalysisTypes = set()
-        for bundle in sampleObj["analysis"]:
-            savedAnalysisType = bundle["analysis_type"]
-            savedAnalysisTypes.add(savedAnalysisType)
-            if analysis_type == savedAnalysisType:
-                analysisObj = bundle
+                if not sample_uuid in savedSampleUuids:
+                    specObj["samples"].append(sample)
+                    continue
 
-        if not analysis_type in savedAnalysisTypes:
-            analysisObj = metaObj["specimen"][0]["samples"][0]["analysis"][0]
-            sampleObj["analysis"].append(analysisObj)
-            continue
-        else:
-            # TODO keep only latest version of analysis, compare versions with semver.compare()
-            pass
+                # check if analysis exists
+                # need to compare analysis for uniqueness by looking at analysis_type... bundle_uuid is not the right one here.
+                for bundle in sample["analysis"]:
+                    bundle_uuid = bundle["bundle_uuid"]
+                    analysis_type = bundle["analysis_type"]
+                    savedAnalysisTypes = set()
+                    for savedBundle in sampleObj["analysis"]:
+                        savedAnalysisType = savedBundle["analysis_type"]
+                        savedAnalysisTypes.add(savedAnalysisType)
+                        if analysis_type == savedAnalysisType:
+                            analysisObj = savedBundle
+
+                    if not analysis_type in savedAnalysisTypes:
+                        sampleObj["analysis"].append(bundle)
+
+                        # timestamp mapping
+                        if "timestamp" in bundle:
+                            uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
+                        continue
+                    else:
+                        # compare 2 analysis to keep only most relevant one
+                        # saved is analysisObj
+                        # currently being considered is bundle
+                        new_workflow_version = bundle["workflow_version"]
+
+                        saved_version = analysisObj["workflow_version"]
+                            # current is older than new
+
+                        if semver.compare(saved_version, new_workflow_version) == -1:
+                            sampleObj["analysis"].remove(analysisObj)
+                            sampleObj["analysis"].append(bundle)
+                            # timestamp mapping
+                            if "timestamp" in bundle:
+                                uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
+
+                        if semver.compare(saved_version, new_workflow_version) == 0:
+                            # use the timestamp to determine which analysis to choose
+                            if "timestamp" in bundle and "timestamp" in analysisObj :
+                                saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
+                                new_timestamp = dateutil.parser.parse(bundle["timestamp"])
+                                timestamp_diff = saved_timestamp - new_timestamp
+
+                                if timestamp_diff.total_seconds() < 0:
+                                    sampleObj["analysis"].remove(analysisObj)
+                                    sampleObj["analysis"].append(bundle)
+                                    # timestamp mapping
+                                    if "timestamp" in bundle:
+                                        uuid_to_timestamp[donor_uuid].append(bundle["timestamp"])
+
+    # Get the  most recent timstamp from uuid_to_timestamp(for each donor) and use donorMapping to substitute it
+    for uuid in uuid_to_timestamp:
+        timestamp_list = uuid_to_timestamp[uuid]
+        donorMapping[uuid]["timestamp"] = max(timestamp_list)
 
     return donorMapping
 
