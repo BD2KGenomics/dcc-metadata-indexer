@@ -2,9 +2,10 @@
 #   Date: July 2016
 #
 #   Description:This script merges metadata json files into one jsonl file. Each json object is grouped by donor and then each individual
-#   Donor object is merged into one jsonl file.
+#   donor object is merged into one jsonl file.
 #
-#   Usage: python merge_gen_meta.py --directory output_metadata_7_20/ --metadataSchema metadata_schema.json
+#   Usage: python merge_gen_meta.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
+
 
 import semver
 import logging
@@ -17,6 +18,7 @@ import datetime
 import re
 import dateutil
 import dateutil.parser
+from subprocess import Popen, PIPE
 
 first_write = dict()
 index_index = 0
@@ -27,21 +29,113 @@ def input_Options():
     Creates the parse options
     """
     parser = argparse.ArgumentParser(description='Directory that contains Json files.')
-    parser.add_argument('-d', '--directory', help='Directory that contains the json metadata files')
+    parser.add_argument('-d', '--test_directory', help='Directory that contains the json metadata files')
     parser.add_argument('-m', '--metadataSchema', help='File that contains the metadata schema')
-    parser.add_argument('-s', '--skip_Program_Test', help='Lets user skip certain json files that contain a specific program test')
-    parser.add_argument('-o', '--only_Program_Test', help='Lets user include certain json files that contain a specific program  test')
-    #parser.add_argument('-r', '--skip_Project_Test', help='Lets user skip certain json files that contain a specific program test')
-    #parser.add_argument('-t', '--only_Project_Test', help='Lets user include certain json files that contain a specific program  test')
+    parser.add_argument('-s', '--skip_Program', help='Lets user skip certain json files that contain a specific program test')
+    parser.add_argument('-o', '--only_Program', help='Lets user include certain json files that contain a specific program  test')
+    parser.add_argument('-r', '--skip_Project', help='Lets user skip certain json files that contain a specific program test')
+    parser.add_argument('-t', '--only_Project', help='Lets user include certain json files that contain a specific program  test')
+    parser.add_argument('-a', '--awsAccessToken', default="546494b6-0ad2-44e0-9a8b-a9c01e128fdc", help='AWS Access Code to download the metadata.json files')
+    parser.add_argument('-c', '--clientPath', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
+    
 
     args = parser.parse_args()
     return args
 
+def make_output_dir():
+    """
+    Creates directory named "endpoint_metadata" to store all the metadata that is downloaded
+    """
+    directory= "endpoint_metadata"
+    mkdir_Command=["mkdir"]
+    mkdir_Command.append(directory)
+    
+    c_data=Popen(mkdir_Command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = c_data.communicate()
+    print "created directory: %s/" % (directory)
+    return directory
+
+def endpint_mapping(data_array):
+    """
+    data_array: array of json objects
+    create a maping: gnos-id -> id
+    """
+    numberOfElements=0
+    page=0
+    my_dictionary= dict()
+    for j_obj in data_array:
+        numberOfElements += j_obj["numberOfElements"]
+        page= j_obj["number"]
+        for content in j_obj["content"]:
+            content_id= content["id"]
+            my_dictionary[content_id]={"content": content, "page": page}
+    page += 1
+    print "Total pages downloaded:   ",page 
+    print "Total number of elements: ", numberOfElements
+                
+    return my_dictionary
+        
+
+def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
+    """
+    id_to_content: dictionary that maps content id to content object.
+    directory: name of directory where the json files will be stored.
+    
+    Uses the ucsc-download.sh script to download the json files
+    and store them in the "directory".
+    """  
+    """
+    java 
+    -Djavax.net.ssl.trustStore=/ucsc-storage-client/ssl/cacerts 
+    -Djavax.net.ssl.trustStorePassword=changeit 
+    -Dmetadata.url=https://storage.ucsc-cgl.org:8444 
+    -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false 
+    -Dstorage.url=https://storage.ucsc-cgl.org:5431 
+    -DaccessToken=${accessToken} 
+    -jar 
+    /ucsc-storage-client/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar 
+    download 
+    --output-dir ${download} 
+    --object-id ${object} 
+    --output-layout bundle
+    """
+    
+    metadataClientJar = os.path.join(client_Path,"icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar")
+    metadataUrl= "https://storage.ucsc-cgl.org:8444"
+    storageUrl= "https://storage.ucsc-cgl.org:5431"
+    trustStore = os.path.join(client_Path,"ssl/cacerts")
+    trustStorePw = "changeit"
+
+     
+    print "downloading metadata..."
+    for content_id in id_to_content:
+        
+        # build command string   
+        command = ["java"]
+        command.append("-Djavax.net.ssl.trustStore=" + trustStore)
+        command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
+        command.append("-Dmetadata.url=" + str(metadataUrl))
+        command.append("-Dmetadata.ssl.enabled=true") 
+        command.append("-Dclient.ssl.custom=false") 
+        command.append("-Dstorage.url=" + str(storageUrl))
+        command.append("-DaccessToken=" + str(accessToken))
+        command.append("-jar")
+        command.append(metadataClientJar)
+        command.append("download") 
+        command.append("--output-dir")
+        command.append(str(directory))
+        command.append("--object-id")
+        command.append(str(content_id))
+        command.append("--output-layout")
+        command.append("bundle")
+     
+        c_data=Popen(command, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = c_data.communicate()
 
 def load_json_obj(json_path):
     """
-    :param json_path: Name or path of the json metadata file
-    :return: A json object
+    :param json_path: Name or path of the json metadata file.
+    :return: A json object.
     """
 
     json_file = open(json_path, 'r')
@@ -53,8 +147,8 @@ def load_json_obj(json_path):
 
 def load_json_arr(input_dir, data_arr):
     """
-    :param input_dir: Directory that contains the json files
-    :param data_arr: Empty array
+    :param input_dir: Directory that contains the json files.
+    :param data_arr: Empty array.
 
     Gets all of the json files, converts them into objects and stores
     them in an array.
@@ -69,24 +163,24 @@ def load_json_arr(input_dir, data_arr):
                     data_arr.append(json_obj)
 
 
-def skip_Prog_Test(donorLevelObjs, option):
+def skip_option(donorLevelObjs, option_skip, key):
     for json_obj in donorLevelObjs:
-        program = json_obj["program"]
-        if program == option:
+        keys = json_obj[key]
+        if keys == option_skip:
             donorLevelObjs.remove(json_obj)
 
-
-def only_prog_option(donorLevelObjs,only_program_option):
+            
+            
+def only_option(donorLevelObjs,option_only, key):
     for json_obj in donorLevelObjs:
-        program = json_obj["program"]
-        if program != only_program_option:
+        keys = json_obj[key]
+        if keys != option_only:
             donorLevelObjs.remove(json_obj)
 
 
 def validate_json(json_obj,schema):
     """
-    :param json_obj:
-    :return: Returns true if the json is in the correct schema
+    :return: Returns true if the json is in the correct schema.
     """
     try:
         jsonschema.validate(json_obj, schema)
@@ -97,7 +191,9 @@ def validate_json(json_obj,schema):
 
 
 def insert_detached_metadata(detachedObjs, uuid_mapping):
-
+    """
+    Inserts a Analysis object, that contains a parent ID, to its respective donor object.
+    """
     de_timestamp =  dateutil.parser.parse(detachedObjs["timestamp"])
     for parent_uuid in detachedObjs["parent_uuids"]:
         for key in uuid_mapping:
@@ -165,7 +261,7 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
 
 def mergeDonors(metadataObjs):
     '''
-    merge data bundle metadata.json objects into correct donor objects
+    Merge data bundle metadata.json objects into correct donor objects.
     '''
     donorMapping = {}
     uuid_to_timestamp={}
@@ -205,7 +301,7 @@ def mergeDonors(metadataObjs):
                     savedSampleUuids.add(savedSampleUuid)
                     if sample_uuid == savedSampleUuid:
                         sampleObj = savedSampleObj
-                # print "####__sampleObj__####: ", sampleObj
+               
                 if not sample_uuid in savedSampleUuids:
                     specObj["samples"].append(sample)
                     continue
@@ -268,6 +364,9 @@ def mergeDonors(metadataObjs):
 
 
 def validate_Donor(uuid_mapping, schema):
+    """
+    Validates each donor object with the schema provided.
+    """
     valid = []
     invalid = []
 
@@ -282,6 +381,9 @@ def validate_Donor(uuid_mapping, schema):
 
 
 def allHaveItems(lenght):
+    """
+    Returns the value of each flag, based on the lenght of the array in 'missing_items'.
+    """
     result= False
     if lenght == 0:
         result =True
@@ -289,11 +391,15 @@ def allHaveItems(lenght):
     return result
 
 
-def arrayMissingItems(itemsName, regex, items):
+def arrayMissingItems(itemsName, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were missing.
+    """
     analysis_type = False
     results = []
     for specimen in items['specimen']:
         if re.search(regex, specimen['submitter_specimen_type']):
+            submitter_specimen_types.append(specimen['submitter_specimen_type'])
             for sample in specimen['samples']:
                 for analysis in sample['analysis']:
 
@@ -310,28 +416,30 @@ def arrayMissingItems(itemsName, regex, items):
 
 
 def createFlags(uuid_to_donor):
+    """
+    uuid_to_donor: dictionary that maps uuid with its json object.
+    Creates and adds "flags" and "missing_items" to each donor object.
+    """
     for uuid in uuid_to_donor:
         json_object = uuid_to_donor[uuid]
-        flagsWithArrs = {'normal_sequence': arrayMissingItems('sequence_upload', "^Normal - ", json_object),
+        submitter_specimen_types=[]
+        flagsWithArrs = {'normal_sequence': arrayMissingItems('sequence_upload', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_sequence': arrayMissingItems('sequence_upload',
                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
-                                                             json_object),
-                         'normal_alignment': arrayMissingItems('alignment', "^Normal - ", json_object),
-                         'normal_alignment_qc_report': arrayMissingItems('alignment_qc_report', "^Normal - ", json_object),
+                                                             json_object,submitter_specimen_types),
+                         'normal_alignment': arrayMissingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_alignment': arrayMissingItems('alignment',
                                                               "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
-                                                              json_object),
-                         'tumor_alignment_qc_report': arrayMissingItems('alignment_qc_report',
-                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
-                                                              json_object),
-                         'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object),
+                                                              json_object,submitter_specimen_types),
+                         'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
-                                                                    json_object),
-                         'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object),
+                                                                    json_object,submitter_specimen_types),
+                         'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
-                                                                     json_object)}
+                                                                     json_object,submitter_specimen_types)}
+        
 
         normal_sequence= len(flagsWithArrs["normal_sequence"])
         normal_alignment= len(flagsWithArrs["normal_alignment"])
@@ -355,29 +463,37 @@ def createFlags(uuid_to_donor):
                         'tumor_rnaseq_variants': allHaveItems(tumor_rnaseq_variants),
                         'normal_germline_variants': allHaveItems(normal_germline_variants),
                         'tumor_somatic_variants': allHaveItems(tumor_somatic_variants)}
-
-
-
-        normal_sum= normal_germline_variants + normal_rnaseq_variants + normal_alignment + normal_sequence
-        if normal_sum==0:
+        
+        # If there is a normal submitter_specimen_types then "normal_type" will be true.
+        # Similarly if there is a tumor submitter_specimen_types then "normal_type" will be true.
+        normal_type= False
+        tumor_type= False 
+        for specimen_type in submitter_specimen_types:
+            if re.search("^Normal - ",specimen_type):
+                normal_type= True
+            else:
+                tumor_type= True
+                
+        if not normal_type:
             flagsWithStr["normal_sequence"]= False
             flagsWithStr["normal_alignment"]= False
             flagsWithStr["normal_rnaseq_variants"]= False
             flagsWithStr["normal_germline_variants"]= False
-
-        tumor_sum= tumor_somatic_variants + tumor_rnaseq_variants + tumor_alignment + tumor_sequence
-        if tumor_sum==0:
+        
+        if not tumor_type:
             flagsWithStr["tumor_sequence"]= False
             flagsWithStr["tumor_alignment"]= False
             flagsWithStr["tumor_rnaseq_variants"]= False
             flagsWithStr["tumor_somatic_variants"]= False
-
 
         json_object['flags'] = flagsWithStr
         json_object['missing_items'] = flagsWithArrs
 
 
 def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
+    """
+    Creates the .jsonl files.
+    """
     global index_index
     for donor in result:
         if filename not in first_write:
@@ -399,48 +515,125 @@ def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
 
 def main():
     args = input_Options()
-    data_input = args.directory
+    directory_meta = args.test_directory
+    if not directory_meta:
+        #Trying to download the data.
+        last= False
+        page=0
+        obj_arr=[]
+
+        # Download all of the data that is stored.
+        #while not last:
+        while page == 0:
+
+            meta_cmd= ["curl", "-k"]
+            url= 'https://storage.ucsc-cgl.org:8444/entities?fileName=metadata.json&page='
+            new_url=  url + str(page)
+            meta_cmd.append(new_url)
+
+            c_data=Popen(meta_cmd, stdout=PIPE, stderr=PIPE)
+            stdout, stderr = c_data.communicate()
+            json_obj= json.loads(stdout)
+            last = json_obj["last"]
+            obj_arr.append(json_obj)
+            page += 1
+
+        # Create a mapping of all the data provided from the endpoint. 
+        id_to_content= endpint_mapping(obj_arr)
+
+        # Download the metadata.json files using the id stored in id_to_content dictionary 
+        directory_meta= make_output_dir()
+        access_Token=args.awsAccessToken
+        client_Path= args.clientPath
+        create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path)
+
+        # END DOWNLOAD
+        
+    # BEGIN json Merge
+    print "Begin Merging..."
     schema = load_json_obj(args.metadataSchema)
+    schema_version= schema["definitions"]["schema_version"]["pattern"]
+    sche_version= schema_version.replace("^","") 
+    schema_version= sche_version.replace("$","") 
+    print "Schema Version: ",schema_version
     data_arr = []
 
     # Loads the json files and stores them into an array.
-    load_json_arr(data_input, data_arr)
-
+    load_json_arr(directory_meta, data_arr)
+    
+    
     donorLevelObjs = []
-    detachedObjs = []
-
-    # Separates the detached anlaysis obj from the donor obj
+    detachedObjs = [] 
+    # Separates the detached anlaysis obj from the donor obj.
     for metaobj in data_arr:
         if "donor_uuid" in metaobj:
             donorLevelObjs.append(metaobj)
         elif "parent_uuids" in metaobj:
             detachedObjs.append(metaobj)
-
-    # Skip Program Test Option
-    skip_prog_option= args.skip_Program_Test
+            
+    # Skip Program Test Option.
+    skip_prog_option= args.skip_Program
     if skip_prog_option:
-        skip_Prog_Test(donorLevelObjs, skip_prog_option)
-
-    # Use Only Program Test Option
-    only_program_option= args.only_Program_Test
+        print "Skip Programs with values: %s" % (skip_prog_option)
+        skip_option(donorLevelObjs, skip_prog_option,'program')
+        
+    # Use Only Program Test Option.
+    only_program_option= args.only_Program
     if only_program_option:
-        only_prog_option(donorLevelObjs,only_program_option)
+        print "Only use Programs with values: %s" % (only_program_option)
+        only_option(donorLevelObjs,only_program_option,'program')
+        
+    # Skip Program Test Option.
+    skip_project_option= args.skip_Project
+    if skip_project_option:
+        print "Skip Projects with values: %s" % (skip_project_option)
+        skip_option(donorLevelObjs, skip_project_option,"project")
+        
+    # Use Only Program Test Option.
+    only_project_option= args.only_Project
+    if only_project_option:
+        print "Only use Projects with values: %s" % (only_project_option)
+        only_option(donorLevelObjs,only_project_option,"project")
 
-    # Inserts the detached analysis to the merged donor obj
-    uuid_mapping = mergeDonors(donorLevelObjs)
+    # Merge only those that are of the same schema_version as the Schema. 
+    invalid_version_arr= []
+    valid_version_arr= []
+    for donor_object in donorLevelObjs:
+        obj_schema_version= donor_object["schema_version"] 
+        if obj_schema_version != schema_version:
+            invalid_version_arr.append(donor_object)
+        else:
+            valid_version_arr.append(donor_object) 
+    print len(valid_version_arr), " valid donor objects with correct schema version."
+    
+    # Inserts the detached analysis to the merged donor obj.        
+    uuid_mapping = mergeDonors(valid_version_arr)
     for de_obj in detachedObjs:
         insert_detached_metadata(de_obj, uuid_mapping)
-
-    # Creates and adds the flags and missingItems to each donor obj
+    
+    # Creates and adds the flags and missingItems to each donor obj.
     createFlags(uuid_mapping)
 
     # Validates each donor obj
     (validated, invalid) = validate_Donor(uuid_mapping,schema)
-
-    # Creates the jsonl files
-    dumpResult(validated, "validated.jsonl")
-    dumpResult(invalid, "invalid.jsonl")
-    dumpResult(validated, 'elasticsearch.jsonl')
+    
+    # Check if there are invalid json objects.
+    invalid_num= len(invalid)
+    if invalid_num:
+        print "%s merged donor objects invalid." % (invalid_num)
+        dumpResult(invalid, "invalid.jsonl")
+        print "Invalid merged objects in invalid.jsonl "
+    
+    # Creates the jsonl files .
+    validated_num= len(validated)
+    if validated_num:
+        print  "%s merged json objects were valid." % (validated_num)
+        dumpResult(validated, "validated.jsonl")
+        dumpResult(validated, 'elasticsearch.jsonl')
+        print "All done, find index in elasticsearch.jsonl"
+    
+    if not validated:
+        print "No objects were merged."
 
 
 if __name__ == "__main__":
