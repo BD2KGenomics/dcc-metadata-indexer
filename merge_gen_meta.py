@@ -523,8 +523,7 @@ def main():
         obj_arr=[]
 
         # Download all of the data that is stored.
-        #while not last:
-        while page == 0:
+        while not last:
 
             meta_cmd= ["curl", "-k"]
             url= 'https://storage.ucsc-cgl.org:8444/entities?fileName=metadata.json&page='
