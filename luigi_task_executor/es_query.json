@@ -1,0 +1,31 @@
+{
+   "query" : {
+      "filtered" : {
+         "query" : {
+            "match_all" : {}
+         },
+         "filter" : {
+            "bool" : {
+               "must" : {
+                  "or" : [
+                     {
+                        "terms" : {
+                           "flags.normal_alignment_qc_report" : [
+                              "false"
+                           ]
+                        }
+                     },
+                     {
+                        "terms" : {
+                           "flags.tumor_alignment_qc_report" : [
+                              "false"
+                           ]
+                        }
+                     }
+                  ]
+               }
+            }
+         }
+      }
+   }
+}
