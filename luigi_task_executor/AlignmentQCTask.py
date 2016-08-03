@@ -26,13 +26,14 @@ class AlignmentQCTaskUploader(luigi.Task):
     filename = luigi.Parameter(default="filename")
     ucsc_storage_client_path = luigi.Parameter()
     ucsc_storage_host = luigi.Parameter()
-    metadata = luigi.Parameter()
-    report = luigi.Parameter()
+
+    def requires(self):
+        return AlignmentQCTaskWorker(filepath="/tmp/"+self.uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
 
     def run(self):
         print "** UPLOADING **"
         print "java -Djavax.net.ssl.trustStore="+self.ucsc_storage_client_path+"/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url="+self.ucsc_storage_host+":8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url="+self.ucsc_storage_host+":5431 -DaccessToken=`cat "+self.ucsc_storage_client_path+"/accessToken` -jar "+self.ucsc_storage_client_path+"/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar download --output-dir /tmp --object-id "+self.uuid+" --output-layout filename"
-
+        time.sleep(5)
         f = self.output().open('w')
         print >>f, "uploaded"
         f.close()
@@ -48,6 +49,9 @@ class AlignmentQCTaskWorker(luigi.Task):
     uuid = luigi.Parameter(default="NA")
     filename = luigi.Parameter(default="filename")
 
+    def requires(self):
+        return AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=self.filename, uuid=self.uuid)
+
     def run(self):
         print "** RUNNING REPORT GENERATOR **"
 
@@ -56,13 +60,14 @@ class AlignmentQCTaskWorker(luigi.Task):
         p.close()
 
         print "dockstore tool ..."
+        time.sleep(5)
 
         # now generate a metadata.json which is used for the next step
         f = self.output()[1].open('w')
         print >>f, "{json}"
         f.close()
 
-        yield AlignmentQCTaskUploader(metadata="/tmp/"+self.uuid+"/metadata.json", report="/tmp/"+self.uuid+"/alignment_qc_report.zip", ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
+        #yield AlignmentQCTaskUploader(metadata="/tmp/"+self.uuid+"/metadata.json", report="/tmp/"+self.uuid+"/alignment_qc_report.zip", ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
 
     def output(self):
         return [luigi.LocalTarget('/tmp/%s/params.json' % self.uuid), luigi.LocalTarget('/tmp/%s/metadata.json' % self.uuid)]
@@ -77,8 +82,8 @@ class AlignmentQCInputDownloader(luigi.Task):
     def run(self):
         print "** DOWNLOADER **"
         print "java -Djavax.net.ssl.trustStore="+self.ucsc_storage_client_path+"/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url="+self.ucsc_storage_host+":8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url="+self.ucsc_storage_host+":5431 -DaccessToken=`cat "+self.ucsc_storage_client_path+"/accessToken` -jar "+self.ucsc_storage_client_path+"/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar download --output-dir /tmp --object-id "+self.uuid+" --output-layout filename"
-
-        yield AlignmentQCTaskWorker(filepath="/tmp/"+self.uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
+        time.sleep(5)
+        #yield AlignmentQCTaskWorker(filepath="/tmp/"+self.uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
 
         # now make a final report
         f = self.output().open('w')
@@ -96,7 +101,7 @@ class AlignmentQCCoordinator(luigi.Task):
     ucsc_storage_client_path = luigi.Parameter(default='../ucsc-storage-client')
     ucsc_storage_host = luigi.Parameter(default='https://storage2.ucsc-cgl.org')
 
-    def run(self):
+    def requires(self):
         print "** COORDINATOR **"
         es = Elasticsearch([{'host': self.es_index_host, 'port': self.es_index_port}])
         # see jqueryflag_alignment_qc
@@ -117,11 +122,13 @@ class AlignmentQCCoordinator(luigi.Task):
                             for file in analysis["workflow_outputs"]:
                                 if (file["file_type"] == "bam"):
                                     bamFile = file["file_path"]
-                            listOfJobs.append(AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"])))
+                            #listOfJobs.append(AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"])))
+                            listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"])))
 
         # these jobs are yielded to
-        yield listOfJobs
+        return listOfJobs
 
+    def run(self):
         # now make a final report
         f = self.output().open('w')
         print >>f, "batch is complete"
