@@ -2,7 +2,7 @@ import luigi
 import json
 import time
 import re
-from datetime import datetime
+import datetime
 from elasticsearch import Elasticsearch
 
 # TODO:
@@ -17,6 +17,8 @@ from elasticsearch import Elasticsearch
 # * this doc makes it sounds like I will need to do some tracking of what's previously been run to prevent duplicates from launching? https://luigi.readthedocs.io/en/stable/tasks.html#dynamic-dependencies
 # RUNNING
 # $> rm /tmp/foo-*; PYTHONPATH='' luigi --module AlignmentQCTask AlignmentQCCoordinator --es-index-host localhost --es-index-port 9200
+# * index builder: 1) needs correct filetype and 2) needs just the filename and not the relative file path (exclude directories)
+# rm -rf /tmp/AlignmentQCTask* /tmp/afb54dff-41ad-50e5-9c66-8671c53a278b; PYTHONPATH='' luigi --module AlignmentQCTask AlignmentQCCoordinator --es-index-host localhost --es-index-port 9200 &> log.txt
 
 
 class AlignmentQCTaskUploader(luigi.Task):
@@ -48,17 +50,22 @@ class AlignmentQCTaskWorker(luigi.Task):
 
     def run(self):
         print "** RUNNING REPORT GENERATOR **"
+
+        p = self.output()[0].open('w')
+        print >>p, "{params}"
+        p.close()
+
         print "dockstore tool ..."
 
         # now generate a metadata.json which is used for the next step
-        f = self.output().open('w')
+        f = self.output()[1].open('w')
         print >>f, "{json}"
         f.close()
 
         yield AlignmentQCTaskUploader(metadata="/tmp/"+self.uuid+"/metadata.json", report="/tmp/"+self.uuid+"/alignment_qc_report.zip", ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
 
     def output(self):
-        return luigi.LocalTarget('/tmp/%s/metadata.json' % self.uuid)
+        return [luigi.LocalTarget('/tmp/%s/params.json' % self.uuid), luigi.LocalTarget('/tmp/%s/metadata.json' % self.uuid)]
 
 
 class AlignmentQCInputDownloader(luigi.Task):
@@ -78,7 +85,7 @@ class AlignmentQCInputDownloader(luigi.Task):
         print >>f, "download is complete"
         f.close()
 
-    def output(self)
+    def output(self):
         return luigi.LocalTarget("/tmp/"+self.uuid+"/"+self.filename)
 
 
@@ -108,9 +115,9 @@ class AlignmentQCCoordinator(luigi.Task):
                             print "HIT!!!! "+analysis["analysis_type"]+" "+str(hit["_source"]["flags"]["normal_alignment_qc_report"])+" "+specimen["submitter_specimen_type"]
                             bamFile = ""
                             for file in analysis["workflow_outputs"]:
-                                if (file["file_type"] == "fastq"):  # FIXME: this is an error in my loading code
+                                if (file["file_type"] == "bam"):
                                     bamFile = file["file_path"]
-                            listOfJobs.append(AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename="filename", uuid=self.fileToUUID(input=bamFile, bundle_uuid=analysis["bundle_uuid"])))
+                            listOfJobs.append(AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"])))
 
         # these jobs are yielded to
         yield listOfJobs
@@ -122,11 +129,11 @@ class AlignmentQCCoordinator(luigi.Task):
 
     def output(self):
         # the final report
-        timestamp = datetime.datetime.now(datetime.timezone.utc)
-        timestamp_str = timestamp.strftime("%Y-%m-%d_%H:%M:%S")
-        return luigi.LocalTarget('/tmp/foo-%s.tzt' % timestamp_str)
+        ts = time.time()
+        ts_str = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
+        return luigi.LocalTarget('/tmp/AlignmentQCTask-%s.txt' % ts_str)
 
-    def fileToUUID(self):
+    def fileToUUID(self, input, bundle_uuid):
         # FIXME: this is hard coded, need to do a lookup in the future
         return "afb54dff-41ad-50e5-9c66-8671c53a278b"
 
