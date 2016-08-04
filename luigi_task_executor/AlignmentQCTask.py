@@ -23,12 +23,13 @@ from elasticsearch import Elasticsearch
 
 class AlignmentQCTaskUploader(luigi.Task):
     uuid = luigi.Parameter(default="NA")
+    bundle_uuid = luigi.Parameter(default="NA")
     filename = luigi.Parameter(default="filename")
     ucsc_storage_client_path = luigi.Parameter()
     ucsc_storage_host = luigi.Parameter()
 
     def requires(self):
-        return AlignmentQCTaskWorker(filepath="/tmp/"+self.uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
+        return AlignmentQCTaskWorker(filepath="/tmp/"+self.uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, bundle_uuid=self.bundle_uuid, filename=self.filename)
 
     def run(self):
         print "** UPLOADING **"
@@ -47,10 +48,11 @@ class AlignmentQCTaskWorker(luigi.Task):
     ucsc_storage_client_path = luigi.Parameter()
     ucsc_storage_host = luigi.Parameter()
     uuid = luigi.Parameter(default="NA")
+    bundle_uuid = luigi.Parameter(default="NA")
     filename = luigi.Parameter(default="filename")
 
     def requires(self):
-        return AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=self.filename, uuid=self.uuid)
+        return AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=self.filename, uuid=self.uuid, bundle_uuid=self.bundle_uuid)
 
     def run(self):
         print "** RUNNING REPORT GENERATOR **"
@@ -75,13 +77,14 @@ class AlignmentQCTaskWorker(luigi.Task):
 
 class AlignmentQCInputDownloader(luigi.Task):
     uuid = luigi.Parameter(default="NA")
+    bundle_uuid = luigi.Parameter(default="NA")
     filename = luigi.Parameter(default="filename")
     ucsc_storage_client_path = luigi.Parameter()
     ucsc_storage_host = luigi.Parameter()
 
     def run(self):
         print "** DOWNLOADER **"
-        print "java -Djavax.net.ssl.trustStore="+self.ucsc_storage_client_path+"/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url="+self.ucsc_storage_host+":8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url="+self.ucsc_storage_host+":5431 -DaccessToken=`cat "+self.ucsc_storage_client_path+"/accessToken` -jar "+self.ucsc_storage_client_path+"/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar download --output-dir /tmp --object-id "+self.uuid+" --output-layout filename"
+        print "java -Djavax.net.ssl.trustStore="+self.ucsc_storage_client_path+"/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url="+self.ucsc_storage_host+":8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url="+self.ucsc_storage_host+":5431 -DaccessToken=`cat "+self.ucsc_storage_client_path+"/accessToken` -jar "+self.ucsc_storage_client_path+"/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar download --output-dir /tmp --object-id "+self.uuid+" --output-layout bundle"
         time.sleep(5)
         #yield AlignmentQCTaskWorker(filepath="/tmp/"+self.uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, filename=self.filename)
 
@@ -123,7 +126,7 @@ class AlignmentQCCoordinator(luigi.Task):
                                 if (file["file_type"] == "bam"):
                                     bamFile = file["file_path"]
                             #listOfJobs.append(AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"])))
-                            listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"])))
+                            listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"]), bundle_uuid=analysis["bundle_uuid"]))
 
         # these jobs are yielded to
         return listOfJobs
