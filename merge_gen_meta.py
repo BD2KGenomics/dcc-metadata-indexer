@@ -443,13 +443,13 @@ def createFlags(uuid_to_donor):
 
         normal_sequence= len(flagsWithArrs["normal_sequence"])
         normal_alignment= len(flagsWithArrs["normal_alignment"])
-        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment_qc_report"])
+        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment"])
         normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
         normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
 
         tumor_sequence= len(flagsWithArrs["tumor_sequence"])
         tumor_alignment= len(flagsWithArrs["tumor_alignment"])
-        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment_qc_report"])
+        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment"])
         tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
         tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
 
