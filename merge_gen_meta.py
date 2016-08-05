@@ -52,6 +52,7 @@ def make_output_dir():
     
     c_data=Popen(mkdir_Command, stdout=PIPE, stderr=PIPE)
     stdout, stderr = c_data.communicate()
+    logging.info("created directory: %s/" % (directory))
     print "created directory: %s/" % (directory)
     return directory
 
@@ -70,6 +71,9 @@ def endpint_mapping(data_array):
             content_id= content["id"]
             my_dictionary[content_id]={"content": content, "page": page}
     page += 1
+    
+    logging.info("Total pages downloaded: %s" % page)
+    logging.info("Total number of elements: %s" % numberOfElements)
     print "Total pages downloaded:   ",page 
     print "Total number of elements: ", numberOfElements
                 
@@ -100,13 +104,21 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     --output-layout bundle
     """
     
-    metadataClientJar = os.path.join(client_Path,"icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar")
+    metadataClientJar = os.path.join(client_Path,"icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar")  
     metadataUrl= "https://storage.ucsc-cgl.org:8444"
     storageUrl= "https://storage.ucsc-cgl.org:5431"
     trustStore = os.path.join(client_Path,"ssl/cacerts")
     trustStorePw = "changeit"
+        
+    # If the path is not correct then the download and merge will not be performed.
+    if not os.path.isfile(metadataClientJar):
+        logging.critical("File not found: %s. Path may not be correct: %s" % (metadataClientJar,client_Path))
+        print "File not found: %s" % metadataClientJar
+        print "Path may not be correct: %s" % client_Path
+        print "Exiting program."
+        exit(1)
 
-     
+    logging.info('Begin Download.')
     print "downloading metadata..."
     for content_id in id_to_content:
         
@@ -128,9 +140,15 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
         command.append(str(content_id))
         command.append("--output-layout")
         command.append("bundle")
-     
-        c_data=Popen(command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = c_data.communicate()
+        
+        try:
+            c_data=Popen(command, stdout=PIPE, stderr=PIPE)
+            stdout, stderr = c_data.communicate()
+        except Exception:
+            logging.error('Error while downloading file with content ID: %s' % content_id)
+            print 'Error while downloading file with content ID: %s' % content_id
+            
+    logging.info('End Download.')
 
 def load_json_obj(json_path):
     """
@@ -516,6 +534,11 @@ def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
 def main():
     args = input_Options()
     directory_meta = args.test_directory
+    
+    logfileName = os.path.basename(__file__).replace(".py", ".log")
+    logging_format= '%(asctime)s - %(levelname)s: %(message)s'
+    logging.basicConfig(filename=logfileName, level=logging.DEBUG, format=logging_format, datefmt='%m/%d/%Y %I:%M:%S %p')
+    
     if not directory_meta:
         #Trying to download the data.
         last= False
@@ -523,7 +546,8 @@ def main():
         obj_arr=[]
 
         # Download all of the data that is stored.
-        while not last:
+        while page==0:
+        #while not last:
 
             meta_cmd= ["curl", "-k"]
             url= 'https://storage.ucsc-cgl.org:8444/entities?fileName=metadata.json&page='
@@ -549,11 +573,19 @@ def main():
         # END DOWNLOAD
         
     # BEGIN json Merge
-    print "Begin Merging..."
+    logging.info("Begin Merging.")
+    print "Begin Merging."
     schema = load_json_obj(args.metadataSchema)
+    
+    #if there is no schema the program cannot continue. 
+    if schema == None:
+        logging.critical("No metadata schema was recognized. Exiting program.")
+        exit(1)
+    
     schema_version= schema["definitions"]["schema_version"]["pattern"]
     sche_version= schema_version.replace("^","") 
     schema_version= sche_version.replace("$","") 
+    logging.info("Schema Version: %s" % schema_version)
     print "Schema Version: ",schema_version
     data_arr = []
 
@@ -573,24 +605,28 @@ def main():
     # Skip Program Test Option.
     skip_prog_option= args.skip_Program
     if skip_prog_option:
+        logging.info("Skip Programs with values: %s" % (skip_prog_option))
         print "Skip Programs with values: %s" % (skip_prog_option)
         skip_option(donorLevelObjs, skip_prog_option,'program')
         
     # Use Only Program Test Option.
     only_program_option= args.only_Program
     if only_program_option:
+        logging.info("Only use Programs with values: %s" % (only_program_option))
         print "Only use Programs with values: %s" % (only_program_option)
         only_option(donorLevelObjs,only_program_option,'program')
         
     # Skip Program Test Option.
     skip_project_option= args.skip_Project
     if skip_project_option:
+        logging.info("Skip Projects with values: %s" % (skip_project_option))
         print "Skip Projects with values: %s" % (skip_project_option)
         skip_option(donorLevelObjs, skip_project_option,"project")
         
     # Use Only Program Test Option.
     only_project_option= args.only_Project
     if only_project_option:
+        logging.info("Only use Projects with values: %s" % (only_project_option))
         print "Only use Projects with values: %s" % (only_project_option)
         only_option(donorLevelObjs,only_project_option,"project")
 
@@ -603,7 +639,8 @@ def main():
             invalid_version_arr.append(donor_object)
         else:
             valid_version_arr.append(donor_object) 
-    print len(valid_version_arr), " valid donor objects with correct schema version."
+    logging.info("%s valid donor objects with correct schema version." % str(len(valid_version_arr)))
+    print len(valid_version_arr), " valid donor objects with correct schema version."  
     
     # Inserts the detached analysis to the merged donor obj.        
     uuid_mapping = mergeDonors(valid_version_arr)
@@ -619,19 +656,24 @@ def main():
     # Check if there are invalid json objects.
     invalid_num= len(invalid)
     if invalid_num:
+        logging.info("%s merged donor objects invalid." % (invalid_num))
         print "%s merged donor objects invalid." % (invalid_num)
         dumpResult(invalid, "invalid.jsonl")
-        print "Invalid merged objects in invalid.jsonl "
+        logging.info("Invalid merged objects in invalid.jsonl.")
+        print "Invalid merged objects in invalid.jsonl. "
     
     # Creates the jsonl files .
     validated_num= len(validated)
     if validated_num:
+        logging.info("%s merged json objects were valid." % (validated_num))
         print  "%s merged json objects were valid." % (validated_num)
         dumpResult(validated, "validated.jsonl")
         dumpResult(validated, 'elasticsearch.jsonl')
+        logging.info("All done, find index in elasticsearch.jsonl")
         print "All done, find index in elasticsearch.jsonl"
     
     if not validated:
+        logging.info("No objects were merged.")
         print "No objects were merged."
 
 
