@@ -124,7 +124,7 @@ class AlignmentQCTaskWorker(luigi.Task):
         }
       ]
     }
-  ]
+  ],
   "timestamp": "%s"
 }''' % (self.parent_uuid, self.upload_uuid, self.bundle_uuid, self.filename, self.uuid, ts_str)
         f.close()
