@@ -4,7 +4,7 @@ import time
 import re
 import datetime
 import subprocess
-import uuid
+from uuid import uuid4
 from elasticsearch import Elasticsearch
 
 # TODO:
@@ -33,22 +33,22 @@ class AlignmentQCTaskUploader(luigi.Task):
     bundle_uuid = luigi.Parameter(default="NA")
     parent_uuid = luigi.Parameter(default="NA")
     # just going to generate this UUID
-    upload_uuid = str(uuid.uuid4())
+    upload_uuid = str(uuid4())
 
     def requires(self):
         return AlignmentQCTaskWorker(filepath="/tmp/"+self.bundle_uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, bundle_uuid=self.bundle_uuid, filename=self.filename, parent_uuid=self.parent_uuid, upload_uuid=self.upload_uuid)
 
     def run(self):
         print "** UPLOADING **"
-        cmd = '''mkdir /tmp/%s/upload/%s /tmp/%s/manifest/%s && ln -s /tmp/%s/bamstats_report.zip /tmp/%s/metadata.json /tmp/%s/upload/%s && \
+        cmd = '''mkdir -p /tmp/%s/upload/%s /tmp/%s/manifest/%s && ln -s /tmp/%s/bamstats_report.zip /tmp/%s/metadata.json /tmp/%s/upload/%s && \
 echo "Register Uploads:" && \
 java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dserver.baseUrl=%s:8444 -DaccessToken=`cat %s/accessToken` -jar %s/dcc-metadata-client-0.0.16-SNAPSHOT/lib/dcc-metadata-client.jar -i /tmp/%s/upload/%s -o /tmp/%s/manifest/%s -m manifest.txt && \
 echo "Performing Uploads:" && \
 java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url=%s:8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url=%s:5431 -DaccessToken=`cat %s/accessToken` -jar %s/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar upload --manifest /tmp/%s/manifest/%s/manifest.txt
 ''' % (self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.bundle_uuid, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.bundle_uuid, self.upload_uuid)
         print cmd
-        #result = subprocess.call(cmd, shell=True)
-        time.sleep(5)
+        result = subprocess.call(cmd, shell=True)
+        # FIXME: need to check error code 
         f = self.output().open('w')
         print >>f, "uploaded"
         f.close()
@@ -85,11 +85,13 @@ class AlignmentQCTaskWorker(luigi.Task):
     }
 }''' % ("/tmp/"+self.bundle_uuid+"/"+self.filename, "/tmp/"+self.bundle_uuid+"/bamstats_report.zip")
         p.close()
-
-        cmd = "dockstore tool launch --entry quay.io/briandoconnor/dockstore-tool-bamstats:1.25-5 --json /tmp/%s/params.json" % self.bundle_uuid
+        # FIXME: docker-machine is likely to break on Linux hosts
+        cmd = "eval $(docker-machine env default) && dockstore tool launch --entry quay.io/briandoconnor/dockstore-tool-bamstats:1.25-5 --json /tmp/%s/params.json" % self.bundle_uuid
         print cmd
         result = subprocess.call(cmd, shell=True)
         print "REPORT GENERATOR RESULT: "+str(result)
+
+        # FIXME: nothing is actually checking the result and propogating an error!
 
         # generate timestamp
         ts_str = datetime.datetime.utcnow().isoformat()
