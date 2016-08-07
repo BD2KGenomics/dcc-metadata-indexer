@@ -4,6 +4,7 @@ import time
 import re
 import datetime
 import subprocess
+from urllib import urlopen
 from uuid import uuid4
 from elasticsearch import Elasticsearch
 
@@ -48,7 +49,7 @@ java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePasswor
 ''' % (self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.bundle_uuid, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.bundle_uuid, self.upload_uuid)
         print cmd
         result = subprocess.call(cmd, shell=True)
-        # FIXME: need to check error code 
+        # FIXME: need to check error code
         f = self.output().open('w')
         print >>f, "uploaded"
         f.close()
@@ -156,9 +157,22 @@ class AlignmentQCCoordinator(luigi.Task):
     es_index_port = luigi.Parameter(default='9200')
     ucsc_storage_client_path = luigi.Parameter(default='../ucsc-storage-client')
     ucsc_storage_host = luigi.Parameter(default='https://storage2.ucsc-cgl.org')
+    bundle_uuid_filename_to_file_uuid = {}
 
     def requires(self):
         print "** COORDINATOR **"
+        # now query the metadata service so I have the mapping of bundle_uuid & file names -> file_uuid
+        json_str = urlopen(str(self.ucsc_storage_host+":8444/entities?page=0")).read()
+        metadata_struct = json.loads(json_str)
+        print "** METADATA TOTAL PAGES: "+str(metadata_struct["totalPages"])
+        for i in range(0, metadata_struct["totalPages"]):
+            print "** CURRENT METADATA TOTAL PAGES: "+str(i)
+            json_str = urlopen(str(self.ucsc_storage_host+":8444/entities?page="+str(i))).read()
+            metadata_struct = json.loads(json_str)
+            for file_hash in metadata_struct["content"]:
+                self.bundle_uuid_filename_to_file_uuid[file_hash["gnosId"]+"_"+file_hash["fileName"]] = file_hash["id"]
+
+        # now query elasticsearch
         es = Elasticsearch([{'host': self.es_index_host, 'port': self.es_index_port}])
         # see jqueryflag_alignment_qc
         # curl -XPOST http://localhost:9200/analysis_index/_search?pretty -d @jqueryflag_alignment_qc
@@ -197,7 +211,8 @@ class AlignmentQCCoordinator(luigi.Task):
 
     def fileToUUID(self, input, bundle_uuid):
         # FIXME: this is hard coded, need to do a lookup in the future
-        return "afb54dff-41ad-50e5-9c66-8671c53a278b"
+        return self.bundle_uuid_filename_to_file_uuid[bundle_uuid+"_"+input]
+        #"afb54dff-41ad-50e5-9c66-8671c53a278b"
 
 if __name__ == '__main__':
     luigi.run()
