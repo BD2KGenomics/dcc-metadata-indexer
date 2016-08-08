@@ -1,0 +1,36 @@
+{
+    "center_name": "Stanford",
+    "donor_uuid": "dc123cfd-6e09-5635-b81f-bce781244892",
+    "program": "TEST",
+    "project": "TEST",
+    "schema_version": "0.0.2",
+    "specimen": [
+        {
+            "samples": [
+                {
+                    "analysis": [
+                        {
+                            "analysis_type": "sequence_upload",
+                            "bundle_uuid": "c6ad4d9a-7bec-5bdf-b617-14297b1204b9",
+                            "workflow_name": "Sequence Uploader",
+                            "workflow_outputs": [
+                                {
+                                    "file_path": "sample_upload_files/tumor.fastq.gz",
+                                    "file_type": "fastq"
+                                }
+                            ],
+                            "workflow_version": "1.0.0"
+                        }
+                    ],
+                    "sample_uuid": "4edeff14-436a-5222-9001-cf512ecebf14",
+                    "submitter_sample_id": "S368291b1"
+                }
+            ],
+            "specimen_uuid": "14785e10-756e-54ea-bcf9-dfe6db24491e",
+            "submitter_specimen_id": "S368291b",
+            "submitter_specimen_type": "Primary tumour - solid tissue"
+        }
+    ],
+    "submitter_donor_id": "S368291",
+    "timestamp": "2016-07-20T21:39:38.985887"
+}

@@ -1,0 +1,38 @@
+{
+  "center_name": "Stanford",
+  "donor_uuid": "b121a26b-282c-5830-9084-c3b74bb56fc0",
+  "program": "TEST",
+  "project": "TEST",
+  "schema_version": "0.0.2",
+  "specimen": [
+    {
+      "samples": [
+        {
+          "analysis": [
+            {
+              "analysis_type": "alignment",
+              "bundle_uuid": "2d49242e-b8f9-50ff-b304-158588382735",
+              "workflow_name": "bwa-mem-aligner",
+              "workflow_outputs": [
+                {
+                  "file_path": "sample_upload_files/tumor.bam",
+                  "file_type": "bam",
+                  "file_uuid": "15adb41a-f0ee-5334-994e-0641d8eb9beb"
+                }
+              ],
+              "workflow_version": "1.2.4",
+              "timestamp": "2016-11-19T17:13:37.491517"
+            }
+          ],
+          "sample_uuid": "a8f34297-27a0-5609-bd62-0d8b8872dea2",
+          "submitter_sample_id": "S917367b1"
+        }
+      ],
+      "specimen_uuid": "fcd4a069-e881-59a1-a506-d8ec1071a9c8",
+      "submitter_specimen_id": "S917367b",
+      "submitter_specimen_type": "Primary tumour - solid tissue"
+    }
+  ],
+  "submitter_donor_id": "S917367",
+  "timestamp": "2016-09-20T21:39:38.985697"
+} 

@@ -1,0 +1,18 @@
+{
+  "parent_uuids": [
+    "0f1d53cb-9ef8-58ba-8db6-4eae42ee4316",
+    "ce48301a-df7e-5e99-b1a9-298e877325fb",
+    "ef30a988-2ec9-5664-8182-2df9f3e6bc67"
+  ],
+  "analysis_type": "rna_seq_quantification",
+  "bundle_uuid": "1485d032-df12-5d51-b7d3-7752a3bce7f3",
+  "workflow_name": "rnaseq-cgl",
+  "workflow_outputs": [
+   {
+    "file_path": "sample_upload_files/gene_expression.rsem",
+    "file_type": "rsem"
+   }
+  ],
+  "workflow_version": "3.2.1",
+  "timestamp": "2016-08-20T21:39:38.985697"
+}
