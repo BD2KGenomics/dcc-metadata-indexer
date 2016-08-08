@@ -18,6 +18,7 @@ import datetime
 import re
 import dateutil
 import dateutil.parser
+from urllib import urlopen
 from subprocess import Popen, PIPE
 
 first_write = dict()
@@ -37,7 +38,7 @@ def input_Options():
     parser.add_argument('-t', '--only_Project', help='Lets user include certain json files that contain a specific program  test')
     parser.add_argument('-a', '--awsAccessToken', default="546494b6-0ad2-44e0-9a8b-a9c01e128fdc", help='AWS Access Code to download the metadata.json files')
     parser.add_argument('-c', '--clientPath', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
-    
+    parser.add_argument('-n', '--server-host', default="storage.ucsc-cgl.org", help='hostname for the storage service')
 
     args = parser.parse_args()
     return args
@@ -49,7 +50,7 @@ def make_output_dir():
     directory= "endpoint_metadata"
     mkdir_Command=["mkdir"]
     mkdir_Command.append(directory)
-    
+
     c_data=Popen(mkdir_Command, stdout=PIPE, stderr=PIPE)
     stdout, stderr = c_data.communicate()
     logging.info("created directory: %s/" % (directory))
@@ -71,45 +72,45 @@ def endpint_mapping(data_array):
             content_id= content["id"]
             my_dictionary[content_id]={"content": content, "page": page}
     page += 1
-    
+
     logging.info("Total pages downloaded: %s" % page)
     logging.info("Total number of elements: %s" % numberOfElements)
-    print "Total pages downloaded:   ",page 
+    print "Total pages downloaded:   ",page
     print "Total number of elements: ", numberOfElements
-                
+
     return my_dictionary
-        
+
 
 def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     """
     id_to_content: dictionary that maps content id to content object.
     directory: name of directory where the json files will be stored.
-    
+
     Uses the ucsc-download.sh script to download the json files
     and store them in the "directory".
-    """  
     """
-    java 
-    -Djavax.net.ssl.trustStore=/ucsc-storage-client/ssl/cacerts 
-    -Djavax.net.ssl.trustStorePassword=changeit 
-    -Dmetadata.url=https://storage.ucsc-cgl.org:8444 
-    -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false 
-    -Dstorage.url=https://storage.ucsc-cgl.org:5431 
-    -DaccessToken=${accessToken} 
-    -jar 
-    /ucsc-storage-client/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar 
-    download 
-    --output-dir ${download} 
-    --object-id ${object} 
+    """
+    java
+    -Djavax.net.ssl.trustStore=/ucsc-storage-client/ssl/cacerts
+    -Djavax.net.ssl.trustStorePassword=changeit
+    -Dmetadata.url=https://storage.ucsc-cgl.org:8444
+    -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false
+    -Dstorage.url=https://storage.ucsc-cgl.org:5431
+    -DaccessToken=${accessToken}
+    -jar
+    /ucsc-storage-client/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar
+    download
+    --output-dir ${download}
+    --object-id ${object}
     --output-layout bundle
     """
-    
-    metadataClientJar = os.path.join(client_Path,"icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar")  
-    metadataUrl= "https://storage.ucsc-cgl.org:8444"
-    storageUrl= "https://storage.ucsc-cgl.org:5431"
+    args = input_Options()
+    metadataClientJar = os.path.join(client_Path,"icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar")
+    metadataUrl= "https://"+args.server_host+":8444"
+    storageUrl= "https://"+args.server_host+":5431"
     trustStore = os.path.join(client_Path,"ssl/cacerts")
     trustStorePw = "changeit"
-        
+
     # If the path is not correct then the download and merge will not be performed.
     if not os.path.isfile(metadataClientJar):
         logging.critical("File not found: %s. Path may not be correct: %s" % (metadataClientJar,client_Path))
@@ -121,33 +122,33 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     logging.info('Begin Download.')
     print "downloading metadata..."
     for content_id in id_to_content:
-        
-        # build command string   
+
+        # build command string
         command = ["java"]
         command.append("-Djavax.net.ssl.trustStore=" + trustStore)
         command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
         command.append("-Dmetadata.url=" + str(metadataUrl))
-        command.append("-Dmetadata.ssl.enabled=true") 
-        command.append("-Dclient.ssl.custom=false") 
+        command.append("-Dmetadata.ssl.enabled=true")
+        command.append("-Dclient.ssl.custom=false")
         command.append("-Dstorage.url=" + str(storageUrl))
         command.append("-DaccessToken=" + str(accessToken))
         command.append("-jar")
         command.append(metadataClientJar)
-        command.append("download") 
+        command.append("download")
         command.append("--output-dir")
         command.append(str(directory))
         command.append("--object-id")
         command.append(str(content_id))
         command.append("--output-layout")
         command.append("bundle")
-        
+
         try:
             c_data=Popen(command, stdout=PIPE, stderr=PIPE)
             stdout, stderr = c_data.communicate()
         except Exception:
             logging.error('Error while downloading file with content ID: %s' % content_id)
             print 'Error while downloading file with content ID: %s' % content_id
-            
+
     logging.info('End Download.')
 
 def load_json_obj(json_path):
@@ -157,6 +158,7 @@ def load_json_obj(json_path):
     """
 
     json_file = open(json_path, 'r')
+    print "JSON FILE: "+json_path
     json_obj = json.load(json_file)
     json_file.close()
 
@@ -177,8 +179,11 @@ def load_json_arr(input_dir, data_arr):
             for file in os.listdir(current_folder):
                 if file.endswith(".json"):
                     current_file = os.path.join(current_folder, file)
-                    json_obj = load_json_obj(current_file)
-                    data_arr.append(json_obj)
+                    try:
+                        json_obj = load_json_obj(current_file)
+                        data_arr.append(json_obj)
+                    except ValueError:
+                        print "ERROR PARSING JSON: will skip this record."
 
 
 def skip_option(donorLevelObjs, option_skip, key):
@@ -187,8 +192,8 @@ def skip_option(donorLevelObjs, option_skip, key):
         if keys == option_skip:
             donorLevelObjs.remove(json_obj)
 
-            
-            
+
+
 def only_option(donorLevelObjs,option_only, key):
     for json_obj in donorLevelObjs:
         keys = json_obj[key]
@@ -319,7 +324,7 @@ def mergeDonors(metadataObjs):
                     savedSampleUuids.add(savedSampleUuid)
                     if sample_uuid == savedSampleUuid:
                         sampleObj = savedSampleObj
-               
+
                 if not sample_uuid in savedSampleUuids:
                     specObj["samples"].append(sample)
                     continue
@@ -457,7 +462,7 @@ def createFlags(uuid_to_donor):
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                                      json_object,submitter_specimen_types)}
-        
+
 
         normal_sequence= len(flagsWithArrs["normal_sequence"])
         normal_alignment= len(flagsWithArrs["normal_alignment"])
@@ -481,23 +486,23 @@ def createFlags(uuid_to_donor):
                         'tumor_rnaseq_variants': allHaveItems(tumor_rnaseq_variants),
                         'normal_germline_variants': allHaveItems(normal_germline_variants),
                         'tumor_somatic_variants': allHaveItems(tumor_somatic_variants)}
-        
+
         # If there is a normal submitter_specimen_types then "normal_type" will be true.
         # Similarly if there is a tumor submitter_specimen_types then "normal_type" will be true.
         normal_type= False
-        tumor_type= False 
+        tumor_type= False
         for specimen_type in submitter_specimen_types:
             if re.search("^Normal - ",specimen_type):
                 normal_type= True
             else:
                 tumor_type= True
-                
+
         if not normal_type:
             flagsWithStr["normal_sequence"]= False
             flagsWithStr["normal_alignment"]= False
             flagsWithStr["normal_rnaseq_variants"]= False
             flagsWithStr["normal_germline_variants"]= False
-        
+
         if not tumor_type:
             flagsWithStr["tumor_sequence"]= False
             flagsWithStr["tumor_alignment"]= False
@@ -534,23 +539,26 @@ def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
 def main():
     args = input_Options()
     directory_meta = args.test_directory
-    
+
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
     logging.basicConfig(filename=logfileName, level=logging.DEBUG, format=logging_format, datefmt='%m/%d/%Y %I:%M:%S %p')
-    
+
     if not directory_meta:
         #Trying to download the data.
         last= False
         page=0
         obj_arr=[]
 
-        # Download all of the data that is stored.
-        while page==0:
-        #while not last:
+        # figure out the pages
+        json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0")).read()
+        metadata_struct = json.loads(json_str)
 
+        # Download all of the data that is stored.
+        for page in range(0, metadata_struct["totalPages"]):
+            print "DOWNLOADING PAGE "+str(page)
             meta_cmd= ["curl", "-k"]
-            url= 'https://storage.ucsc-cgl.org:8444/entities?fileName=metadata.json&page='
+            url= 'https://'+args.server_host+':8444/entities?fileName=metadata.json&page='
             new_url=  url + str(page)
             meta_cmd.append(new_url)
 
@@ -559,70 +567,70 @@ def main():
             json_obj= json.loads(stdout)
             last = json_obj["last"]
             obj_arr.append(json_obj)
-            page += 1
 
-        # Create a mapping of all the data provided from the endpoint. 
+
+        # Create a mapping of all the data provided from the endpoint.
         id_to_content= endpint_mapping(obj_arr)
 
-        # Download the metadata.json files using the id stored in id_to_content dictionary 
+        # Download the metadata.json files using the id stored in id_to_content dictionary
         directory_meta= make_output_dir()
         access_Token=args.awsAccessToken
         client_Path= args.clientPath
         create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path)
 
         # END DOWNLOAD
-        
+
     # BEGIN json Merge
     logging.info("Begin Merging.")
     print "Begin Merging."
     schema = load_json_obj(args.metadataSchema)
-    
-    #if there is no schema the program cannot continue. 
+
+    #if there is no schema the program cannot continue.
     if schema == None:
         logging.critical("No metadata schema was recognized. Exiting program.")
         exit(1)
-    
+
     schema_version= schema["definitions"]["schema_version"]["pattern"]
-    sche_version= schema_version.replace("^","") 
-    schema_version= sche_version.replace("$","") 
+    sche_version= schema_version.replace("^","")
+    schema_version= sche_version.replace("$","")
     logging.info("Schema Version: %s" % schema_version)
     print "Schema Version: ",schema_version
     data_arr = []
 
     # Loads the json files and stores them into an array.
     load_json_arr(directory_meta, data_arr)
-    
-    
+
+
     donorLevelObjs = []
-    detachedObjs = [] 
+    detachedObjs = []
     # Separates the detached anlaysis obj from the donor obj.
     for metaobj in data_arr:
         if "donor_uuid" in metaobj:
             donorLevelObjs.append(metaobj)
         elif "parent_uuids" in metaobj:
             detachedObjs.append(metaobj)
-            
+
     # Skip Program Test Option.
     skip_prog_option= args.skip_Program
     if skip_prog_option:
         logging.info("Skip Programs with values: %s" % (skip_prog_option))
         print "Skip Programs with values: %s" % (skip_prog_option)
         skip_option(donorLevelObjs, skip_prog_option,'program')
-        
+
     # Use Only Program Test Option.
     only_program_option= args.only_Program
     if only_program_option:
         logging.info("Only use Programs with values: %s" % (only_program_option))
         print "Only use Programs with values: %s" % (only_program_option)
         only_option(donorLevelObjs,only_program_option,'program')
-        
+
     # Skip Program Test Option.
     skip_project_option= args.skip_Project
     if skip_project_option:
         logging.info("Skip Projects with values: %s" % (skip_project_option))
         print "Skip Projects with values: %s" % (skip_project_option)
         skip_option(donorLevelObjs, skip_project_option,"project")
-        
+
     # Use Only Program Test Option.
     only_project_option= args.only_Project
     if only_project_option:
@@ -630,29 +638,29 @@ def main():
         print "Only use Projects with values: %s" % (only_project_option)
         only_option(donorLevelObjs,only_project_option,"project")
 
-    # Merge only those that are of the same schema_version as the Schema. 
+    # Merge only those that are of the same schema_version as the Schema.
     invalid_version_arr= []
     valid_version_arr= []
     for donor_object in donorLevelObjs:
-        obj_schema_version= donor_object["schema_version"] 
+        obj_schema_version= donor_object["schema_version"]
         if obj_schema_version != schema_version:
             invalid_version_arr.append(donor_object)
         else:
-            valid_version_arr.append(donor_object) 
+            valid_version_arr.append(donor_object)
     logging.info("%s valid donor objects with correct schema version." % str(len(valid_version_arr)))
-    print len(valid_version_arr), " valid donor objects with correct schema version."  
-    
-    # Inserts the detached analysis to the merged donor obj.        
+    print len(valid_version_arr), " valid donor objects with correct schema version."
+
+    # Inserts the detached analysis to the merged donor obj.
     uuid_mapping = mergeDonors(valid_version_arr)
     for de_obj in detachedObjs:
         insert_detached_metadata(de_obj, uuid_mapping)
-    
+
     # Creates and adds the flags and missingItems to each donor obj.
     createFlags(uuid_mapping)
 
     # Validates each donor obj
     (validated, invalid) = validate_Donor(uuid_mapping,schema)
-    
+
     # Check if there are invalid json objects.
     invalid_num= len(invalid)
     if invalid_num:
@@ -661,7 +669,7 @@ def main():
         dumpResult(invalid, "invalid.jsonl")
         logging.info("Invalid merged objects in invalid.jsonl.")
         print "Invalid merged objects in invalid.jsonl. "
-    
+
     # Creates the jsonl files .
     validated_num= len(validated)
     if validated_num:
@@ -671,7 +679,7 @@ def main():
         dumpResult(validated, 'elasticsearch.jsonl')
         logging.info("All done, find index in elasticsearch.jsonl")
         print "All done, find index in elasticsearch.jsonl"
-    
+
     if not validated:
         logging.info("No objects were merged.")
         print "No objects were merged."
