@@ -8,7 +8,7 @@ First, there are JSON schema, see `analysis_flattened.json` and `biospecimen_fla
 
 Second, this repo contains a `generate_metadata.py` script that takes a TSV format and converts it into metadata JSON documents (and also has an option for uploading, we use this for bulk uploads to our system).
 
-This repo also contains a merge tool, `merge_generated_metadata.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
+This repo also contains a merge tool, `merge_gen_meta.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
 
 1. query the storage system for all metadata.json
 1. group the related metadata.json documents, all the docs for a given donor are grouped together
@@ -51,6 +51,7 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
     source activate schemas-project
     pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi
 
+
 ## Generate Test Metadata (and Optionally Upload Data to Storage Service)
 
 We need to create a bunch of JSON documents for multiple donors and multiple
@@ -59,11 +60,11 @@ TSV to JSON tool and this will ultimately form the basis of our helper applicati
 that clients will use in the field to prepare their samples.
 
     python generate_metadata.py \
-		--inputMetadataSchema input_metadata.json \
-		--metadataSchema metadata_schema.json \
-		--outputDir output_metadata \
-		--receiptFile receipt.tsv \
-		--awsAccessToken `cat ucsc-storage-client/accessToken` \
+		--input-metadata-schema input_metadata.json \
+		--metadata-schema metadata_schema.json \
+		--output-dir output_metadata \
+		--receipt-file receipt.tsv \
+		--storage-access-token `cat ucsc-storage-client/accessToken` \
 		--skip-upload \
 		sample_tsv/sample.tsv
 
@@ -92,21 +93,24 @@ it easy to avoid in the future. The file is based on [this](https://docs.google.
 
 ## Run Merge and Generate Elasticsearch Index
 
-This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  In this case, I'm
-using the output from the generate_metadata.py script.
+This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  This command will read and download the json files from the endpoint. In addition to creating a `validated.jsonl` file it will also create a `endpoint_metadata/` directory that contains all of the json files that were downloaded.
 
-    python merge_generated_metadata.py `for i in output_metadata/*; do echo -n "$i "; done`
+    python merge_gen_meta.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
 
-This produces a `merge.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
+This command will not download json files, instead the user will provide a directory that contains json files.
+
+    python merge_gen_meta.py --only_Program TEST --only_Project TEST --test_directory output_metadata_7_20/ --metadataSchema metadata_schema.json
+
+This produces a `validated.jsonl` and a `invalid.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
 Now to view the output for the first line use the following:
 
-    cat merge.jsonl | head -1 | json_pp | less -S
+    cat validated.jsonl | head -1 | json_pp | less -S
 
 You can also examine this in Chrome using the JSONView extension.  Make sure you select
 the option to allow viewing of local JSON files before you attempt to load this
 file in Chrome.  The commands below will display the second JSON document. On a Mac:
 
-    cat merge.jsonl | head -2 | tail -1 | json_pp > temp.json
+    cat validated.jsonl | head -2 | tail -1 | json_pp > temp.json
     open -a Google\ Chrome temp.json
 
 ## Load and Query Elasticsearch
@@ -142,13 +146,21 @@ If running esquery.py multiple times, remove the index with:
 
     curl -XDELETE http://localhost:9200/analysis_index
 
+## Dashboard
+
+esquery.py will create an outfile called data.json. Add data.json along with the contents of the folder "Dashboard" to an AWS bucket and configure bucket according to the [AWS instructions on hosting a static website (steps 1, 2, and 3)] (http://docs.aws.amazon.com/gettingstarted/latest/swh/getting-started-create-bucket.html).
+
+To see the Dashboard, from your bucket, go to Properties, Static Website Hosting, and click on the link following "Endpoint." This directs you to index.html, with a static streamgraph (uses data.csv). Using the navagation, hover over Projects, then click Project 1 to see a bar chart using data.json.
+
+Alternatively, run the Dashboard locally. Add data.json to the Dashboard folder and open index.html in Safari.
+
 ## Demo
 
 Goal: create sample single donor documents and perform queries on them.
 
 1. Install the needed packages as described above.
 1. Generate metadata for multiple donors using `generate_metadata.py`, see command above
-1. Create single donor documents using `merge_generated_metadata.py`, see command above
+1. Create single donor documents using `merge_gen_meta.py`, see command above
 1. Load into ES index, see `curl -XPUT` command above
 1. Run the queries using `esquery.py`, see command above
 1. Optionally, deleted the index using the `curl -XDELETE` command above

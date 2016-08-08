@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+   <link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
+	<title>Dashboard</title>
+	<style>
+	   header{
+         text-align:center;
+         padding:5px; 
+      }
+      nav{
+         line-height:30px;
+         height:300px;
+         width:100px;
+         float:left;
+         padding:5px;
+      }
+      ul {
+         list-style-type: none;
+         margin: 0;
+         padding: 0px 16px 0px 16px;
+         background-color: #555;
+      }
+      /* link colors for top navigation bar*/
+      li {
+         display: inline;
+      }
+      li a:link, li a:visited{
+         color: white;
+         padding: 8px 16px 8px 16px;
+         text-decoration: none;
+      }
+      /* Change the link color on hover */
+      li a:hover {
+         background-color: #f2f2f2;
+         color: #00458c;
+      }
+      
+      /* side navigation */
+      nav a:link, nav a:visited { 
+         color: #00458c;
+         text-decoration: underline;
+         cursor: auto;
+      }
+      nav a:link:active, nav a:visited:active { 
+         color: #F1B521;
+      }
+      
+      /* in general link colors*/
+      a:link, a:visited {
+         color: gray;
+         text-decoration: none;
+         cursor: auto;
+      }
+      a:link:active, a:visited:active {
+         color: gray;
+      }
+      .imglogo{
+         width:100%;
+         max-width:300px;
+      }
+      .imgcontainer{
+         width:50%
+      }
+      .imgcgl{
+         height:100px;
+      }
+      
+      /* Dropdown Button */
+      .dropbtn {
+         display: inline-block;
+         padding: 8px 0px 8px 0px;
+         border: none;
+         cursor: pointer;
+      }
+      
+      /* The container <div> - needed to position the dropdown content */
+      .dropdown {
+         position: relative;
+         display: inline-block;
+      }
+
+      /* Dropdown Content (Hidden by Default) */
+      .dropdown-content {
+         display: none;
+         position: absolute;
+         background-color: white;
+         min-width: 160px;
+         box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      }
+
+      /* Links inside the dropdown */
+      .dropdown-content a {
+         color: #00458c;
+         padding: 8px 8px 8px 8px;
+         text-decoration: none;
+         display: block;
+      }
+
+      /* Change color of dropdown links on hover */
+      .dropdown-content a:hover {background-color: #f2f2f2}
+
+      /* Show the dropdown menu on hover */
+      .dropdown:hover .dropdown-content {
+         display: block;
+      }
+
+      /* Change the background color of the dropdown button when the dropdown content is shown */
+      .dropdown:hover .dropbtn {
+         background-color: gray;
+      }
+      
+      footer{
+         margin: 0;
+         padding: 8px 16px 8px 16px;
+         background-color: #555;
+      }
+      .text { font-family: 'Muli', sans-serif;}
+      
+      .bar{
+         fill: #00458c;
+      }
+
+      .bar:hover{
+         fill: #F1B521;
+      }
+
+      .axis {
+        font: 10px arial;
+      }
+
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+   
+      /* tooltip */
+      .d3-tip {
+        line-height: 1;
+        padding: 12px;
+        background: #555;
+        color: #fff;
+        border-radius: 2px;
+        font-family: arial;
+        font-size: 10px;
+      }
+
+      /* Creates a small triangle extender for the tooltip */
+      .d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 10px;
+        width: 100%;
+        line-height: 1;
+        color: #555;
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+      }
+
+      /* Style northward tooltips differently */
+      .d3-tip.n:after {
+        margin: -1px 0 0 0;
+        top: 100%;
+        left: 0;
+      }
+	</style>
+</head>
+<div class="imgcgl">
+   <div class="imgcontainer">
+      <a href="https://genomics.soe.ucsc.edu/">
+         <img src="UCSC-Logo-genomics-web-80.png" alt="University of California Santa Cruz" class="imglogo">
+      </a>
+   </div>
+   <div class="cglcontainer" style="float: right;">
+      <a href="https://cgl.genomics.ucsc.edu/" class="text">Computational Genomics Laboratory</a>
+   </div>
+</div>
+<ul class="text">
+   <li><a href="index.html">Home</a></li>
+   <div class="dropdown">
+      <li class="dropbtn"><a href="projects.html">Projects</a></li>
+      <div class="dropdown-content">
+         <a href="project_1.html">Project 1</a>
+         <a href="project_2.html">Project 2</a>
+         <a href="project_3.html">Project 3</a>
+      </div>
+   </div>
+  <li><a href="https://ucsc-cgl.atlassian.net/wiki/">Wiki</a></li>
+  <li><a href="about.html">About</a></li>
+</ul>
+<header class="text">
+   <h1>Current Projects </h1>
+   <p> This website is still being tested. </p>
+</header>
+
+<body style = "background-color:#F5F4EB;">
+
+<script src="d3.v3.min.js"></script>
+<script src="d3.tip.v0.6.3.js"></script>
+
+<script>
+   // set the dimensions of the canvas
+   var margin = {top: 20, right: 50, bottom: 200, left: 50},
+       width = Math.max(document.body.clientWidth, 600) - margin.left - margin.right,
+       height = 500 - margin.top - margin.bottom;
+
+   // set the ranges
+   var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+   var y = d3.scale.linear().range([height, 0]);
+
+   // define the axis
+   var xAxis = d3.svg.axis()
+       .scale(x)
+       .orient("bottom")
+
+   var yAxis = d3.svg.axis()
+       .scale(y)
+       .orient("left")
+       .ticks(10);
+
+   var tip = d3.tip()
+     .attr('class', 'd3-tip')
+     .offset([-10, 0])
+     .html(function(d) {
+       return "Count: <span style='color:#F1B521'>" + d.Count + "</span>";
+   })
+
+   // add the SVG element
+   var svg = d3.select("body").append("svg")
+       .attr("width", width + margin.left + margin.right)
+       .attr("height", height + margin.top + margin.bottom)
+     .append("g")
+       .attr("transform", 
+             "translate(" + margin.left + "," + margin.top + ")");
+
+   svg.call(tip);
+   // load the data
+   d3.json("data.json", function(error, data) {
+
+       data.forEach(function(d) {
+           d.Label = d.Label;
+           d.Count = +d.Count;
+       });
+   
+     // scale the range of the data
+     x.domain(data.map(function(d) { return d.Label; }));
+     y.domain([0, d3.max(data, function(d) { return d.Count; })]);
+
+     // add axis
+     svg.append("g")
+         .attr("class", "x axis")
+         .attr("transform", "translate(0," + height + ")")
+         .call(xAxis)
+       .selectAll("text")
+         .style("text-anchor", "end")
+         .attr("dx", "-.8em")
+         .attr("dy", "-.55em")
+         .attr("transform", "rotate(-60)" );
+
+     svg.append("g")
+         .attr("class", "y axis")
+         .call(yAxis)
+       .append("text")
+         .attr("transform", "rotate(-90)")
+         .attr("y", 5)
+         .attr("dy", ".71em")
+         .style("text-anchor", "end")
+         .text("Count");
+
+
+     // Add bar chart
+     svg.selectAll("bar")
+         .data(data)
+       .enter().append("rect")
+         .attr("class", "bar")
+         .attr("x", function(d) { return x(d.Label); })
+         .attr("width", x.rangeBand())
+         .attr("y", function(d) { return y(d.Count); })
+         .attr("height", function(d) { return height - y(d.Count); })
+         .on('mouseover', tip.show)
+         .on('mouseout', tip.hide);
+   });
+</script>
+
+<p class="text" style="padding: 0px 50px;">Data Updated: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+
+</body>
+
+
+<footer class="text">
+<section style="color: white">UCSC Genomics Institute - Analysis Core 
+<ul class="text" style="float: right; font-size:50%; padding: 4px;">
+   <li><a href="index.html">Home</a></li>
+   <li><a href="projects.html">Projects</a></li>
+   <li><a href="https://ucsc-cgl.atlassian.net/wiki/">Wiki</a></li>
+   <li><a href="about.html">About</a></li>
+</ul>
+</section>
+</footer>
+
+

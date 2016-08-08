@@ -12,7 +12,7 @@
         "schema_version": {
             "description": "The version of this schema is ...",
             "type": "string",
-            "pattern": "^0.0.2$"
+            "pattern": "^0.0.3$"
         },
         "uuid": {
             "description": "uuid with all lower case or all upper case characters",
@@ -33,7 +33,8 @@
             "required": ["analysis_type", "bundle_uuid", "workflow_name", "workflow_version", "workflow_outputs"],
             "properties": {
                 "analysis_type": {
-                    "type": "string"
+                    "description": "The analysis type needs to be tightly controlled because it is used in the metadata merging script to assign flags.",
+                    "enum": ["sequence_upload", "alignment", "rna_seq_quantification", "germline_variant_calling", "somatic_variant_calling", "immuno_target_pipelines", "alignment_qc_report", "sequence_upload_qc_report"]
                 },
                 "parent_uuids": {
                     "description": "parent UUIDs for this workflow",
@@ -74,6 +75,21 @@
                     }
                 }
             }
+        },
+        "specimen_type": {
+            "description": "The specimen type needs to be tightly controlled because it is used in the metadata merging script to assign flags.",
+            "type": "string",
+            "oneOf": [
+                {
+                    "pattern": "^Normal -"
+                }, {
+                    "pattern": "^Primary tumour -"
+                }, {
+                    "pattern": "^Recurrent tumour -"
+                }, {
+                    "pattern": "^Metastatic tumour -"
+                }
+            ]
         }
     },
     "required": ["program", "project", "center_name", "submitter_donor_id", "donor_uuid", "schema_version", "timestamp", "specimen"],
@@ -112,7 +128,7 @@
                         "$ref": "#/definitions/uuid"
                     },
                     "submitter_specimen_type": {
-                        "type": "string"
+                        "$ref": "#/definitions/specimen_type"
                     },
                     "samples": {
                         "type": "array",

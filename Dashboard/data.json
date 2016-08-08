@@ -1,0 +1,1 @@
+[{"Label": "All normal and tumor fastq exist.", "Count": 7}, {"Label": "Fastq normal and tumor exist, no alignment.", "Count": 1}, {"Label": "Alignment normal and tumor exist, no somatic.", "Count": 1}, {"Label": "All flags are true. All documents exist.", "Count": 1}]

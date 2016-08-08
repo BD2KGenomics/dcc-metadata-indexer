@@ -1,0 +1,36 @@
+{
+    "center_name": "Stanford",
+    "donor_uuid": "b121a26b-282c-5830-9084-c3b74bb56fc0",
+    "program": "TEST",
+    "project": "TEST",
+    "schema_version": "0.0.2",
+    "specimen": [
+        {
+            "samples": [
+                {
+                    "analysis": [
+                        {
+                            "analysis_type": "rna_seq_quantification",
+                            "bundle_uuid": "1485d032-df12-5d51-b7d3-7752a3bce7f3",
+                            "workflow_name": "rnaseq-cgl",
+                            "workflow_outputs": [
+                                {
+                                    "file_path": "sample_upload_files/gene_expression.rsem",
+                                    "file_type": "rsem"
+                                }
+                            ],
+                            "workflow_version": "3.2.1"
+                        }
+                    ],
+                    "sample_uuid": "a8f34297-27a0-5609-bd62-0d8b8872dea2",
+                    "submitter_sample_id": "S917367b1"
+                }
+            ],
+            "specimen_uuid": "fcd4a069-e881-59a1-a506-d8ec1071a9c8",
+            "submitter_specimen_id": "S917367b",
+            "submitter_specimen_type": "Primary tumour - solid tissue"
+        }
+    ],
+    "submitter_donor_id": "S917367",
+    "timestamp": "2016-07-20T21:39:38.985697"
+}

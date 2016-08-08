@@ -1,0 +1,36 @@
+{
+    "center_name": "Stanford",
+    "donor_uuid": "b121a26b-282c-5830-9084-c3b74bb56fc0",
+    "program": "TEST",
+    "project": "TEST",
+    "schema_version": "0.0.2",
+    "specimen": [
+        {
+            "samples": [
+                {
+                    "analysis": [
+                        {
+                            "analysis_type": "alignment",
+                            "bundle_uuid": "bdc66ef2-2821-5014-b56d-5186b51d00a6",
+                            "workflow_name": "bwa-mem-aligner",
+                            "workflow_outputs": [
+                                {
+                                    "file_path": "sample_upload_files/normal.bam",
+                                    "file_type": "bam"
+                                }
+                            ],
+                            "workflow_version": "1.2.1"
+                        }
+                    ],
+                    "sample_uuid": "d37e5c9a-1279-5734-b585-03beb045e544",
+                    "submitter_sample_id": "S917367a1"
+                }
+            ],
+            "specimen_uuid": "e56ca3d0-6d33-5537-bb58-c47ffca2ff9d",
+            "submitter_specimen_id": "S917367a",
+            "submitter_specimen_type": "Normal - blood derived"
+        }
+    ],
+    "submitter_donor_id": "S917367",
+    "timestamp": "2016-07-20T21:39:38.985663"
+}

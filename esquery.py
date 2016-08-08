@@ -9,9 +9,9 @@ es = Elasticsearch([es_host])
 
 es_name_query = [
    "All normal and tumor fastq exist.",
-   "All flags are true. All documents exist.",
+   "Fastq normal and tumor exist, no alignment.",
    "Alignment normal and tumor exist, no somatic.",
-   "Fastq normal and tumor exist, no alignment."
+   "All flags are true. All documents exist."
 ]
 
 #sample queries
@@ -127,7 +127,9 @@ es_queries = [
                                        'true'
                                     ]
                                  }
-                              },
+                              }
+                           ],
+                           "must_not": [
                               {
                                  "terms": {
                                     "flags.all_normal_alignment_exists_flag": [
@@ -138,34 +140,6 @@ es_queries = [
                               {
                                  "terms": {
                                     "flags.all_tumor_alignment_exists_flag": [
-                                       'true'
-                                    ]
-                                 }
-                              },
-                              {
-                                 "terms": {
-                                    "flags.all_normal_germline_variants_exists_flag": [
-                                       'true'
-                                    ]
-                                 }
-                              },
-                              {
-                                 "terms": {
-                                    "flags.all_tumor_somatic_variants_exists_flag": [
-                                       'true'
-                                    ]
-                                 }
-                              },
-                              {
-                                 "terms": {
-                                    "flags.all_normal_rnaseq_variants_exists_flag": [
-                                       'true'
-                                    ]
-                                 }
-                              },
-                              {
-                                 "terms": {
-                                    "flags.all_tumor_rnaseq_variants_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -181,9 +155,7 @@ es_queries = [
    },
       "size": 0
    },
-   #all flags are 'true'
-   #How many donors are complete in their upload vs. how many have one or more missing samples?
-
+   
    {
       "aggs": {
          "project_f": {
@@ -256,7 +228,7 @@ es_queries = [
    #alignment normal and tumor exist
    #somatic variant calling does not exist
    #How many tumor WES/WGS/panel samples have alignment done but no somatic variant calling done?
-
+   
    {
       "aggs": {
          "project_f": {
@@ -305,9 +277,7 @@ es_queries = [
                                        'true'
                                     ]
                                  }
-                              }
-                           ],
-                           "must_not": [
+                              },
                               {
                                  "terms": {
                                     "flags.all_normal_alignment_exists_flag": [
@@ -318,6 +288,34 @@ es_queries = [
                               {
                                  "terms": {
                                     "flags.all_tumor_alignment_exists_flag": [
+                                       'true'
+                                    ]
+                                 }
+                              },
+                              {
+                                 "terms": {
+                                    "flags.all_normal_germline_variants_exists_flag": [
+                                       'true'
+                                    ]
+                                 }
+                              },
+                              {
+                                 "terms": {
+                                    "flags.all_tumor_somatic_variants_exists_flag": [
+                                       'true'
+                                    ]
+                                 }
+                              },
+                              {
+                                 "terms": {
+                                    "flags.all_normal_rnaseq_variants_exists_flag": [
+                                       'true'
+                                    ]
+                                 }
+                              },
+                              {
+                                 "terms": {
+                                    "flags.all_tumor_rnaseq_variants_exists_flag": [
                                        'true'
                                     ]
                                  }
@@ -332,7 +330,9 @@ es_queries = [
       }
    },
       "size": 0
-   }
+   },
+   #all flags are 'true'
+   #How many donors are complete in their upload vs. how many have one or more missing samples?
 ]
 
 #checking if the word represents a number
@@ -374,21 +374,29 @@ for hit in res['hits']['hits']:
    print("CENTER: %(center_name)s PROGRAM: %(program)s PROJECT: %(project)s DONOR ID: %(submitter_donor_id)s" % hit["_source"])
 
 print "\n"
-
+with open("data.json", 'a') as outfile:
+   outfile.write('[')
 #querying documents using queries above
-for q_index in range(len(es_queries)):
-   response = es.search(index="analysis_index", body=es_queries[q_index])
-   #print(json.dumps(response, indent=2))
-   count = 0
-   program = "NA"
-   project = "NA"
-   for p in response['aggregations']['project_f']['project'].get('buckets'):
-      count = p.get('doc_count')
-      program = p.get('donor_id').get('buckets')
-      project = p.get('key')
+   addingcommas = False
+   for q_index in range(len(es_queries)):
+      if (addingcommas):
+         outfile.write(', ')
+      else:
+         addingcommas = True
+      response = es.search(index="analysis_index", body=es_queries[q_index])
+      #print(json.dumps(response, indent=2))
+      count = 0
+      program = "NA"
+      project = "NA"
+      for p in response['aggregations']['project_f']['project'].get('buckets'):
+         count = p.get('doc_count')
+         program = p.get('donor_id').get('buckets')
+         project = p.get('key')
    
-   print(es_name_query[q_index])
-   print("count: "+str(count))
-   print("program: ", program)
-   print("project: ", project)
-   print("\n")
+      print(es_name_query[q_index])
+      print("count: "+str(count))
+      print("program: ", program)
+      print("project: ", project)
+      print("\n")
+      outfile.write('{"Label": "'+es_name_query[q_index]+'", "Count": '+str(count)+'}')
+   outfile.write(']')
