@@ -173,6 +173,19 @@ Following those lines, are the queries, which give information on:
 * number of documents that fit this query for a particular program
 * project name
 
+### simulate_upload.py
+
+This script runs an unlimited number of BAM file uploads at random intervals.  The script will run until killed.
+
+    python simulate_upload.py --bam-url https://s3.amazonaws.com/oconnor-test-bucket/sample-data/NA12878.chrom20.ILLUMINA.bwa.CEU.low_coverage.20121211.bam \
+    --input-metadata-schema input_metadata.json --metadata-schema metadata_schema.json --output-dir output_metadata --receipt-file receipt.tsv \
+    --storage-access-token `cat ucsc-storage-client/accessToken` --metadata-server-url https://storage2.ucsc-cgl.org:8444 \
+    --storage-server-url https://storage2.ucsc-cgl.org:5431
+
+### simulate_indexing.py
+
+### simulate_analysis.py
+
 ## Data Types
 
 We support the following types.  First and foremost, the types below are just intended
