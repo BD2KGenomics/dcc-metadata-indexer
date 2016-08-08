@@ -36,7 +36,7 @@ def input_Options():
     parser.add_argument('-o', '--only_Program', help='Lets user include certain json files that contain a specific program  test')
     parser.add_argument('-r', '--skip_Project', help='Lets user skip certain json files that contain a specific program test')
     parser.add_argument('-t', '--only_Project', help='Lets user include certain json files that contain a specific program  test')
-    parser.add_argument('-a', '--awsAccessToken', default="546494b6-0ad2-44e0-9a8b-a9c01e128fdc", help='AWS Access Code to download the metadata.json files')
+    parser.add_argument('-a', '--awsAccessToken', default="JEAN NEVER CHECK IN A KEY!!!!", help='AWS Access Code to download the metadata.json files')
     parser.add_argument('-c', '--clientPath', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
     parser.add_argument('-n', '--server-host', default="storage.ucsc-cgl.org", help='hostname for the storage service')
 
