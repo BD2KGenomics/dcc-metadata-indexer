@@ -47,16 +47,16 @@ def getOptions():
     parser.add_option("-s", "--skip-upload", action="store_true", default=False, dest="skip_upload", help="Switch to skip upload. Metadata files will be generated only.")
     parser.add_option("-t", "--test", action="store_true", default=False, dest="test", help="Switch for development testing.")
 
-    parser.add_option("-i", "--inputMetadataSchema", action="store", default="input_metadata.json", type="string", dest="inputMetadataSchemaFileName", help="flattened json schema file for input metadata")
-    parser.add_option("-m", "--metadataSchema", action="store", default="metadata_schema.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
+    parser.add_option("-i", "--input-metadata-schema", action="store", default="input_metadata.json", type="string", dest="inputMetadataSchemaFileName", help="flattened json schema file for input metadata")
+    parser.add_option("-m", "--metadata-schema", action="store", default="metadata_schema.json", type="string", dest="metadataSchemaFileName", help="flattened json schema file for metadata")
 
-    parser.add_option("-d", "--outputDir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
+    parser.add_option("-d", "--output-dir", action="store", default="output_metadata", type="string", dest="metadataOutDir", help="output directory. In the case of colliding file names, the older file will be overwritten.")
 
-    parser.add_option("-r", "--receiptFile", action="store", default="receipt.tsv", type="string", dest="receiptFile", help="receipt file name. This tsv file is the receipt of the upload, with UUIDs filled in.")
+    parser.add_option("-r", "--receipt-file", action="store", default="receipt.tsv", type="string", dest="receiptFile", help="receipt file name. This tsv file is the receipt of the upload, with UUIDs filled in.")
 
-    parser.add_option("--awsAccessToken", action="store", default="12345678-abcd-1234-abcdefghijkl", type="string", dest="awsAccessToken", help="access token for AWS looks something like 12345678-abcd-1234-abcdefghijkl.")
-    parser.add_option("--metadataServerUrl", action="store", default="https://storage.ucsc-cgl.org:8444", type="string", dest="metadataServerUrl", help="URL for metadata server.")
-    parser.add_option("--storageServerUrl", action="store", default="https://storage.ucsc-cgl.org:5431", type="string", dest="storageServerUrl", help="URL for storage server.")
+    parser.add_option("--storage-access-token", action="store", default="NA", type="string", dest="awsAccessToken", help="access token for AWS looks something like 12345678-abcd-1234-abcdefghijkl.")
+    parser.add_option("--metadata-server-url", action="store", default="https://storage.ucsc-cgl.org:8444", type="string", dest="metadataServerUrl", help="URL for metadata server.")
+    parser.add_option("--storage-server-url", action="store", default="https://storage.ucsc-cgl.org:5431", type="string", dest="storageServerUrl", help="URL for storage server.")
     parser.add_option("--force-upload", action="store_true", default=False, dest="force_upload", help="Switch to force upload in case object ID already exists remotely. Overwrites existing bundle.")
 
     (options, args) = parser.parse_args()

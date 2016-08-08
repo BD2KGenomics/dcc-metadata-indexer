@@ -59,11 +59,11 @@ TSV to JSON tool and this will ultimately form the basis of our helper applicati
 that clients will use in the field to prepare their samples.
 
     python generate_metadata.py \
-		--inputMetadataSchema input_metadata.json \
-		--metadataSchema metadata_schema.json \
-		--outputDir output_metadata \
-		--receiptFile receipt.tsv \
-		--awsAccessToken `cat ucsc-storage-client/accessToken` \
+		--input-metadata-schema input_metadata.json \
+		--metadata-schema metadata_schema.json \
+		--output-dir output_metadata \
+		--receipt-file receipt.tsv \
+		--storage-access-token `cat ucsc-storage-client/accessToken` \
 		--skip-upload \
 		sample_tsv/sample.tsv
 
