@@ -397,6 +397,9 @@ def writeDataBundleDirs(structuredMetaDataObjMap, outputDir):
         workflow_outputs = metaObj["specimen"][0]["samples"][0]["analysis"][0]["workflow_outputs"]
         for outputObj in workflow_outputs:
             file_path = outputObj["file_path"]
+            # so I'm editing the file path here since directory structures are stripped out upon upload
+            file_name_array = file_path.split("/")
+            outputObj["file_path"] = file_name_array[-1]
             fullFilePath = os.path.join(os.getcwd(), file_path)
             filename = os.path.basename(file_path)
             linkPath = os.path.join(bundlePath, filename)
