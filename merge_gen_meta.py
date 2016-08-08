@@ -30,14 +30,14 @@ def input_Options():
     Creates the parse options
     """
     parser = argparse.ArgumentParser(description='Directory that contains Json files.')
-    parser.add_argument('-d', '--test_directory', help='Directory that contains the json metadata files')
-    parser.add_argument('-m', '--metadataSchema', help='File that contains the metadata schema')
-    parser.add_argument('-s', '--skip_Program', help='Lets user skip certain json files that contain a specific program test')
-    parser.add_argument('-o', '--only_Program', help='Lets user include certain json files that contain a specific program  test')
-    parser.add_argument('-r', '--skip_Project', help='Lets user skip certain json files that contain a specific program test')
-    parser.add_argument('-t', '--only_Project', help='Lets user include certain json files that contain a specific program  test')
-    parser.add_argument('-a', '--awsAccessToken', default="JEAN NEVER CHECK IN A KEY!!!!", help='AWS Access Code to download the metadata.json files')
-    parser.add_argument('-c', '--clientPath', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
+    parser.add_argument('-d', '--test-directory', help='Directory that contains the json metadata files')
+    parser.add_argument('-m', '--metadata-schema', help='File that contains the metadata schema')
+    parser.add_argument('-s', '--skip-program', help='Lets user skip certain json files that contain a specific program test')
+    parser.add_argument('-o', '--only-program', help='Lets user include certain json files that contain a specific program  test')
+    parser.add_argument('-r', '--skip-project', help='Lets user skip certain json files that contain a specific program test')
+    parser.add_argument('-t', '--only-project', help='Lets user include certain json files that contain a specific program  test')
+    parser.add_argument('-a', '--storage-access-token', default="NA", help='Storage access token to download the metadata.json files')
+    parser.add_argument('-c', '--client-path', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
     parser.add_argument('-n', '--server-host', default="storage.ucsc-cgl.org", help='hostname for the storage service')
 
     args = parser.parse_args()
@@ -122,32 +122,35 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     logging.info('Begin Download.')
     print "downloading metadata..."
     for content_id in id_to_content:
+        if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"):
+            print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"
+        else:
+            print "  + downloading "+content_id
+            # build command string
+            command = ["java"]
+            command.append("-Djavax.net.ssl.trustStore=" + trustStore)
+            command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
+            command.append("-Dmetadata.url=" + str(metadataUrl))
+            command.append("-Dmetadata.ssl.enabled=true")
+            command.append("-Dclient.ssl.custom=false")
+            command.append("-Dstorage.url=" + str(storageUrl))
+            command.append("-DaccessToken=" + str(accessToken))
+            command.append("-jar")
+            command.append(metadataClientJar)
+            command.append("download")
+            command.append("--output-dir")
+            command.append(str(directory))
+            command.append("--object-id")
+            command.append(str(content_id))
+            command.append("--output-layout")
+            command.append("bundle")
 
-        # build command string
-        command = ["java"]
-        command.append("-Djavax.net.ssl.trustStore=" + trustStore)
-        command.append("-Djavax.net.ssl.trustStorePassword=" + trustStorePw)
-        command.append("-Dmetadata.url=" + str(metadataUrl))
-        command.append("-Dmetadata.ssl.enabled=true")
-        command.append("-Dclient.ssl.custom=false")
-        command.append("-Dstorage.url=" + str(storageUrl))
-        command.append("-DaccessToken=" + str(accessToken))
-        command.append("-jar")
-        command.append(metadataClientJar)
-        command.append("download")
-        command.append("--output-dir")
-        command.append(str(directory))
-        command.append("--object-id")
-        command.append(str(content_id))
-        command.append("--output-layout")
-        command.append("bundle")
-
-        try:
-            c_data=Popen(command, stdout=PIPE, stderr=PIPE)
-            stdout, stderr = c_data.communicate()
-        except Exception:
-            logging.error('Error while downloading file with content ID: %s' % content_id)
-            print 'Error while downloading file with content ID: %s' % content_id
+            try:
+                c_data=Popen(command, stdout=PIPE, stderr=PIPE)
+                stdout, stderr = c_data.communicate()
+            except Exception:
+                logging.error('Error while downloading file with content ID: %s' % content_id)
+                print 'Error while downloading file with content ID: %s' % content_id
 
     logging.info('End Download.')
 
@@ -574,8 +577,8 @@ def main():
 
         # Download the metadata.json files using the id stored in id_to_content dictionary
         directory_meta= make_output_dir()
-        access_Token=args.awsAccessToken
-        client_Path= args.clientPath
+        access_Token=args.storage_access_token
+        client_Path= args.client_path
         create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path)
 
         # END DOWNLOAD
@@ -583,7 +586,7 @@ def main():
     # BEGIN json Merge
     logging.info("Begin Merging.")
     print "Begin Merging."
-    schema = load_json_obj(args.metadataSchema)
+    schema = load_json_obj(args.metadata_schema)
 
     #if there is no schema the program cannot continue.
     if schema == None:
@@ -611,28 +614,28 @@ def main():
             detachedObjs.append(metaobj)
 
     # Skip Program Test Option.
-    skip_prog_option= args.skip_Program
+    skip_prog_option= args.skip_program
     if skip_prog_option:
         logging.info("Skip Programs with values: %s" % (skip_prog_option))
         print "Skip Programs with values: %s" % (skip_prog_option)
         skip_option(donorLevelObjs, skip_prog_option,'program')
 
     # Use Only Program Test Option.
-    only_program_option= args.only_Program
+    only_program_option= args.only_program
     if only_program_option:
         logging.info("Only use Programs with values: %s" % (only_program_option))
         print "Only use Programs with values: %s" % (only_program_option)
         only_option(donorLevelObjs,only_program_option,'program')
 
     # Skip Program Test Option.
-    skip_project_option= args.skip_Project
+    skip_project_option= args.skip_project
     if skip_project_option:
         logging.info("Skip Projects with values: %s" % (skip_project_option))
         print "Skip Projects with values: %s" % (skip_project_option)
         skip_option(donorLevelObjs, skip_project_option,"project")
 
     # Use Only Program Test Option.
-    only_project_option= args.only_Project
+    only_project_option= args.only_project
     if only_project_option:
         logging.info("Only use Projects with values: %s" % (only_project_option))
         print "Only use Projects with values: %s" % (only_project_option)
