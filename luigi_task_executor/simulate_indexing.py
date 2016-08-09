@@ -46,7 +46,8 @@ def main():
             print "PROBLEMS LOADING INDEX"
 
         # sleep random time before next upload
-        time.sleep(random.randint(1, 60))
+        print "PAUSING..."
+        time.sleep(random.randint(30, 60))
 
 if __name__ == "__main__":
     main()

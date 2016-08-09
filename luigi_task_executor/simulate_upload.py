@@ -50,7 +50,8 @@ Demo	Demo	UCSC	S%s		S%sa		Normal - blood derived	S%sa1		alignment	bwa-mem-aligne
         if (result != 0):
             print "PROBLEMS UPLOADING"
         # sleep random time before next upload
-        time.sleep(random.randint(1, 60))
+        print "PAUSING..."
+        time.sleep(random.randint(30, 60))
 
 if __name__ == "__main__":
     main()
