@@ -6,7 +6,7 @@
 	<style>
 	   header{
          text-align:center;
-         padding:5px; 
+         padding:5px;
       }
       nav{
          line-height:30px;
@@ -35,17 +35,17 @@
          background-color: #f2f2f2;
          color: #00458c;
       }
-      
+
       /* side navigation */
-      nav a:link, nav a:visited { 
+      nav a:link, nav a:visited {
          color: #00458c;
          text-decoration: underline;
          cursor: auto;
       }
-      nav a:link:active, nav a:visited:active { 
+      nav a:link:active, nav a:visited:active {
          color: #F1B521;
       }
-      
+
       /* in general link colors*/
       a:link, a:visited {
          color: gray;
@@ -65,7 +65,7 @@
       .imgcgl{
          height:100px;
       }
-      
+
       /* Dropdown Button */
       .dropbtn {
          display: inline-block;
@@ -73,7 +73,7 @@
          border: none;
          cursor: pointer;
       }
-      
+
       /* The container <div> - needed to position the dropdown content */
       .dropdown {
          position: relative;
@@ -109,14 +109,14 @@
       .dropdown:hover .dropbtn {
          background-color: gray;
       }
-      
+
       footer{
          margin: 0;
          padding: 8px 16px 8px 16px;
          background-color: #555;
       }
       .text { font-family: 'Muli', sans-serif;}
-      
+
       .bar{
          fill: #00458c;
       }
@@ -126,7 +126,7 @@
       }
 
       .axis {
-        font: 10px arial;
+        font: 15px arial;
       }
 
       .axis path,
@@ -135,7 +135,7 @@
         stroke: #000;
         shape-rendering: crispEdges;
       }
-   
+
       /* tooltip */
       .d3-tip {
         line-height: 1;
@@ -234,18 +234,18 @@
        .attr("width", width + margin.left + margin.right)
        .attr("height", height + margin.top + margin.bottom)
      .append("g")
-       .attr("transform", 
+       .attr("transform",
              "translate(" + margin.left + "," + margin.top + ")");
 
    svg.call(tip);
-   // load the data
-   d3.json("data.json", function(error, data) {
+
+   function render(error, data) {
 
        data.forEach(function(d) {
            d.Label = d.Label;
            d.Count = +d.Count;
        });
-   
+
      // scale the range of the data
      x.domain(data.map(function(d) { return d.Label; }));
      y.domain([0, d3.max(data, function(d) { return d.Count; })]);
@@ -255,18 +255,18 @@
          .attr("class", "x axis")
          .attr("transform", "translate(0," + height + ")")
          .call(xAxis)
-       .selectAll("text")
-         .style("text-anchor", "end")
+       .selectAll("text").call(wrap, 100)
+         .style("text-anchor", "center")
          .attr("dx", "-.8em")
-         .attr("dy", "-.55em")
-         .attr("transform", "rotate(-60)" );
+         .attr("dy", "-.55em");
+         //.attr("transform", "rotate(-60)" );
 
      svg.append("g")
          .attr("class", "y axis")
          .call(yAxis)
        .append("text")
          .attr("transform", "rotate(-90)")
-         .attr("y", 5)
+         .attr("y", 2)
          .attr("dy", ".71em")
          .style("text-anchor", "end")
          .text("Count");
@@ -283,7 +283,48 @@
          .attr("height", function(d) { return height - y(d.Count); })
          .on('mouseover', tip.show)
          .on('mouseout', tip.hide);
+   }
+
+   function wrap(text, width) {
+     text.each(function() {
+       var text = d3.select(this),
+           words = text.text().split(/\s+/).reverse(),
+           word,
+           line = [],
+           lineNumber = 0,
+           lineHeight = 1.1, // ems
+           y = text.attr("y"),
+           dy = parseFloat(text.attr("dy")),
+           tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+       while (word = words.pop()) {
+         line.push(word);
+         tspan.text(line.join(" "));
+         if (tspan.node().getComputedTextLength() > width) {
+           line.pop();
+           tspan.text(line.join(" "));
+           line = [word];
+           tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+         }
+       }
+     });
+   }
+
+    function update() {
+      d3.json("data.json", function(error, data) {
+        svg.selectAll("bar").remove();
+        svg.selectAll("g").remove();
+        svg.selectAll("rect").remove();
+        render(error, data);
+      });
+    }
+
+   // load the data
+  d3.json("data.json", function(error, data) {
+     render(error, data);
    });
+
+  var inter = setInterval(function () { update(); }, 2000);
+
 </script>
 
 <p class="text" style="padding: 0px 50px;">Data Updated: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
@@ -293,7 +334,7 @@
 
 
 <footer class="text">
-<section style="color: white">UCSC Genomics Institute - Analysis Core 
+<section style="color: white">UCSC Genomics Institute - Analysis Core
 <ul class="text" style="float: right; font-size:50%; padding: 4px;">
    <li><a href="index.html">Home</a></li>
    <li><a href="projects.html">Projects</a></li>
@@ -302,5 +343,3 @@
 </ul>
 </section>
 </footer>
-
-
