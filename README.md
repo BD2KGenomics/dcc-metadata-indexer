@@ -175,6 +175,16 @@ Following those lines, are the queries, which give information on:
 * number of documents that fit this query for a particular program
 * project name
 
+### services
+
+Make sure both luigi and elasticsearch are running in screen sessions.
+
+    # screen session 1
+    ~/elasticsearch-2.3.5/bin/elasticsearch &
+    # screen session 2
+    source env/bin/activate
+    luigid
+
 ### simulate_upload.py
 
 This script runs an unlimited number of BAM file uploads at random intervals.  The script will run until killed.

@@ -164,7 +164,7 @@ class AlignmentQCInputDownloader(luigi.Task):
         result = subprocess.call(cmd, shell=True)
         print "DOWNLOAD RESULT: "+str(result)
         if result == 0:
-            p = self.output()[0].open('w')
+            p = self.output().open('w')
             print >>p, "finished downloading"
             p.close()
 
