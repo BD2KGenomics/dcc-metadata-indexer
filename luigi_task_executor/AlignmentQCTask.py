@@ -33,29 +33,36 @@ class AlignmentQCTaskUploader(luigi.Task):
     uuid = luigi.Parameter(default="NA")
     bundle_uuid = luigi.Parameter(default="NA")
     parent_uuid = luigi.Parameter(default="NA")
+    tmp_dir = luigi.Parameter(default='/tmp')
+    data_dir = luigi.Parameter(default='/tmp/data_dir')
     # just going to generate this UUID
     upload_uuid = str(uuid4())
 
     def requires(self):
-        return AlignmentQCTaskWorker(filepath="/tmp/"+self.bundle_uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, bundle_uuid=self.bundle_uuid, filename=self.filename, parent_uuid=self.parent_uuid, upload_uuid=self.upload_uuid)
+        return AlignmentQCTaskWorker(filepath=self.data_dir+"/"+self.bundle_uuid+"/"+self.filename, ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, uuid=self.uuid, bundle_uuid=self.bundle_uuid, filename=self.filename, parent_uuid=self.parent_uuid, upload_uuid=self.upload_uuid, tmp_dir=self.tmp_dir, data_dir=self.data_dir)
 
     def run(self):
         print "** UPLOADING **"
-        cmd = '''mkdir -p /tmp/%s/upload/%s /tmp/%s/manifest/%s && ln -s /tmp/%s/bamstats_report.zip /tmp/%s/metadata.json /tmp/%s/upload/%s && \
+        cmd = '''mkdir -p %s/%s/upload/%s %s/%s/manifest/%s && ln -s %s/%s/bamstats_report.zip %s/%s/metadata.json %s/%s/upload/%s && \
 echo "Register Uploads:" && \
-java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dserver.baseUrl=%s:8444 -DaccessToken=`cat %s/accessToken` -jar %s/dcc-metadata-client-0.0.16-SNAPSHOT/lib/dcc-metadata-client.jar -i /tmp/%s/upload/%s -o /tmp/%s/manifest/%s -m manifest.txt && \
+java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dserver.baseUrl=%s:8444 -DaccessToken=`cat %s/accessToken` -jar %s/dcc-metadata-client-0.0.16-SNAPSHOT/lib/dcc-metadata-client.jar -i %s/%s/upload/%s -o %s/%s/manifest/%s -m manifest.txt && \
 echo "Performing Uploads:" && \
-java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url=%s:8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url=%s:5431 -DaccessToken=`cat %s/accessToken` -jar %s/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar upload --force --manifest /tmp/%s/manifest/%s/manifest.txt
-''' % (self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.bundle_uuid, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.bundle_uuid, self.upload_uuid, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.bundle_uuid, self.upload_uuid)
-        print cmd
+java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url=%s:8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url=%s:5431 -DaccessToken=`cat %s/accessToken` -jar %s/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar upload --force --manifest %s/%s/manifest/%s/manifest.txt
+''' % (self.tmp_dir, self.bundle_uuid, self.upload_uuid, self.tmp_dir, self.bundle_uuid, self.upload_uuid, self.data_dir, self.bundle_uuid, self.tmp_dir, self.bundle_uuid, self.tmp_dir, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.tmp_dir, self.bundle_uuid, self.upload_uuid, self.tmp_dir, self.bundle_uuid, self.upload_uuid, self.ucsc_storage_client_path, self.ucsc_storage_host, self.ucsc_storage_host, self.ucsc_storage_client_path, self.ucsc_storage_client_path, self.tmp_dir, self.bundle_uuid, self.upload_uuid)
+        print "CMD: "+cmd
         result = subprocess.call(cmd, shell=True)
-        # FIXME: need to check error code
-        f = self.output().open('w')
-        print >>f, "uploaded"
-        f.close()
+        if result == 0:
+            cmd = "rm "+self.data_dir+"/"+self.bundle_uuid+"/bamstats_report.zip
+            print "CLEANUP CMD: "+cmd
+            result = subprocess.call(cmd, shell=True)
+            if result == 0:
+                print "CLEANUP SUCCESSFUL"
+            f = self.output().open('w')
+            print >>f, "uploaded"
+            f.close()
 
     def output(self):
-        return luigi.LocalTarget('/tmp/%s/uploaded' % self.bundle_uuid)
+        return luigi.LocalTarget('%s/%s/uploaded' % (self.tmp_dir, self.bundle_uuid))
 
 
 class AlignmentQCTaskWorker(luigi.Task):
@@ -67,9 +74,11 @@ class AlignmentQCTaskWorker(luigi.Task):
     filename = luigi.Parameter(default="filename")
     parent_uuid = luigi.Parameter(default="NA")
     upload_uuid = luigi.Parameter(default="NA")
+    tmp_dir = luigi.Parameter(default='/tmp')
+    data_dir = luigi.Parameter(default='/tmp/data_dir')
 
     def requires(self):
-        return AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=self.filename, uuid=self.uuid, bundle_uuid=self.bundle_uuid)
+        return AlignmentQCInputDownloader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=self.filename, uuid=self.uuid, bundle_uuid=self.bundle_uuid, tmp_dir=self.tmp_dir, data_dir=self.data_dir)
 
     def run(self):
         print "** RUNNING REPORT GENERATOR **"
@@ -84,53 +93,59 @@ class AlignmentQCTaskWorker(luigi.Task):
         "class": "File",
         "path": "%s"
     }
-}''' % ("/tmp/"+self.bundle_uuid+"/"+self.filename, "/tmp/"+self.bundle_uuid+"/bamstats_report.zip")
+}''' % (self.data_dir+"/"+self.bundle_uuid+"/"+self.filename, self.data_dir+"/"+self.bundle_uuid+"/bamstats_report.zip")
         p.close()
         # FIXME: docker-machine is likely to break on Linux hosts
-        cmd = "eval $(docker-machine env default) && dockstore tool launch --entry quay.io/briandoconnor/dockstore-tool-bamstats:1.25-5 --json /tmp/%s/params.json" % self.bundle_uuid
-        print cmd
+        cmd = "eval $(docker-machine env default); dockstore tool launch --entry quay.io/briandoconnor/dockstore-tool-bamstats:1.25-5 --json %s/%s/params.json" % (self.tmp_dir, self.bundle_uuid)
+        print "CMD: "+cmd
         result = subprocess.call(cmd, shell=True)
         print "REPORT GENERATOR RESULT: "+str(result)
 
-        # FIXME: nothing is actually checking the result and propogating an error!
+        if result == 0:
+            # cleanup input
+            cmd = "rm "+self.data_dir+"/"+self.bundle_uuid+"/"+self.filename
+            print "CLEANUP CMD: "+cmd
+            result = subprocess.call(cmd, shell=True)
+            if result == 0:
+                print "CLEANUP SUCCESSFUL"
+                
+            # generate timestamp
+            ts_str = datetime.datetime.utcnow().isoformat()
 
-        # generate timestamp
-        ts_str = datetime.datetime.utcnow().isoformat()
-
-        # now generate a metadata.json which is used for the next upload step
-        f = self.output()[1].open('w')
-        print >>f, '''{
-  "parent_uuids": [
-    "%s"
-  ],
-  "analysis_type": "alignment_qc_report",
-  "bundle_uuid": "%s",
-  "workflow_name": "quay.io/briandoconnor/dockstore-tool-bamstats",
-  "workflow_version": "1.25-5",
-  "workflow_outputs": [
-   {
-    "file_path": "bamstats_report.zip",
-    "file_type": "zip"
-   }
-  ],
-  "workflow_inputs" : [
-    {
-      "file_storage_bundle_uri" : "%s",
-      "file_storage_bundle_files" : [
+            # now generate a metadata.json which is used for the next upload step
+            f = self.output()[1].open('w')
+            print >>f, '''{
+      "parent_uuids": [
+        "%s"
+      ],
+      "analysis_type": "alignment_qc_report",
+      "bundle_uuid": "%s",
+      "workflow_name": "quay.io/briandoconnor/dockstore-tool-bamstats",
+      "workflow_version": "1.25-5",
+      "workflow_outputs": [
+       {
+        "file_path": "bamstats_report.zip",
+        "file_type": "zip"
+       }
+      ],
+      "workflow_inputs" : [
         {
-          "file_path": "%s",
-          "file_type": "bam",
-          "file_storage_uri": "%s"
+          "file_storage_bundle_uri" : "%s",
+          "file_storage_bundle_files" : [
+            {
+              "file_path": "%s",
+              "file_type": "bam",
+              "file_storage_uri": "%s"
+            }
+          ]
         }
-      ]
-    }
-  ],
-  "timestamp": "%s"
-}''' % (self.parent_uuid, self.upload_uuid, self.bundle_uuid, self.filename, self.uuid, ts_str)
-        f.close()
+      ],
+      "timestamp": "%s"
+    }''' % (self.parent_uuid, self.upload_uuid, self.bundle_uuid, self.filename, self.uuid, ts_str)
+            f.close()
 
     def output(self):
-        return [luigi.LocalTarget('/tmp/%s/params.json' % self.bundle_uuid), luigi.LocalTarget('/tmp/%s/metadata.json' % self.bundle_uuid), luigi.LocalTarget('/tmp/%s/bamstats_report.zip' % self.bundle_uuid)]
+        return [luigi.LocalTarget('%s/%s/params.json' % (self.tmp_dir, self.bundle_uuid)), luigi.LocalTarget('%s/%s/metadata.json' % (self.tmp_dir, self.bundle_uuid))]
 
 
 class AlignmentQCInputDownloader(luigi.Task):
@@ -139,16 +154,22 @@ class AlignmentQCInputDownloader(luigi.Task):
     filename = luigi.Parameter(default="filename")
     uuid = luigi.Parameter(default="NA")
     bundle_uuid = luigi.Parameter(default="NA")
+    tmp_dir = luigi.Parameter(default='/tmp')
+    data_dir = luigi.Parameter(default='/tmp/data_dir')
 
     def run(self):
         print "** DOWNLOADER **"
-        cmd = "java -Djavax.net.ssl.trustStore="+self.ucsc_storage_client_path+"/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url="+self.ucsc_storage_host+":8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url="+self.ucsc_storage_host+":5431 -DaccessToken=`cat "+self.ucsc_storage_client_path+"/accessToken` -jar "+self.ucsc_storage_client_path+"/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar download --output-dir /tmp --object-id "+self.uuid+" --output-layout bundle"
+        cmd = "java -Djavax.net.ssl.trustStore="+self.ucsc_storage_client_path+"/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url="+self.ucsc_storage_host+":8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url="+self.ucsc_storage_host+":5431 -DaccessToken=`cat "+self.ucsc_storage_client_path+"/accessToken` -jar "+self.ucsc_storage_client_path+"/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar download --output-dir "+self.data_dir+" --object-id "+self.uuid+" --output-layout bundle"
         print cmd
         result = subprocess.call(cmd, shell=True)
         print "DOWNLOAD RESULT: "+str(result)
+        if result == 0:
+            p = self.output()[0].open('w')
+            print >>p, "finished downloading"
+            p.close()
 
     def output(self):
-        return luigi.LocalTarget("/tmp/"+self.bundle_uuid+"/"+self.filename)
+        return luigi.LocalTarget(self.tmp_dir+"/"+self.bundle_uuid+"/"+self.filename)
 
 
 class AlignmentQCCoordinator(luigi.Task):
@@ -157,6 +178,8 @@ class AlignmentQCCoordinator(luigi.Task):
     es_index_port = luigi.Parameter(default='9200')
     ucsc_storage_client_path = luigi.Parameter(default='../ucsc-storage-client')
     ucsc_storage_host = luigi.Parameter(default='https://storage2.ucsc-cgl.org')
+    tmp_dir = luigi.Parameter(default='/tmp')
+    data_dir = luigi.Parameter(default='/tmp/data_dir')
     bundle_uuid_filename_to_file_uuid = {}
 
     def requires(self):
@@ -193,7 +216,7 @@ class AlignmentQCCoordinator(luigi.Task):
                             for file in analysis["workflow_outputs"]:
                                 if (file["file_type"] == "bam"):
                                     bamFile = file["file_path"]
-                            listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"]), bundle_uuid=analysis["bundle_uuid"], parent_uuid=sample["sample_uuid"]))
+                            listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"]), bundle_uuid=analysis["bundle_uuid"], parent_uuid=sample["sample_uuid"], tmp_dir=self.tmp_dir, data_dir=self.data_dir))
 
         # these jobs are yielded to
         return listOfJobs
@@ -208,10 +231,9 @@ class AlignmentQCCoordinator(luigi.Task):
         # the final report
         ts = time.time()
         ts_str = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
-        return luigi.LocalTarget('/tmp/AlignmentQCTask-%s.txt' % ts_str)
+        return luigi.LocalTarget('%s/AlignmentQCTask-%s.txt' % (ts_str, self.tmp_dir))
 
     def fileToUUID(self, input, bundle_uuid):
-        # FIXME: this is hard coded, need to do a lookup in the future
         return self.bundle_uuid_filename_to_file_uuid[bundle_uuid+"_"+input]
         #"afb54dff-41ad-50e5-9c66-8671c53a278b"
 
