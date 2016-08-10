@@ -217,7 +217,7 @@ class AlignmentQCCoordinator(luigi.Task):
                             for file in analysis["workflow_outputs"]:
                                 if (file["file_type"] == "bam"):
                                     bamFile = file["file_path"]
-                            if len(listOfJobs) < max_jobs:
+                            if len(listOfJobs) < self.max_jobs:
                                 listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"]), bundle_uuid=analysis["bundle_uuid"], parent_uuid=sample["sample_uuid"], tmp_dir=self.tmp_dir, data_dir=self.data_dir))
 
         # these jobs are yielded to
