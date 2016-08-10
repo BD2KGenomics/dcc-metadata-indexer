@@ -180,6 +180,7 @@ class AlignmentQCCoordinator(luigi.Task):
     ucsc_storage_host = luigi.Parameter(default='https://storage2.ucsc-cgl.org')
     tmp_dir = luigi.Parameter(default='/tmp')
     data_dir = luigi.Parameter(default='/tmp/data_dir')
+    max_jobs = luigi.Parameter(default=1)
     bundle_uuid_filename_to_file_uuid = {}
 
     def requires(self):
@@ -216,7 +217,8 @@ class AlignmentQCCoordinator(luigi.Task):
                             for file in analysis["workflow_outputs"]:
                                 if (file["file_type"] == "bam"):
                                     bamFile = file["file_path"]
-                            listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"]), bundle_uuid=analysis["bundle_uuid"], parent_uuid=sample["sample_uuid"], tmp_dir=self.tmp_dir, data_dir=self.data_dir))
+                            if len(listOfJobs) < max_jobs:
+                                listOfJobs.append(AlignmentQCTaskUploader(ucsc_storage_client_path=self.ucsc_storage_client_path, ucsc_storage_host=self.ucsc_storage_host, filename=bamFile, uuid=self.fileToUUID(bamFile, analysis["bundle_uuid"]), bundle_uuid=analysis["bundle_uuid"], parent_uuid=sample["sample_uuid"], tmp_dir=self.tmp_dir, data_dir=self.data_dir))
 
         # these jobs are yielded to
         return listOfJobs
