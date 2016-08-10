@@ -52,7 +52,7 @@ java -Djavax.net.ssl.trustStore=%s/ssl/cacerts -Djavax.net.ssl.trustStorePasswor
         print "CMD: "+cmd
         result = subprocess.call(cmd, shell=True)
         if result == 0:
-            cmd = "rm "+self.data_dir+"/"+self.bundle_uuid+"/bamstats_report.zip
+            cmd = "rm "+self.data_dir+"/"+self.bundle_uuid+"/bamstats_report.zip"
             print "CLEANUP CMD: "+cmd
             result = subprocess.call(cmd, shell=True)
             if result == 0:
@@ -108,7 +108,7 @@ class AlignmentQCTaskWorker(luigi.Task):
             result = subprocess.call(cmd, shell=True)
             if result == 0:
                 print "CLEANUP SUCCESSFUL"
-                
+
             # generate timestamp
             ts_str = datetime.datetime.utcnow().isoformat()
 
