@@ -31,7 +31,7 @@ def main():
         upload_count += 1
         print "LOOP INDEXING: "+str(upload_count)
 
-        # execute upload
+        # execute indexing 
         cmd = "python ../merge_gen_meta.py --storage-access-token %s --client-path %s --metadata-schema %s --server-host %s" % (args.storage_access_token, args.client_path, args.metadata_schema, args.server_host)
         print "CMD: %s" % cmd
         result = subprocess.call(cmd, shell=True)

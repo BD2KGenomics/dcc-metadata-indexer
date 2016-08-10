@@ -41,7 +41,7 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi python-dateutil
 
 Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html)
  [here](http://conda.pydata.org/docs/test-drive.html), and [here](http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html)
@@ -179,14 +179,21 @@ Following those lines, are the queries, which give information on:
 
 This script runs an unlimited number of BAM file uploads at random intervals.  The script will run until killed.
 
+    cd luigi_task_executor
     python simulate_upload.py --bam-url https://s3.amazonaws.com/oconnor-test-bucket/sample-data/NA12878.chrom20.ILLUMINA.bwa.CEU.low_coverage.20121211.bam \
-    --input-metadata-schema input_metadata.json --metadata-schema metadata_schema.json --output-dir output_metadata --receipt-file receipt.tsv \
-    --storage-access-token `cat ucsc-storage-client/accessToken` --metadata-server-url https://storage2.ucsc-cgl.org:8444 \
-    --storage-server-url https://storage2.ucsc-cgl.org:5431
+    --input-metadata-schema ../input_metadata.json --metadata-schema ../metadata_schema.json --output-dir output_metadata --receipt-file receipt.tsv \
+    --storage-access-token `cat ../ucsc-storage2-client/accessToken` --metadata-server-url https://storage2.ucsc-cgl.org:8444 \
+    --storage-server-url https://storage2.ucsc-cgl.org:5431  --ucsc-storage-client-path ../ucsc-storage2-client
 
 ### simulate_indexing.py
 
+    cd luigi_task_executor
+    python simulate_indexing.py --storage-access-token `cat ../ucsc-storage2-client/accessToken` --client-path ../ucsc-storage2-client --metadata-schema ../metadata_schema.json --server-host storage2.ucsc-cgl.org
+
 ### simulate_analysis.py
+
+    cd luigi_task_executor
+    python simulate_analysis.py --es-index-host localhost --es-index-port 9200 --ucsc-storage-client-path ../ucsc-storage2-client --ucsc-storage-host https://storage2.ucsc-cgl.org
 
 ## Data Types
 
