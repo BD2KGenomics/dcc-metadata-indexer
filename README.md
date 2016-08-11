@@ -205,6 +205,11 @@ This script runs an unlimited number of BAM file uploads at random intervals.  T
     cd luigi_task_executor
     python simulate_analysis.py --es-index-host localhost --es-index-port 9200 --ucsc-storage-client-path ../ucsc-storage2-client --ucsc-storage-host https://storage2.ucsc-cgl.org
 
+### populate dashboard
+
+    cd Dashboard
+    python dashboard_query.py
+
 ## Data Types
 
 We support the following types.  First and foremost, the types below are just intended
