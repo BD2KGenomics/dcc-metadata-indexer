@@ -96,7 +96,8 @@ class AlignmentQCTaskWorker(luigi.Task):
 }''' % (self.data_dir+"/"+self.bundle_uuid+"/"+self.filename, self.data_dir+"/"+self.bundle_uuid+"/bamstats_report.zip")
         p.close()
         # FIXME: docker-machine is likely to break on Linux hosts
-        cmd = "eval $(docker-machine env default); dockstore tool launch --entry quay.io/briandoconnor/dockstore-tool-bamstats:1.25-5 --json %s/%s/params.json" % (self.tmp_dir, self.bundle_uuid)
+        #cmd = "eval $(docker-machine env default); dockstore tool launch --entry quay.io/briandoconnor/dockstore-tool-bamstats:1.25-5 --json %s/%s/params.json" % (self.tmp_dir, self.bundle_uuid)
+        cmd = "dockstore tool launch --entry quay.io/briandoconnor/dockstore-tool-bamstats:1.25-5 --json %s/%s/params.json" % (self.tmp_dir, self.bundle_uuid)
         print "CMD: "+cmd
         result = subprocess.call(cmd, shell=True)
         print "REPORT GENERATOR RESULT: "+str(result)
