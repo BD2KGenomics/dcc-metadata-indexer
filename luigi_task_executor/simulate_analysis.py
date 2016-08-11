@@ -4,6 +4,8 @@ import os
 import time
 import random
 
+# TODO: need to paramerterize the bam file used
+
 def getOptions():
 
     parser = argparse.ArgumentParser(description='Tool that runs analysis continuously.')

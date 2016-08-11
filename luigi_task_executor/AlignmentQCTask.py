@@ -158,7 +158,7 @@ class AlignmentQCInputDownloader(luigi.Task):
     tmp_dir = luigi.Parameter(default='/tmp')
     data_dir = luigi.Parameter(default='/tmp/data_dir')
 
-    def run(self):
+    def run(sself):
         print "** DOWNLOADER **"
         cmd = "java -Djavax.net.ssl.trustStore="+self.ucsc_storage_client_path+"/ssl/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Dmetadata.url="+self.ucsc_storage_host+":8444 -Dmetadata.ssl.enabled=true -Dclient.ssl.custom=false -Dstorage.url="+self.ucsc_storage_host+":5431 -DaccessToken=`cat "+self.ucsc_storage_client_path+"/accessToken` -jar "+self.ucsc_storage_client_path+"/icgc-storage-client-1.0.14-SNAPSHOT/lib/icgc-storage-client.jar download --output-dir "+self.data_dir+" --object-id "+self.uuid+" --output-layout bundle"
         print cmd
