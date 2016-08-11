@@ -265,12 +265,24 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                             new_workflow_version = detachedObjs["workflow_version"]
 
                             saved_version = analysisObj["workflow_version"]
-                            # current is older than new
-                            if semver.compare(saved_version, new_workflow_version) == -1:
-                                sample["analysis"].remove(analysisObj)
-                                sample["analysis"].append(detachedObjs)
-                            if semver.compare(saved_version, new_workflow_version) == 0:
-                                # use the timestamp
+
+                            try:
+                                # current is older than new
+                                if semver.compare(saved_version, new_workflow_version) == -1:
+                                    sample["analysis"].remove(analysisObj)
+                                    sample["analysis"].append(detachedObjs)
+                                if semver.compare(saved_version, new_workflow_version) == 0:
+                                    # use the timestamp
+                                    if "timestamp" in detachedObjs and "timestamp" in analysisObj:
+                                        saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
+                                        new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
+
+                                        timestamp_diff = saved_timestamp - new_timestamp
+                                        if timestamp_diff.total_seconds() < 0:
+                                            sample["analysis"].remove(analysisObj)
+                                            sample["analysis"].append(detachedObjs)
+                            except ValueError:
+                                print "ERROR comparing semantic version, falling back on timestamp"
                                 if "timestamp" in detachedObjs and "timestamp" in analysisObj:
                                     saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
                                     new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
