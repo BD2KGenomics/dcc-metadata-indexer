@@ -234,7 +234,7 @@ class AlignmentQCCoordinator(luigi.Task):
         # the final report
         ts = time.time()
         ts_str = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
-        return luigi.LocalTarget('%s/AlignmentQCTask-%s.txt' % (ts_str, self.tmp_dir))
+        return luigi.LocalTarget('%s/AlignmentQCTask-%s.txt' % (self.tmp_dir, ts_str))
 
     def fileToUUID(self, input, bundle_uuid):
         return self.bundle_uuid_filename_to_file_uuid[bundle_uuid+"_"+input]
