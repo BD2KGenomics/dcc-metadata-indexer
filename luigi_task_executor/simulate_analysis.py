@@ -26,7 +26,7 @@ def main():
         upload_count += 1
         print "LOOP ANALYSIS: "+str(upload_count)
 
-        cmd = "mkdir -p /mnt/AlignmentQCTask && PYTHONPATH='' luigi --module AlignmentQCTask AlignmentQCCoordinator --es-index-host %s --es-index-port %s --ucsc-storage-client-path %s --ucsc-storage-host %s --tmp-dir `pwd`/luigi_state --data-dir /mnt/AlignmentQCTask --max-jobs 1" % (args.es_index_host, args.es_index_port, args.ucsc_storage_client_path, args.ucsc_storage_host)
+        cmd = "mkdir -p /mnt/AlignmentQCTask && PYTHONPATH='' luigi --module AlignmentQCTask AlignmentQCCoordinator --es-index-host %s --es-index-port %s --ucsc-storage-client-path %s --ucsc-storage-host %s --tmp-dir `pwd`/luigi_state --data-dir /mnt/AlignmentQCTask --max-jobs 100" % (args.es_index_host, args.es_index_port, args.ucsc_storage_client_path, args.ucsc_storage_host)
         print "CMD: %s" % cmd
         result = subprocess.call(cmd, shell=True)
         if (result != 0):

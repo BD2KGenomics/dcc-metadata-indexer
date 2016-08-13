@@ -138,7 +138,7 @@ def repNum(s):
 while True:
     #checking the number of documents
     try:
-        res = es.search(index="analysis_index", body={"query": {"match_all": {}}})
+        res = es.search(index="analysis_index", body={"query": {"match_all": {}}}, size=5000)
         print("For search for everything, got %d hits:" % res['hits']['total'])
         for hit in res['hits']['hits']:
            print("CENTER: %(center_name)s PROGRAM: %(program)s PROJECT: %(project)s DONOR ID: %(submitter_donor_id)s" % hit["_source"])
