@@ -222,6 +222,13 @@ This script runs an unlimited number of BAM file uploads at random intervals.  T
     cd Dashboard
     python dashboard_query.py
 
+### populate file browser
+
+    cd Dashboard
+    python file_query.py
+    # now load this
+    curl -XPUT http://localhost:9200/analysis_file_index/_bulk?pretty --data-binary @elasticsearch.jsonl
+
 ## Data Types
 
 We support the following types.  First and foremost, the types below are just intended
