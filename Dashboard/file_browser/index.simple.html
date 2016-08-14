@@ -29,46 +29,77 @@
             </div>
         </div>
     </div>
-
     <div class="container-fluid">
         <div class="row-fluid" style="margin-top:5%">
             <div class="span2 well">
                 <ul class="nav nav-list">
-                    <li class="nav-header">Feature Set</li>
-                    <li ng-repeat="feature_set in results.facets.feature_setFacet.terms">
+                    <li class="nav-header">Center Name</li>
+                    <li ng-repeat="center_name in results.facets.center_nameFacet.terms">
                         <label class="checkbox">
-                            <input type="checkbox" ng-checked="hasFilter('feature_set', feature_set.term)" ng-click="handleFilter('feature_set', feature_set.term)">
-                            {{feature_set.term}}
-                            <span class="muted">({{feature_set.count}})</span>
+                            <input type="checkbox" ng-checked="hasFilter('center_name', center_name.term)" ng-click="handleFilter('center_name', center_name.term)">
+                            {{center_name.term}}
+                            <span class="muted">({{center_name.count}})</span>
                         </label>
                     </li>
                     <li class="divider"></li>
-                    <li class="nav-header">Variant Type</li>
-                    <li ng-repeat="variant_type in results.facets.variant_typeFacet.terms">
+                    <li class="nav-header">Program</li>
+                    <li ng-repeat="program in results.facets.programFacet.terms">
                         <label class="checkbox">
-                            <input type="checkbox" ng-checked="hasFilter('variant_type', variant_type.term)" ng-click="handleFilter('variant_type', variant_type.term)">
-                            {{variant_type.term}}
-                            <span class="muted">({{variant_type.count}})</span>
+                            <input type="checkbox" ng-checked="hasFilter('program', program.term)" ng-click="handleFilter('program', program.term)">
+                            {{program.term}}
+                            <span class="muted">({{program.count}})</span>
                         </label>
                     </li>
                     <li class="divider"></li>
-                    <li class="nav-header">Databases</li>
-                    <li ng-repeat="tag in results.facets.databasesFacet.terms">
+                    <li class="nav-header">Project</li>
+                    <li ng-repeat="project in results.facets.projectFacet.terms">
                         <label class="checkbox">
-                            <input type="checkbox" ng-checked="hasFilter('databases', tag.term)" ng-click="handleFilter('databases', tag.term)">
-                            {{tag.term}}
-                            <span class="muted">({{tag.count}})</span>
+                            <input type="checkbox" ng-checked="hasFilter('project', project.term)" ng-click="handleFilter('project', project.term)">
+                            {{project.term}}
+                            <span class="muted">({{project.count}})</span>
                         </label>
                     </li>
                     <li class="divider"></li>
-                    <li class="nav-header">Consequences</li>
-                    <li ng-repeat="kw in results.facets.consequencesFacet.terms">
+                    <li class="nav-header">Workflow</li>
+                    <li ng-repeat="kw in results.facets.workflowFacet.terms">
                         <label class="checkbox">
-                            <input type="checkbox" ng-checked="hasFilter('consequences', kw.term)" ng-click="handleFilter('consequences', kw.term)">
+                            <input type="checkbox" ng-checked="hasFilter('workflow', kw.term)" ng-click="handleFilter('workflow', kw.term)">
                             {{kw.term}}
                             <span class="muted">({{kw.count}})</span>
                         </label>
                     </li>
+
+                    <li class="divider"></li>
+                    <li class="nav-header">Analysis Type</li>
+                    <li ng-repeat="kw in results.facets.analysis_typeFacet.terms">
+                        <label class="checkbox">
+                            <input type="checkbox" ng-checked="hasFilter('analysis_type', kw.term)" ng-click="handleFilter('analysis_type', kw.term)">
+                            {{kw.term}}
+                            <span class="muted">({{kw.count}})</span>
+                        </label>
+                    </li>
+                    <!-- ['center_name', 'program', 'project', 'workflow', 'analysis_type', 'specimen_type', 'file_type']; -->
+
+                    <li class="divider"></li>
+                    <li class="nav-header">Specimen Type</li>
+                    <li ng-repeat="kw in results.facets.specimen_typeFacet.terms">
+                        <label class="checkbox">
+                            <input type="checkbox" ng-checked="hasFilter('specimen_type', kw.term)" ng-click="handleFilter('specimen_type', kw.term)">
+                            {{kw.term}}
+                            <span class="muted">({{kw.count}})</span>
+                        </label>
+                    </li>
+
+                    <li class="divider"></li>
+                    <li class="nav-header">File Type</li>
+                    <li ng-repeat="kw in results.facets.file_typeFacet.terms">
+                        <label class="checkbox">
+                            <input type="checkbox" ng-checked="hasFilter('file_type', kw.term)" ng-click="handleFilter('file_type', kw.term)">
+                            {{kw.term}}
+                            <span class="muted">({{kw.count}})</span>
+                        </label>
+                    </li>
+
                 </ul>
             </div>
             <div class="span5">
@@ -94,6 +125,5 @@
 
     <!-- project specific files -->
     <script src="js/app.simple.js"></script>
-    
-</html>
 
+</html>

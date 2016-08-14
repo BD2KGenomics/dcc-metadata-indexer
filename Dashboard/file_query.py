@@ -27,6 +27,7 @@ for hit in res['hits']['hits']:
                 print "ANALYSIS: "+analysis["analysis_type"]+" "+str(hit["_source"]["flags"]["normal_alignment_qc_report"])+" "+specimen["submitter_specimen_type"]
                 for file in analysis["workflow_outputs"]:
                     file_hash = {
+                        "id" : str(i),
                         "title" : file["file_path"],
                         "file_type" : file["file_type"],
                         "workflow" : analysis["workflow_name"]+" "+analysis["workflow_version"],

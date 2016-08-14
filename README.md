@@ -226,8 +226,16 @@ This script runs an unlimited number of BAM file uploads at random intervals.  T
 
     cd Dashboard
     python file_query.py
+    # delete old data if needed
+    curl -XDELETE http://localhost:9200/analysis_file_index
     # now load this
     curl -XPUT http://localhost:9200/analysis_file_index/_bulk?pretty --data-binary @elasticsearch.jsonl
+    # check it's in es
+    curl -XGET http://localhost:9200/analysis_file_index/_search?pretty
+
+### run file browser
+
+    python -m SimpleHTTPServer 8000
 
 ## Data Types
 

@@ -6,10 +6,10 @@
 /* Application Module */
 angular.module('multiselect', [
   'multiselect.controllers',
-  'multiselect.service', 
+  'multiselect.service',
   'elasticjs.service'
 ]);
-     
+
 /* Controller Module */
 angular.module('multiselect.controllers', [])
   .controller('SearchCtrl', function($scope, translator, ejsResource) {
@@ -17,12 +17,11 @@ angular.module('multiselect.controllers', [])
     // point to your ElasticSearch server
     //var ejs = ejsResource('http://mzgephdfgnfskfpm.api.qbox.io');
     var ejs = ejsResource('http://localhost:9200');
-    var index = 'queryengine';
-    var type = 'features';
-    
+    var index = 'analysis_file_index';
+    var type = 'meta';
     // the fields we want to facet on
-    var facets = ['feature_set', 'variant_type', 'databases', 'consequences'];
-    
+    var facets = ['center_name', 'program', 'project', 'workflow', 'analysis_type', 'specimen_type', 'file_type'];
+
     // for storing selected filters
     // format will be {field: [term1, term2], field2: [term1, term2]}
     var filters = {};
@@ -32,7 +31,7 @@ angular.module('multiselect.controllers', [])
       if (!_.has(filters, field)) {
         filters[field] = [];
       }
-      
+
       var termIdx = _.indexOf(filters[field], term);
       if (termIdx === -1) {
         // add the filter
@@ -44,10 +43,10 @@ angular.module('multiselect.controllers', [])
           delete filters[field];
         }
       }
-      
+
       $scope.search()
     };
-    
+
     // if a filter is applied or not
     $scope.hasFilter = function (field, term) {
       return (_.has(filters, field) && _.contains(filters[field], term));
@@ -58,51 +57,51 @@ angular.module('multiselect.controllers', [])
     $scope.search = function() {
       // setup the request
       var request = ejs.Request()
-        .indices(index) 
+        .indices(index)
         .types(type)
         .sort('id') // sort by document id
         .query(ejs.MatchAllQuery()); // match all documents
-      
+
       // create the facets
       var facetObjs = _.map(facets, function (facetField) {
         return ejs.TermsFacet(facetField + 'Facet')
           .field(facetField)
           .allTerms(true);
       });
-      
+
       // create the filters
       var filterObjs = _.map(filters, function (filterTerms, filterField) {
         return ejs.TermsFilter(filterField, filterTerms);
       });
-      
+
       // apply the facets to the request
       // make sure to add any facet filters (to update counts)
       _.each(facetObjs, function (facetObj) {
         var facetFilters = _.filter(filterObjs, function (filterObj) {
           return facetObj.field() !== filterObj.field();
         });
-        
+
         if (facetFilters.length === 1) {
           facetObj.facetFilter(facetFilters[0]);
         } else if (facetFilters.length > 1) {
           facetObj.facetFilter(ejs.BoolFilter().must(facetFilters));
         }
-        
+
         request.facet(facetObj);
       });
-      
+
       // apply search filters to the request
       if (filterObjs.length === 1) {
         request.filter(filterObjs[0]);
       } else if (filterObjs.length > 1) {
         request.filter(ejs.BoolFilter().must(filterObjs));
       }
-      
+
       // execute the search
       $scope.restQry = translator(request._self());
       $scope.results = request.doSearch();
     };
-    
+
     $scope.search();
   });
 
@@ -124,7 +123,7 @@ angular.module('multiselect.service', [])
       if (arguments.length < 2) {
         sIndent = "";
       }
-        
+
       var sIndentStyle = "    ";
       var sDataType = RealTypeOf(oData);
       var sHTML = "";
@@ -194,6 +193,6 @@ angular.module('multiselect.service', [])
       // return
       return sHTML;
     };
-    
+
     return FormatJSON;
   });
