@@ -1,0 +1,7 @@
+{"index":{"_index":"queryengine","_type":"features","_id":"30"}} 
+{"id":"30", "title": "chrX:123-1212:A->ACCA", "databases": ["omim","dbsnp"], "consequences": ["frameshift","coding"], "feature_set": "DO323819", "variant_type": "Indel"}
+{"index":{"_index":"queryengine","_type":"features","_id":"40"}} 
+{"id":"40", "title": "chr22:123-1212:A->C", "databases": ["sift","dbsnp"], "consequences": ["synonymous","coding"], "feature_set": "DO423819", "variant_type": "SNV"}
+{"index":{"_index":"queryengine","_type":"features","_id":"50"}} 
+{"id":"50", "title": "chr3:123-1212:A->C", "databases": ["sift","dbsnp"], "consequences": ["synonymous","coding"], "feature_set": "DO453819", "variant_type": "SNV"}
+

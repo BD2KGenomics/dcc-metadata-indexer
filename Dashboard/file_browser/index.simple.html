@@ -1,0 +1,99 @@
+<html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7 ng-app:multiselect" lang="en" id="ng-app"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8 ng-app:multiselect" lang="en" id="ng-app"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" lang="en" ng-app="multiselect"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" ng-app="multiselect"> <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="ElasticSearch + Elastic.js Multi-Select Faceting Example">
+    <meta name="viewport" content="width=device-width">
+
+    <title>ElasticSearch + Elastic.js Multi-Select Faceting</title>
+
+    <link rel="stylesheet" href="/common/css/normalize.min.css">
+    <link rel="stylesheet" href="/common/css/main.min.css">
+    <link rel="stylesheet" href="/common/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/common/css/bootstrap-responsive.min.css">
+    <link rel="stylesheet" href="/common/css/elasticjs.css">
+
+    <script src="/common/lib/modernizr-2.6.1.min.js"></script>
+</body>
+</head>
+
+<body ng-controller="SearchCtrl">
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container-fluid">
+                <span class="brand">Elastic.js Multi-Select Faceting</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row-fluid" style="margin-top:5%">
+            <div class="span2 well">
+                <ul class="nav nav-list">
+                    <li class="nav-header">Feature Set</li>
+                    <li ng-repeat="feature_set in results.facets.feature_setFacet.terms">
+                        <label class="checkbox">
+                            <input type="checkbox" ng-checked="hasFilter('feature_set', feature_set.term)" ng-click="handleFilter('feature_set', feature_set.term)">
+                            {{feature_set.term}}
+                            <span class="muted">({{feature_set.count}})</span>
+                        </label>
+                    </li>
+                    <li class="divider"></li>
+                    <li class="nav-header">Variant Type</li>
+                    <li ng-repeat="variant_type in results.facets.variant_typeFacet.terms">
+                        <label class="checkbox">
+                            <input type="checkbox" ng-checked="hasFilter('variant_type', variant_type.term)" ng-click="handleFilter('variant_type', variant_type.term)">
+                            {{variant_type.term}}
+                            <span class="muted">({{variant_type.count}})</span>
+                        </label>
+                    </li>
+                    <li class="divider"></li>
+                    <li class="nav-header">Databases</li>
+                    <li ng-repeat="tag in results.facets.databasesFacet.terms">
+                        <label class="checkbox">
+                            <input type="checkbox" ng-checked="hasFilter('databases', tag.term)" ng-click="handleFilter('databases', tag.term)">
+                            {{tag.term}}
+                            <span class="muted">({{tag.count}})</span>
+                        </label>
+                    </li>
+                    <li class="divider"></li>
+                    <li class="nav-header">Consequences</li>
+                    <li ng-repeat="kw in results.facets.consequencesFacet.terms">
+                        <label class="checkbox">
+                            <input type="checkbox" ng-checked="hasFilter('consequences', kw.term)" ng-click="handleFilter('consequences', kw.term)">
+                            {{kw.term}}
+                            <span class="muted">({{kw.count}})</span>
+                        </label>
+                    </li>
+                </ul>
+            </div>
+            <div class="span5">
+                <pre>{{restQry}}</pre>
+            </div>
+            <div class="span5">
+                <ul class="unstyled">
+                    <li class="well well-small" ng-repeat="hit in results.hits.hits">
+                        <h4>{{hit._source.title}}</h4>
+                        <span style="margin-right:1px;" class="badge badge-info" ng-repeat="tag in hit._source.databases">{{tag}}</span>
+                        <span style="margin-right:1px;" class="badge badge-success" ng-repeat="kw in hit._source.consequences">{{kw}}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- project dependencies -->
+    <script src="/common/lib/underscore.min.js"></script>
+    <script src="/common/lib/angular.min.js"></script>
+    <script src="/common/js/elastic.min.js"></script>
+    <script src="/common/js/elastic-angular-client.min.js"></script>
+
+    <!-- project specific files -->
+    <script src="js/app.simple.js"></script>
+    
+</html>
+

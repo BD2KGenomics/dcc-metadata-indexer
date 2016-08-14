@@ -24,6 +24,15 @@ You need to make sure you have system level dependencies installed in the approp
 
     sudo apt-get install python-dev libxml2-dev libxslt-dev lib32z1-dev
 
+### Elasticsearch
+
+Download and install elasticsearch.  I found the debian package to be easiest on Ubuntu.  Start it using the /etc/init.d/elasticsearch script. Or, if you're on a mac, you can download a tarball and just execute the ./bin/elasticsearch script.
+
+Use [elasticsearch 1.7.2](https://www.elastic.co/downloads/past-releases/elasticsearch-1-7-2).  Newer (2.x) versions will
+work for our indexing but our facet file browser requires an older version of elasticsearch.
+
+NOTE: elasticsearch is not secure. Do not run it on a web server open to the outside world.
+
 ### Python
 
 Use python 2.7.x.
@@ -207,7 +216,7 @@ This script runs an unlimited number of BAM file uploads at random intervals.  T
 
     # temp
     git hf update; git hf pull; PYTHONPATH='' luigi --module AlignmentQCTask AlignmentQCCoordinator --es-index-host localhost --es-index-port 9200 --ucsc-storage-client-path ../ucsc-storage2-client --ucsc-storage-host https://storage2.ucsc-cgl.org --tmp-dir `pwd`/luigi_state --data-dir /mnt/AlignmentQCTask --max-jobs 1
-    
+
 ### populate dashboard
 
     cd Dashboard
