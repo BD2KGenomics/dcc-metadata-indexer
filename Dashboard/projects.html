@@ -168,6 +168,7 @@
       }
 	</style>
 </head>
+<body>
 <div class="imgcgl">
    <div class="imgcontainer">
       <a href="https://genomics.soe.ucsc.edu/">
@@ -178,25 +179,22 @@
       <a href="https://cgl.genomics.ucsc.edu/" class="text">Computational Genomics Laboratory</a>
    </div>
 </div>
-<ul class="text">
+<ul class="header text">
    <li><a href="index.html">Home</a></li>
-   <div class="dropdown">
-      <li class="dropbtn"><a href="projects.html">Projects</a></li>
-      <div class="dropdown-content">
-         <a href="project_1.html">Project 1</a>
-         <a href="project_2.html">Project 2</a>
-         <a href="project_3.html">Project 3</a>
-      </div>
-   </div>
+   <li class="dropbtn"><a href="projects.html">Analysis Dashboard</a></li>
+   <li class="dropbtn"><a href="file_browser">File Browser</a></li>
   <li><a href="https://ucsc-cgl.atlassian.net/wiki/">Wiki</a></li>
   <li><a href="about.html">About</a></li>
 </ul>
-<header class="text">
-   <h1>Current Projects </h1>
-   <p> This website is still being tested. </p>
-</header>
 
-<body style = "background-color:#F5F4EB;">
+<div class="container-fluid">
+    <div class="row-fluid">
+      <div class="text" style="margin: 20px">
+
+
+   <h2>Sample States</h2>
+
+
 
 <script src="d3.v3.min.js"></script>
 <script src="d3.tip.v0.6.3.js"></script>
@@ -327,9 +325,13 @@
 
 </script>
 
-<p class="text" style="padding: 0px 50px;">Data Updated: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+<p>
+This graph shows the count of samples that match the criteria noted on the x-axis.  This plot is dynamic and will update in realtime.
+</p>
 
-
+</div>
+</div>
+</div>
 </body>
 
 

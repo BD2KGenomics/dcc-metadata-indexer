@@ -9,7 +9,7 @@
     <meta name="description" content="ElasticSearch + Elastic.js Multi-Select Faceting Example">
     <meta name="viewport" content="width=device-width">
 
-    <title>ElasticSearch + Elastic.js Multi-Select Faceting</title>
+    <title>File Browser</title>
 
     <link rel="stylesheet" type="text/css" href="../mystyle.css">
     <link rel="stylesheet" href="common/css/normalize.min.css">
@@ -50,30 +50,24 @@ button {
   <div class="imgcgl">
    <div class="imgcontainer">
       <a href="https://genomics.soe.ucsc.edu/">
-         <img src="../UCSC-Logo-genomics-web-80.png" alt="University of California Santa Cruz" class="imglogo">
+         <img src="../UCSC-Logo-genomics-web-80.png" alt="University of California Santa Cruz" class="imglogo" style="padding: 10px">
       </a>
    </div>
    <div class="cglcontainer" style="float: right;">
       <a href="https://cgl.genomics.ucsc.edu/" class="text">Computational Genomics Laboratory</a>
    </div>
 </div>
-<ul class="header">
-   <li><a href="index.html">Home</a></li>
-   <div class="dropdown">
-      <li class="dropbtn"><a href="projects.html">Projects</a></li>
-      <div class="dropdown-content">
-         <a href="project_1.html">Project 1</a>
-         <a href="project_2.html">Project 2</a>
-         <a href="project_3.html">Project 3</a>
-      </div>
-   </div>
+<ul class="header text">
+   <li><a href="../index.html">Home</a></li>
+   <li class="dropbtn"><a href="../projects.html">Analysis Dashboard</a></li>
+   <li class="dropbtn"><a href="index.html">File Browser</a></li>
   <li><a href="https://ucsc-cgl.atlassian.net/wiki/">Wiki</a></li>
-  <li><a href="about.html">About</a></li>
+  <li><a href="../about.html">About</a></li>
 </ul>
     <div class="container-fluid">
         <div class="row-fluid">
 
-            <div class="span2 well">
+            <div class="span2 well text">
                 <ul class="nav nav-sidebar">
                     <li class="nav-header">Center Name</li>
                     <li ng-repeat="center_name in results.facets.center_nameFacet.terms">
@@ -147,7 +141,7 @@ button {
             <!--div class="span5">
                 <pre>{{restQry}}</pre>
             </div-->
-            <div class="span5">
+            <div class="span5 text">
                 <!--ul class="unstyled">
                     <li class="well well-small" ng-repeat="hit in results.hits.hits">
                         <h4></h4>
@@ -159,9 +153,9 @@ button {
                   <table class="table table-striped">
                     <thead>
                       <tr>
-                        <th>Center</th>
+                        <!--th>Center</th>
+                        <th>Program</th-->
                         <th>Project</th>
-                        <th>Program</th>
                         <th>Donor</th>
                         <th>Specimen Type</th>
                         <th>Analysis Type</th>
@@ -174,9 +168,9 @@ button {
                     <tbody>
 
                       <tr ng-repeat="hit in results.hits.hits">
-                        <td>{{hit._source.center}}</td>
+                        <!--td>{{hit._source.center}}</td>
+                        <td>{{hit._source.program}}</td-->
                         <td>{{hit._source.project}}</td>
-                        <td>{{hit._source.program}}</td>
                         <td>{{hit._source.donor}}</td>
                         <td>{{hit._source.specimen_type}}</td>
                         <td>{{hit._source.analysis_type}}</td>
@@ -213,5 +207,5 @@ button {
 
     <!-- project specific files -->
     <script src="js/app.simple.js"></script>
-
+</body>
 </html>

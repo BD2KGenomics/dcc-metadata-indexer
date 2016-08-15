@@ -3,14 +3,18 @@
 <head>
 <link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
 <link rel="stylesheet" type="text/css" href="mystyle.css">
-<script src="d3.v3.min.js"></script>
+<link rel="stylesheet" href="file_browser/common/css/normalize.min.css">
+<link rel="stylesheet" href="file_browser/common/css/main.min.css">
+<link rel="stylesheet" href="file_browser/common/css/bootstrap.min.css">
+<link rel="stylesheet" href="file_browser/common/css/bootstrap-responsive.min.css">
+<link rel="stylesheet" href="file_browser/common/css/elasticjs.css">
 </head>
 <style>
 body{
    font-family: Muli;
 }
 
-.chart { 
+.chart {
    background: #fff;
    font: 10px;
 }
@@ -33,209 +37,53 @@ button {
 <div class="imgcgl">
    <div class="imgcontainer">
       <a href="https://genomics.soe.ucsc.edu/">
-         <img src="UCSC-Logo-genomics-web-80.png" alt="University of California Santa Cruz" class="imglogo">
+         <img src="UCSC-Logo-genomics-web-80.png" alt="University of California Santa Cruz" class="imglogo" style="padding: 10px">
       </a>
    </div>
    <div class="cglcontainer" style="float: right;">
       <a href="https://cgl.genomics.ucsc.edu/" class="text">Computational Genomics Laboratory</a>
    </div>
 </div>
-<ul class="text">
+<ul class="header text">
    <li><a href="index.html">Home</a></li>
-   <div class="dropdown">
-      <li class="dropbtn"><a href="projects.html">Projects</a></li>
-      <div class="dropdown-content">
-         <a href="project_1.html">Project 1</a>
-         <a href="project_2.html">Project 2</a>
-         <a href="project_3.html">Project 3</a>
-      </div>
-   </div>
+   <li class="dropbtn"><a href="projects.html">Analysis Dashboard</a></li>
+   <li class="dropbtn"><a href="file_browser">File Browser</a></li>
   <li><a href="https://ucsc-cgl.atlassian.net/wiki/">Wiki</a></li>
   <li><a href="about.html">About</a></li>
 </ul>
-<header class="text">
-   <h1>Analysis Dashboard</h1>
-   <p> The Analysis Dashboard allows you to track the status of your project.</p>
-</header>
-<body style = "background-color:#F5F4EB;">
-
-<div class="chart">
-<script>
-
-chart("data.csv", "blue");
-
-var datearray = [];
-var colorrange = [];
-
-
-function chart(csvpath, color) {
-
-if (color == "blue") {
-  colorrange = ["#00458c", "#0066cc", "#1a8cff", "#66b3ff", "#b3d9ff"];
-}
-strokecolor = colorrange[0];
-
-var format = d3.time.format("%m/%d/%y");
-
-var margin = {top: 20, right: 40, bottom: 30, left: 40};
-var width = document.body.clientWidth - margin.left - margin.right;
-var height = 400 - margin.top - margin.bottom;
-
-var tooltip = d3.select("body")
-   .append("div")
-   .attr("class", "remove")
-   .style("position", "absolute")
-   .style("z-index", "20")
-   .style("visibility", "hidden")
-   .style("top", "280px")
-   .style("left", "60px");
-
-var x = d3.time.scale()
-   .range([0, width]);
-
-var y = d3.scale.linear()
-   .range([height-10, 0]);
-
-var z = d3.scale.ordinal()
-   .range(colorrange);
-
-var xAxis = d3.svg.axis()
-   .scale(x)
-   .orient("bottom")
-   .ticks(d3.time.weeks);
-
-var yAxis = d3.svg.axis()
-   .scale(y);
-
-var yAxisr = d3.svg.axis()
-   .scale(y);
-
-var stack = d3.layout.stack()
-   .offset("silhouette")
-   .values(function(d) { return d.values; })
-   .x(function(d) { return d.date; })
-   .y(function(d) { return d.value; });
-
-var nest = d3.nest()
-   .key(function(d) { return d.key; });
-
-var area = d3.svg.area()
-   .interpolate("cardinal")
-   .x(function(d) { return x(d.date); })
-   .y0(function(d) { return y(d.y0); })
-   .y1(function(d) { return y(d.y0 + d.y); });
-
-var svg = d3.select(".chart").append("svg")
-   .attr("width", width + margin.left + margin.right)
-   .attr("height", height + margin.top + margin.bottom)
-   .append("g")
-   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-var graph = d3.csv(csvpath, function(data) {
-   data.forEach(function(d) {
-      d.date = format.parse(d.date);
-      d.value = +d.value;
-   });
-
-var layers = stack(nest.entries(data));
-
-   x.domain(d3.extent(data, function(d) { return d.date; }));
-   y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
-
-   svg.selectAll(".layer")
-      .data(layers)
-      .enter().append("path")
-      .attr("class", "layer")
-      .attr("d", function(d) { return area(d.values); })
-      .style("fill", function(d, i) { return z(i); });
-
-
-   svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
-
-   svg.append("g")
-      .attr("class", "y axis")
-      .attr("transform", "translate(" + width + ", 0)")
-      .call(yAxis.orient("right"));
-
-   svg.append("g")
-      .attr("class", "y axis")
-      .call(yAxis.orient("left"));
-
-   svg.selectAll(".layer")
-      .attr("opacity", 1)
-      .on("mouseover", function(d, i) {
-      svg.selectAll(".layer").transition()
-         .duration(250)
-         .attr("opacity", function(d, j) {
-            return j != i ? 0.6 : 1;
-   })})
-
-   .on("mousemove", function(d, i) {
-      mousex = d3.mouse(this);
-      mousex = mousex[0];
-      var invertedx = x.invert(mousex);
-      invertedx = invertedx.getMonth() + invertedx.getDate();
-      var selected = (d.values);
-      for (var k = 0; k < selected.length; k++) {
-         datearray[k] = selected[k].date
-         datearray[k] = datearray[k].getMonth() + datearray[k].getDate();
-      }
-
-      mousedate = datearray.indexOf(invertedx);
-      pro = d.values[mousedate].value;
-
-      d3.select(this)
-      .classed("hover", true)
-      .attr("stroke", strokecolor)
-      .attr("stroke-width", "0.5px"), 
-      tooltip.html( "<p>" + d.key + "<br>" + pro + "</p>" ).style("visibility", "visible");
-      
-   })
-   .on("mouseout", function(d, i) {
-      svg.selectAll(".layer")
-      .transition()
-      .duration(250)
-      .attr("opacity", "1");
-      d3.select(this)
-      .classed("hover", false)
-      .attr("stroke-width", "0px"), tooltip.html( "<p>" + d.key + "<br>" + pro + "</p>" ).style("visibility", "hidden");
-   })
-    
-   var vertical = d3.select(".chart")
-      .append("div")
-      .attr("class", "remove")
-      .style("position", "absolute")
-      .style("z-index", "19")
-      .style("width", "1px")
-      .style("height", "380px")
-      .style("top", "275px")
-      .style("bottom", "30px")
-      .style("left", "0px")
-      .style("background", "#fff");
-
-   d3.select(".chart")
-      .on("mousemove", function(){  
-         mousex = d3.mouse(this);
-         mousex = mousex[0] + 5;
-         vertical.style("left", mousex + "px" )})
-      .on("mouseover", function(){  
-         mousex = d3.mouse(this);
-         mousex = mousex[0] + 5;
-         vertical.style("left", mousex + "px")});
-});
-}
-</script>
-</div>
-<br> <p> This website is still being tested. </p>
-</body>
-
-
+<div class="container-fluid">
+    <div class="row-fluid">
+      <div class="text" style="margin: 20px">
+        <h2>Mission</h2>
+        <p>Our mission as the Analysis Core is to help researchers in the UCSC Genomics Institute use modern tools to accurately and efficiently analyze large volumes of sequence data.  We build the software that makes this possible (the Development team) and we also are responsible for running the "core" analysis pipelines for projects within the Institute (the Production team).  See our detailed mission statement for more information.</p>
+        <h2>Available Workflows</h2>
+        <p>We are growing our available pipelines to support projects in the Institute including:</p>
+        <p>
+        <table class="table-striped">
+          <thead>
+            <tr><th><b>Pipeline</b></th>
+            <th><b>Description</b></th></tr>
+          </thead>
+          <tbody>
+            <tr><td>RNAseq</td><td>RNASeq analysis using RSEM and Kallisto</td></tr>
+            <tr><td>Whole Exome/Whole Genome - Germline</td><td>GATK best practices germline pipeline</td></tr>
+            <tr><td>Whole Genome - Somatic</td><td>Whole genome somatic workflows from PCAWG including Sanger, DKFZ, and EMBL best practices</td></tr>
+            <tr><td>Whole Exome - Somatic</td><td>Whole exome somatic workflow</td></tr>
+            <tr><td>ProTECT</td><td>Neoantigen pipeline</td></tr>
+          </tbody>
+        </table>
+      </p>
+      <h2>Ordering Analysis</h2>
+        <p>You can see our current <a href="https://ucsc-cgl.atlassian.net/wiki/display/PUB/Workflow+Pricing">Workflow Pricing</a> for information on the costs of analyzing samples with these pipelines. Large batches can be processed at reduced rates, please contact us for more information using the "Submit Analysis Request" below.</p>
+        <center>
+          <h3><a href="https://ucsc-cgl.atlassian.net/wiki/display/PUB/Workflow+Pricing" class="unstyled">Current Analysis Workflows & Pricing</a></h3>
+          <h3><a href="http://goo.gl/forms/rGWJ1Kdq9h" class="unstyled">Submit Analysis Request</a></h3>
+          <h3><a href="https://docs.google.com/spreadsheets/d/1R03EV5vH7Moluepb52R3ingso8xIcL352E52XenO5FQ/edit#gid=0" class="unstyled">Submit Workflow Creation Request</a></h3>
+        </center>
+      </div>
 <footer class="text">
-<section style="color: white">UCSC Genomics Institute - Analysis Core 
-<ul class="text" style="float: right; font-size:50%; padding: 4px;">
+<section style="color: white">UCSC Genomics Institute - Analysis Core
+<ul class="header" style="float: right; font-size:50%; padding: 4px;">
    <li><a href="index.html">Home</a></li>
    <li><a href="projects.html">Projects</a></li>
    <li><a href="https://ucsc-cgl.atlassian.net/wiki/">Wiki</a></li>
@@ -244,5 +92,15 @@ var layers = stack(nest.entries(data));
 </section>
 </footer>
 
+</div>
+</div>
 
+<script src="file_browser/common/lib/modernizr-2.6.1.min.js"></script>
+<script src="file_browser/common/lib/underscore.min.js"></script>
+<script src="file_browser/common/lib/angular.min.js"></script>
+<script src="file_browser/common/js/elastic.min.js"></script>
+<script src="file_browser/common/js/elastic-angular-client.min.js"></script>
 
+</body>
+
+</html>
