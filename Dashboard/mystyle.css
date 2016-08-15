@@ -1,18 +1,18 @@
 header{
    text-align:center;
-   padding:5px; 
+   padding:5px;
 }
 nav{
    line-height:30px;
    height:300px;
    width:100px;
    float:left;
-   padding:5px;
+   padding:0px;
 }
-ul {
+ul.header {
    list-style-type: none;
    margin: 0;
-   padding: 0px 16px 0px 16px;
+   padding: 0px 0px 0px 0px;
    background-color: #555;
 }
 /* link colors for top navigation bar*/
@@ -31,12 +31,12 @@ li a:hover {
 }
 
 /* side navigation */
-nav a:link, nav a:visited { 
+nav a:link, nav a:visited {
    color: #00458c;
    text-decoration: underline;
    cursor: auto;
 }
-nav a:link:active, nav a:visited:active { 
+nav a:link:active, nav a:visited:active {
    color: #F1B521;
 }
 
