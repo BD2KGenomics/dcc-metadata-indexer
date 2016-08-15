@@ -237,6 +237,10 @@ This script runs an unlimited number of BAM file uploads at random intervals.  T
 
     python -m SimpleHTTPServer 8000
 
+### CORS
+
+You may need to do the following to get cross-site scripting working:  http://www.oodlestechnologies.com/blogs/How-to-solve-No-Access-Control-Allow-Origin-with-elastic-search
+
 ## Data Types
 
 We support the following types.  First and foremost, the types below are just intended
