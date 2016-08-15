@@ -31,7 +31,7 @@ def main():
         upload_count += 1
         print "LOOP INDEXING: "+str(upload_count)
 
-        # execute indexing 
+        # execute indexing
         cmd = "python ../merge_gen_meta.py --storage-access-token %s --client-path %s --metadata-schema %s --server-host %s" % (args.storage_access_token, args.client_path, args.metadata_schema, args.server_host)
         print "CMD: %s" % cmd
         result = subprocess.call(cmd, shell=True)
@@ -40,6 +40,21 @@ def main():
 
         # now load in ES
         cmd = "curl -XDELETE http://localhost:9200/analysis_index && curl -XPUT http://localhost:9200/analysis_index/_bulk?pretty --data-binary @elasticsearch.jsonl"
+        print "CMD: %s" % cmd
+        result = subprocess.call(cmd, shell=True)
+        if (result != 0):
+            print "PROBLEMS LOADING INDEX"
+
+        # now do this for the file index
+        # execute indexing
+        cmd = "python ../Dashboard/file_query.py"
+        print "CMD: %s" % cmd
+        result = subprocess.call(cmd, shell=True)
+        if (result != 0):
+            print "PROBLEMS INDEXING"
+
+        # now load in ES
+        cmd = "curl -XDELETE http://localhost:9200/analysis_file_index && curl -XPUT http://localhost:9200/analysis_file_index/_bulk?pretty --data-binary @elasticsearch.jsonl"
         print "CMD: %s" % cmd
         result = subprocess.call(cmd, shell=True)
         if (result != 0):
