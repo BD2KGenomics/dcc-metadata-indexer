@@ -57,7 +57,7 @@ def main():
             print "PROBLEMS INDEXING"
 
         # now load in ES
-        cmd = "curl -XDELETE http://localhost:9200/analysis_file_index; curl -XPUT 'http://localhost:9200/analysis_file_index' -d @file_browser/mappings.json; curl -XPUT http://localhost:9200/analysis_file_index/_bulk?pretty --data-binary @elasticsearch.jsonl"
+        cmd = "curl -XDELETE http://localhost:9200/analysis_file_index; curl -XPUT 'http://localhost:9200/analysis_file_index' -d @../Dashboard/file_browser/mappings.json; curl -XPUT http://localhost:9200/analysis_file_index/_bulk?pretty --data-binary @elasticsearch.jsonl"
         print "CMD: %s" % cmd
         result = subprocess.call(cmd, shell=True)
         if (result != 0):
