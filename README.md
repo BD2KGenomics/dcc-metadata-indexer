@@ -226,8 +226,12 @@ This script runs an unlimited number of BAM file uploads at random intervals.  T
 
     cd Dashboard
     python file_query.py
+    # make sure the mappings are correct:
+    curl -XGET 'http://localhost:9200/analysis_file_index/_mapping?pretty'
     # delete old data if needed
     curl -XDELETE http://localhost:9200/analysis_file_index
+    # edit the mapping, see mappings.json and https://www.elastic.co/blog/found-elasticsearch-mapping-introduction
+    curl -XPUT 'http://localhost:9200/analysis_file_index' -d @file_browser/mappings.json
     # now load this
     curl -XPUT http://localhost:9200/analysis_file_index/_bulk?pretty --data-binary @elasticsearch.jsonl
     # check it's in es
