@@ -16,7 +16,7 @@ angular.module('multiselect.controllers', [])
 
     // point to your ElasticSearch server
     //var ejs = ejsResource('http://mzgephdfgnfskfpm.api.qbox.io');
-    var ejs = ejsResource('http://localhost:9200');
+    var ejs = ejsResource('http://ucsc-cgl.org:9200');
     var index = 'analysis_file_index';
     var type = 'meta';
     // the fields we want to facet on
