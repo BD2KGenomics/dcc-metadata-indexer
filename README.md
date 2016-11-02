@@ -1,20 +1,18 @@
-# dcc-storage-schemas
+# dcc-metadata-indexer
 
 ## Introduction
 
-This repo contains several items relate to metadata JSONs used to describe biospecimen and analysis events for the core.
+This repo contains several items relate to the metadata indexing process we use to describe biospecimen and analysis events for the core.
 
-First, there are JSON schema, see `analysis_flattened.json` and `biospecimen_flattened.json`.
+First, there are JSON schema, see `analysis_schema.json` and `metadata_schema.json`.
 
-Second, this repo contains a `generate_metadata.py` script that takes a TSV format and converts it into metadata JSON documents (and also has an option for uploading, we use this for bulk uploads to our system).
-
-This repo also contains a merge tool, `merge_gen_meta.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch.  In the long run the idea is to use this tool to do the following:
+Second, this repo contains a metadata index building tool, `merge_gen_meta.py`, responsible for creating Donor centric JSON documents suitable for loading in Elasticsearch from the content of a [Redwood](https://github.com/BD2KGenomics/dcc-redwood-storage) storage system.  The idea is to use this tool to do the following:
 
 1. query the storage system for all metadata.json
 1. group the related metadata.json documents, all the docs for a given donor are grouped together
 1. use the parent information in each document to understand where in the donor document the sub-documents should be merged
 1. call the merge tool with sub-json documents, generate a per-donor JSON document that's suitable for loading in Elasticsearch (this includes adding various "flags" that make queries easier).
-1. load in Elasticsearch, perform queries
+1. load in Elasticsearch, perform queries for the web [Dashboard](https://github.com/BD2KGenomics/dcc-dashboard) or for the [Action Service](https://github.com/BD2KGenomics/dcc-action-service)
 
 ## Install
 
@@ -43,9 +41,7 @@ Now to setup:
     source env/bin/activate
     pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi
 
-
-
-Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html)
+Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html),
  [here](http://conda.pydata.org/docs/test-drive.html), and [here](http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html)
  for more information.
 
@@ -53,57 +49,18 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
     source activate schemas-project
     pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi
 
-
-## Generate Test Metadata (and Optionally Upload Data to Storage Service)
-
-We need to create a bunch of JSON documents for multiple donors and multiple
-experimental designs and file upload types.  To do that we (Chris) developed a very simple
-TSV to JSON tool and this will ultimately form the basis of our helper applications
-that clients will use in the field to prepare their samples.
-
-    python generate_metadata.py \
-		--input-metadata-schema input_metadata.json \
-		--metadata-schema metadata_schema.json \
-		--output-dir output_metadata \
-		--receipt-file receipt.tsv \
-		--storage-access-token `cat ucsc-storage-client/accessToken` \
-		--skip-upload \
-		sample_tsv/sample.tsv
-
-  - `input_metadata.json` is a json schema used to do a very basic validation on input data.
-  - `metadata_schema.json` is a json schema used to validate output metadata.json files.
-  - `output_metadata` is the directory where the metadata files will be written.
-  - `receipt.tsv` is the upload confirmation file where assigned UUIDs are recorded. Find it in `output_metadata` after a successful upload.
-
-Take out `--skip-upload` if you want to perform upload, see below for more details.
-
-In case there are already existing bundle ID's that cause a collision on the S3 storage, you can specify the `--force-upload` switch to replace colliding bundle ID's with the current uploading version.
-
-Now look in the `output_metadata` directory for per-bundle directories that contain metadata files for each analysis workflow.
-
-### Enabling Upload
-
-By default the upload won't take place if the directory `ucsc-storage-client` is not present in the `dcc-storage-schema`
-directory.  In order to get the client, you need to be given the tarball since it contains sensitive
-information and an access key.  See our private [S3 bucket](https://s3-us-west-2.amazonaws.com/beni-dcc-storage-dev/ucsc-storage-client.tar.gz)
-for the tarball.
-
-If you have the directory setup and don't pass in `--skip-upload` the upload will take place.  Keep this in
-mind if you're just testing the metadata components and don't want to create a ton of uploads.  If you upload
-the fact data linked to from the `sample.tsv` the program and project will both be TEST which should make
-it easy to avoid in the future. The file is based on [this](https://docs.google.com/spreadsheets/d/13fqil92C-Evi-4cy_GTnzNMmrD0ssuSCx3-cveZ4k70/edit?usp=sharing) google doc.
-
 ## Run Merge and Generate Elasticsearch Index
 
-This tool takes multiple JSON files (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  It takes a list of directories that contain *.json files.  This command will read and download the json files from the endpoint. In addition to creating a `validated.jsonl` file it will also create a `endpoint_metadata/` directory that contains all of the json files that were downloaded.
+This tool takes `metadata.json` files from the Redwood storage service (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  This command will read and download the json files from the storage system endpoint. In addition to creating a `validated.jsonl` file it will also create a `endpoint_metadata/` directory that contains all of the json files that were downloaded.
 
-    python merge_gen_meta.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
+    python metadata_indexer.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
 
-This command will not download json files, instead the user will provide a directory that contains json files.
+The command below will not download json files, instead the user will provide a directory that contains json files.
 
-    python merge_gen_meta.py --only_Program TEST --only_Project TEST --test_directory output_metadata_7_20/ --metadataSchema metadata_schema.json
-    
-This produces a `validated.jsonl` and a `invalid.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.
+    python metadata_indexer.py --only_Program TEST --only_Project TEST --test_directory output_metadata_7_20/ --metadataSchema metadata_schema.json
+
+This produces a `validated.jsonl` and a `invalid.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.  It also produces an `elasticsearch.jsonl` which has the same content but is suitable for loading in Elasticsearch.
+
 Now to view the output for the first line use the following:
 
     cat validated.jsonl | head -1 | json_pp | less -S
@@ -150,7 +107,7 @@ If running esquery.py multiple times, remove the index with:
 
 ## Dashboard
 
-esquery.py will create an outfile called data.json. Add data.json along with the contents of the folder "Dashboard" to an AWS bucket and configure bucket according to the [AWS instructions on hosting a static website (steps 1, 2, and 3)] (http://docs.aws.amazon.com/gettingstarted/latest/swh/getting-started-create-bucket.html). 
+esquery.py will create an outfile called data.json. Add data.json along with the contents of the folder "Dashboard" to an AWS bucket and configure bucket according to the [AWS instructions on hosting a static website (steps 1, 2, and 3)] (http://docs.aws.amazon.com/gettingstarted/latest/swh/getting-started-create-bucket.html).
 
 To see the Dashboard, from your bucket, go to Properties, Static Website Hosting, and click on the link following "Endpoint." This directs you to index.html, with a static streamgraph (uses data.csv). Using the navagation, hover over Projects, then click Project 1 to see a bar chart using data.json.
 
