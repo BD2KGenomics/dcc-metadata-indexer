@@ -53,11 +53,11 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
 
 This tool takes `metadata.json` files from the Redwood storage service (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  This command will read and download the json files from the storage system endpoint. In addition to creating a `validated.jsonl` file it will also create a `endpoint_metadata/` directory that contains all of the json files that were downloaded.
 
-    python metadata_indexer.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
+    python metadata_indexer.py --only-program TEST --only-project TEST --storage-access-token `cat ucsc-storage-client/accessToken.2`  --client-path ucsc-storage-client/ --metadata-schema metadata_schema.json --server-host storage2.ucsc-cgl.org
 
 The command below will not download json files, instead the user will provide a directory that contains json files.
 
-    python metadata_indexer.py --only_Program TEST --only_Project TEST --test_directory output_metadata_7_20/ --metadataSchema metadata_schema.json
+    python metadata_indexer.py --only-program TEST --only-project TEST --storage-access-token `cat ucsc-storage-client/accessToken.2`  --client-path ucsc-storage-client/ --metadata-schema metadata_schema.json --server-host storage2.ucsc-cgl.org --test-directory output_metadata_7_20/
 
 This produces a `validated.jsonl` and a `invalid.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.  It also produces an `elasticsearch.jsonl` which has the same content but is suitable for loading in Elasticsearch.
 

@@ -4,7 +4,7 @@
 #   Description:This script merges metadata json files into one jsonl file. Each json object is grouped by donor and then each individual
 #   donor object is merged into one jsonl file.
 #
-#   Usage: python merge_gen_meta.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
+#   Usage: python metadata_indexer.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
 
 
 import semver
