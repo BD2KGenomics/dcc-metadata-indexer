@@ -39,7 +39,7 @@ Now to setup:
 
     virtualenv env
     source env/bin/activate
-    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi python-dateutil
 
 Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/docs/_downloads/conda-pip-virtualenv-translator.html),
  [here](http://conda.pydata.org/docs/test-drive.html), and [here](http://kylepurdon.com/blog/using-continuum-analytics-conda-as-a-replacement-for-virtualenv-pyenv-and-more.html)
@@ -47,7 +47,7 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
 
     conda create -n schemas-project python=2.7.11
     source activate schemas-project
-    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi
+    pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi python-dateutil
 
 ## Run Merge and Generate Elasticsearch Index
 
