@@ -453,10 +453,20 @@ def createFlags(uuid_to_donor):
                          'tumor_sequence': arrayMissingItems('sequence_upload',
                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                              json_object,submitter_specimen_types),
+                         'normal_sequence_qc_report': arrayMissingItems('sequence_upload_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_sequence_qc_report': arrayMissingItems('sequence_upload_qc_report',
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                             json_object,submitter_specimen_types),
+
                          'normal_alignment': arrayMissingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_alignment': arrayMissingItems('alignment',
                                                               "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                               json_object,submitter_specimen_types),
+                         'normal_alignment_qc_report': arrayMissingItems('alignment_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_alignment_qc_report': arrayMissingItems('alignment_qc_report',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                              json_object,submitter_specimen_types),
+
                          'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
@@ -468,19 +478,23 @@ def createFlags(uuid_to_donor):
 
 
         normal_sequence= len(flagsWithArrs["normal_sequence"])
+        normal_sequence_qc_report= len(flagsWithArrs["normal_sequence_qc_report"])
         normal_alignment= len(flagsWithArrs["normal_alignment"])
-        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment"])
+        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment_qc_report"])
         normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
         normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
 
         tumor_sequence= len(flagsWithArrs["tumor_sequence"])
+        tumor_sequence_qc_report= len(flagsWithArrs["tumor_sequence_qc_report"])
         tumor_alignment= len(flagsWithArrs["tumor_alignment"])
-        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment"])
+        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment_qc_report"])
         tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
         tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
 
         flagsWithStr = {'normal_sequence' :allHaveItems(normal_sequence),
+                        'normal_sequence_qc_report' :allHaveItems(normal_sequence_qc_report),
                         'tumor_sequence': allHaveItems(tumor_sequence),
+                        'tumor_sequence_qc_report' :allHaveItems(tumor_sequence_qc_report),
                         'normal_alignment': allHaveItems(normal_alignment),
                         'normal_alignment_qc_report': allHaveItems(normal_alignment_qc_report),
                         'tumor_alignment': allHaveItems(tumor_alignment),
