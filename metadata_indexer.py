@@ -412,14 +412,27 @@ def allHaveItems(lenght):
     """
     Returns the value of each flag, based on the lenght of the array in 'missing_items'.
     """
+    #print ("ALLHAVEITEMS: %s" % lenght)
     result= False
     if lenght == 0:
         result =True
-
+    #print "RESULT: %s" % result
     return result
 
 
 def arrayMissingItems(itemsName, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were missing.
+    """
+    return arrayItems(itemsName, regex, items,submitter_specimen_types, True)
+
+def arrayContainingItems(itemsName, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were present.
+    """
+    return arrayItems(itemsName, regex, items,submitter_specimen_types, False)
+
+def arrayItems(itemsName, regex, items,submitter_specimen_types, missing):
     """
     Returns a list of 'sample_uuid' for the analysis that were missing.
     """
@@ -435,13 +448,12 @@ def arrayMissingItems(itemsName, regex, items,submitter_specimen_types):
                         analysis_type = True
                         break
 
-                if not analysis_type:
+                if (missing and not analysis_type) or (not missing and analysis_type):
                     results.append(sample['sample_uuid'])
 
                 analysis_type = False
 
     return results
-
 
 def createFlags(uuid_to_donor):
     """
@@ -478,58 +490,86 @@ def createFlags(uuid_to_donor):
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                                      json_object,submitter_specimen_types)}
 
+        flagsPresentWithArrs = {'normal_sequence': arrayContainingItems('sequence_upload', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_sequence': arrayContainingItems('sequence_upload',
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                             json_object,submitter_specimen_types),
+                         'normal_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report',
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                             json_object,submitter_specimen_types),
 
-        normal_sequence= len(flagsWithArrs["normal_sequence"])
-        normal_sequence_qc_report= len(flagsWithArrs["normal_sequence_qc_report"])
-        normal_alignment= len(flagsWithArrs["normal_alignment"])
-        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment_qc_report"])
-        normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
-        normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
+                         'normal_alignment': arrayContainingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_alignment': arrayContainingItems('alignment',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                              json_object,submitter_specimen_types),
+                         'normal_alignment_qc_report': arrayContainingItems('alignment_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_alignment_qc_report': arrayContainingItems('alignment_qc_report',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                              json_object,submitter_specimen_types),
 
-        tumor_sequence= len(flagsWithArrs["tumor_sequence"])
-        tumor_sequence_qc_report= len(flagsWithArrs["tumor_sequence_qc_report"])
-        tumor_alignment= len(flagsWithArrs["tumor_alignment"])
-        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment_qc_report"])
-        tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
-        tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
+                         'normal_rnaseq_variants': arrayContainingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rnaseq_variants': arrayContainingItems('rna_seq_quantification',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                                    json_object,submitter_specimen_types),
+                         'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_somatic_variants': arrayContainingItems('somatic_variant_calling',
+                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                                     json_object,submitter_specimen_types)}
 
-        flagsWithStr = {'normal_sequence' :allHaveItems(normal_sequence),
-                        'normal_sequence_qc_report' :allHaveItems(normal_sequence_qc_report),
-                        'tumor_sequence': allHaveItems(tumor_sequence),
-                        'tumor_sequence_qc_report' :allHaveItems(tumor_sequence_qc_report),
-                        'normal_alignment': allHaveItems(normal_alignment),
-                        'normal_alignment_qc_report': allHaveItems(normal_alignment_qc_report),
-                        'tumor_alignment': allHaveItems(tumor_alignment),
-                        'tumor_alignment_qc_report': allHaveItems(tumor_alignment_qc_report),
-                        'normal_rnaseq_variants': allHaveItems(normal_rnaseq_variants),
-                        'tumor_rnaseq_variants': allHaveItems(tumor_rnaseq_variants),
-                        'normal_germline_variants': allHaveItems(normal_germline_variants),
-                        'tumor_somatic_variants': allHaveItems(tumor_somatic_variants)}
+#        normal_sequence= len(flagsWithArrs["normal_sequence"])
+#        normal_sequence_qc_report= len(flagsWithArrs["normal_sequence_qc_report"])
+#        normal_alignment= len(flagsWithArrs["normal_alignment"])
+#        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment_qc_report"])
+#        normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
+#        normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
+#
+#        tumor_sequence= len(flagsWithArrs["tumor_sequence"])
+#        tumor_sequence_qc_report= len(flagsWithArrs["tumor_sequence_qc_report"])
+#        tumor_alignment= len(flagsWithArrs["tumor_alignment"])
+#        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment_qc_report"])
+#        tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
+#        tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
 
+        flagsWithStr = {'normal_sequence' : len(flagsWithArrs["normal_sequence"]) == 0 and len(flagsPresentWithArrs["normal_sequence"]) > 0,
+                        'normal_sequence_qc_report' : len(flagsWithArrs["normal_sequence_qc_report"]) == 0 and len(flagsPresentWithArrs["normal_sequence_qc_report"]) > 0,
+                        'tumor_sequence': len(flagsWithArrs["tumor_sequence"]) == 0 and len(flagsPresentWithArrs["tumor_sequence"]) > 0,
+                        'tumor_sequence_qc_report' :len(flagsWithArrs["tumor_sequence_qc_report"]) == 0 and len(flagsPresentWithArrs["tumor_sequence_qc_report"]) > 0,
+                        'normal_alignment': len(flagsWithArrs["normal_alignment"]) == 0 and len(flagsPresentWithArrs["normal_alignment"]) > 0,
+                        'normal_alignment_qc_report': len(flagsWithArrs["normal_alignment_qc_report"]) == 0 and len(flagsPresentWithArrs["normal_alignment_qc_report"]) > 0,
+                        'tumor_alignment': len(flagsWithArrs["tumor_alignment"]) == 0 and len(flagsPresentWithArrs["tumor_alignment"]) > 0,
+                        'tumor_alignment_qc_report': len(flagsWithArrs["tumor_alignment_qc_report"]) == 0 and len(flagsPresentWithArrs["tumor_alignment_qc_report"]) > 0,
+                        'normal_rnaseq_variants': len(flagsWithArrs["normal_rnaseq_variants"]) == 0 and len(flagsPresentWithArrs["normal_rnaseq_variants"]) > 0,
+                        'tumor_rnaseq_variants': len(flagsWithArrs["tumor_rnaseq_variants"]) == 0 and len(flagsPresentWithArrs["tumor_rnaseq_variants"]) > 0,
+                        'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
+                        'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
+
+        # TODO: I have no idea what Jean was doing here. I don't think it's appropriate to hack on the flags in this way. --Brian
         # If there is a normal submitter_specimen_types then "normal_type" will be true.
         # Similarly if there is a tumor submitter_specimen_types then "normal_type" will be true.
-        normal_type= False
-        tumor_type= False
-        for specimen_type in submitter_specimen_types:
-            if re.search("^Normal - ",specimen_type):
-                normal_type= True
-            else:
-                tumor_type= True
-
-        if not normal_type:
-            flagsWithStr["normal_sequence"]= False
-            flagsWithStr["normal_alignment"]= False
-            flagsWithStr["normal_rnaseq_variants"]= False
-            flagsWithStr["normal_germline_variants"]= False
-
-        if not tumor_type:
-            flagsWithStr["tumor_sequence"]= False
-            flagsWithStr["tumor_alignment"]= False
-            flagsWithStr["tumor_rnaseq_variants"]= False
-            flagsWithStr["tumor_somatic_variants"]= False
+#        normal_type= False
+#        tumor_type= False
+#        for specimen_type in submitter_specimen_types:
+#            if re.search("#Normal - ",specimen_type):
+#                normal_type= True
+#            else:
+#                tumor_type= True
+#
+#        if not normal_type:
+#            flagsWithStr["normal_sequence"]= False
+#            flagsWithStr["normal_alignment"]= False
+#            flagsWithStr["normal_rnaseq_variants"]= False
+#            flagsWithStr["normal_germline_variants"]= False
+#
+#        if not tumor_type:
+#            flagsWithStr["tumor_sequence"]= False
+#            flagsWithStr["tumor_alignment"]= False
+#            flagsWithStr["tumor_rnaseq_variants"]= False
+#            flagsWithStr["tumor_somatic_variants"]= False
 
         json_object['flags'] = flagsWithStr
         json_object['missing_items'] = flagsWithArrs
+        json_object['present_items'] = flagsPresentWithArrs
 
 
 def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
