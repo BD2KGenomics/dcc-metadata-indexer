@@ -145,6 +145,8 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
             command.append("--output-layout")
             command.append("bundle")
 
+            #print " ".join(command)
+
             try:
                 c_data=Popen(command, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = c_data.communicate()
