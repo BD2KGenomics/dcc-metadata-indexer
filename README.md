@@ -183,6 +183,10 @@ we use the Codelists (controlled vocabularies) from the ICGC.  See http://docs.i
 
 In the future we will validate metadata JSON against these codelists.
 
+### DateTime
+
+We should standardize on [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) for string representations.
+
 ### Sample Types:
 
 * dna normal
