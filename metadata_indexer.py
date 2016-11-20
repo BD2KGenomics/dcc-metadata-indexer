@@ -650,8 +650,8 @@ def main():
         exit(1)
 
     schema_version= schema["definitions"]["schema_version"]["pattern"]
-    sche_version= schema_version.replace("^","")
-    schema_version= sche_version.replace("$","")
+    #sche_version= schema_version.replace("^","")
+    #schema_version= sche_version.replace("$","")
     logging.info("Schema Version: %s" % schema_version)
     print "Schema Version: ",schema_version
     data_arr = []
@@ -702,7 +702,8 @@ def main():
     valid_version_arr= []
     for donor_object in donorLevelObjs:
         obj_schema_version= donor_object["schema_version"]
-        if obj_schema_version != schema_version:
+	p = re.compile(schema_version)
+        if not p.match(obj_schema_version):
             invalid_version_arr.append(donor_object)
         else:
             valid_version_arr.append(donor_object)
