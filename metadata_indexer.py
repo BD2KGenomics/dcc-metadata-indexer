@@ -268,10 +268,7 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
 
                             saved_version = analysisObj["workflow_version"]
                             # current is older than new
-                            if semver.compare(saved_version, new_workflow_version) == -1:
-                                sample["analysis"].remove(analysisObj)
-                                sample["analysis"].append(detachedObjs)
-                            if semver.compare(saved_version, new_workflow_version) == 0:
+                            if saved_version == new_workflow_version:
                                 # use the timestamp
                                 if "timestamp" in detachedObjs and "timestamp" in analysisObj:
                                     saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
@@ -281,6 +278,11 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                                     if timestamp_diff.total_seconds() < 0:
                                         sample["analysis"].remove(analysisObj)
                                         sample["analysis"].append(detachedObjs)
+                            elif semver.compare(saved_version, new_workflow_version) == -1:
+                                sample["analysis"].remove(analysisObj)
+                                sample["analysis"].append(detachedObjs)
+                            #if semver.compare(saved_version, new_workflow_version) == 0:
+
 
             timestamp_diff = donor_timestamp - de_timestamp
             if timestamp_diff.total_seconds() < 0:
