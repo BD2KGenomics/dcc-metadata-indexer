@@ -57,7 +57,7 @@ This tool takes `metadata.json` files from the Redwood storage service (see abov
 
 The command below will not download json files, instead the user will provide a directory that contains json files.
 
-    python metadata_indexer.py --only-program TEST --only-project TEST --storage-access-token `cat ucsc-storage-client/accessToken.2`  --client-path ucsc-storage-client/ --metadata-schema metadata_schema.json --server-host storage2.ucsc-cgl.org --test-directory output_metadata_7_20/
+    python metadata_indexer.py --only-program TEST --only-project TEST --storage-access-token `cat ucsc-storage-client/accessToken`  --client-path ucsc-storage-client/ --metadata-schema metadata_schema.json --server-host storage2.ucsc-cgl.org --test-directory output_metadata_7_20/
 
 This produces a `validated.jsonl` and a `invalid.jsonl` file which is actually a JSONL file, e.g. each line is a JSON document.  It also produces an `elasticsearch.jsonl` which has the same content but is suitable for loading in Elasticsearch.
 
@@ -202,6 +202,7 @@ This will need to be incorporated into changes to the index builder.
 * each workflow JSON needs a timestamp
 * command line tool would merge the docs, taking the "level" at which each document will be merged in at
     * donor, sample, specimen
+* need to refresh the schema document, there are more constraints to be added
 
 In the future, look at adding options here for specifying where files should be merged:
 

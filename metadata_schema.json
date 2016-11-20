@@ -34,7 +34,7 @@
             "properties": {
                 "analysis_type": {
                     "description": "The analysis type needs to be tightly controlled because it is used in the metadata merging script to assign flags.",
-                    "enum": ["sequence_upload", "alignment", "rna_seq_quantification", "germline_variant_calling", "somatic_variant_calling", "immuno_target_pipelines"]
+                    "enum": ["qc", "sequence_upload", "sequence_upload_qc_report", "alignment", "alignment_qc_report", "rna_seq_quantification", "germline_variant_calling", "somatic_variant_calling", "immuno_target_pipelines"]
                 },
                 "parent_uuids": {
                     "description": "parent UUIDs for this workflow",
