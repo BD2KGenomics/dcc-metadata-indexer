@@ -17,6 +17,7 @@ import jsonschema
 import datetime
 import re
 import dateutil
+import ssl
 import dateutil.parser
 from urllib import urlopen
 from subprocess import Popen, PIPE
@@ -612,7 +613,11 @@ def main():
         obj_arr=[]
 
         # figure out the pages
-        json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0")).read()
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0"), context=ctx).read()
+ # json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0")).read()
         metadata_struct = json.loads(json_str)
 
         # Download all of the data that is stored.

@@ -88,7 +88,10 @@
                     "pattern": "^Recurrent tumour -"
                 }, {
                     "pattern": "^Metastatic tumour -"
-                }
+                }, {
+		    "pattern": "^Cell line -"
+		}
+		
             ]
         }
     },
