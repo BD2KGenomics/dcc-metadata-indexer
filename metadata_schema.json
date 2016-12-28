@@ -160,7 +160,7 @@
         "missing_items": {
             "description": "record parent_uuids of missing items",
             "type": "object",
-            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment" , "normal_germline_variants" , "tumor_somatic_variants", "normal_rnaseq_variants" , "tumor_rnaseq_variants"],
+            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment" , "normal_germline_variants" , "tumor_somatic_variants", "normal_rna_seq_quantification" , "tumor_rna_seq_quantification"],
             "properties": {
                 "normal_sequence": {
                     "type": "array",
@@ -198,13 +198,13 @@
                         "$ref": "#/definitions/uuid"
                     }
                 },
-                "normal_rnaseq_variants": {
+                "normal_rna_seq_quantification": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/uuid"
                     }
                 },
-                "tumor_rnaseq_variants": {
+                "tumor_rna_seq_quantification": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/uuid"
@@ -215,7 +215,7 @@
         "flags": {
             "description": "Indicate whether or not a workflow is complete",
             "type": "object",
-            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment", "normal_rnaseq_variants" , "tumor_rnaseq_variants", "normal_germline_variants", "tumor_somatic_variants"],
+            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment", "normal_rna_seq_quantification" , "tumor_rna_seq_quantification", "normal_germline_variants", "tumor_somatic_variants"],
             "properties": {
                 "normal_sequence": {
                     "type": "boolean"
@@ -229,10 +229,10 @@
                 "tumor_alignment": {
                     "type": "boolean"
                 },
-                "normal_rnaseq_variants": {
+                "normal_rna_seq_quantification": {
                     "type": "boolean"
                 },
-                "tumor_rnaseq_variants": {
+                "tumor_rna_seq_quantification": {
                     "type": "boolean"
                 },
                 "normal_germline_variants": {

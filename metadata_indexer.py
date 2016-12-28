@@ -484,8 +484,8 @@ def createFlags(uuid_to_donor):
                                                               "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                               json_object,submitter_specimen_types),
 
-                         'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification',
+                         'normal_rna_seq_quantification': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_quantification': arrayMissingItems('rna_seq_quantification',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                                     json_object,submitter_specimen_types),
                          'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
@@ -511,8 +511,8 @@ def createFlags(uuid_to_donor):
                                                               "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                               json_object,submitter_specimen_types),
 
-                         'normal_rnaseq_variants': arrayContainingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rnaseq_variants': arrayContainingItems('rna_seq_quantification',
+                         'normal_rna_seq_quantification': arrayContainingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_quantification': arrayContainingItems('rna_seq_quantification',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
                                                                     json_object,submitter_specimen_types),
                          'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
@@ -524,14 +524,14 @@ def createFlags(uuid_to_donor):
 #        normal_sequence_qc_report= len(flagsWithArrs["normal_sequence_qc_report"])
 #        normal_alignment= len(flagsWithArrs["normal_alignment"])
 #        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment_qc_report"])
-#        normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
+#        normal_rna_seq_quantification= len(flagsWithArrs["normal_rna_seq_quantification"])
 #        normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
 #
 #        tumor_sequence= len(flagsWithArrs["tumor_sequence"])
 #        tumor_sequence_qc_report= len(flagsWithArrs["tumor_sequence_qc_report"])
 #        tumor_alignment= len(flagsWithArrs["tumor_alignment"])
 #        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment_qc_report"])
-#        tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
+#        tumor_rna_seq_quantification= len(flagsWithArrs["tumor_rna_seq_quantification"])
 #        tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
 
         flagsWithStr = {'normal_sequence' : len(flagsWithArrs["normal_sequence"]) == 0 and len(flagsPresentWithArrs["normal_sequence"]) > 0,
@@ -542,8 +542,8 @@ def createFlags(uuid_to_donor):
                         'normal_alignment_qc_report': len(flagsWithArrs["normal_alignment_qc_report"]) == 0 and len(flagsPresentWithArrs["normal_alignment_qc_report"]) > 0,
                         'tumor_alignment': len(flagsWithArrs["tumor_alignment"]) == 0 and len(flagsPresentWithArrs["tumor_alignment"]) > 0,
                         'tumor_alignment_qc_report': len(flagsWithArrs["tumor_alignment_qc_report"]) == 0 and len(flagsPresentWithArrs["tumor_alignment_qc_report"]) > 0,
-                        'normal_rnaseq_variants': len(flagsWithArrs["normal_rnaseq_variants"]) == 0 and len(flagsPresentWithArrs["normal_rnaseq_variants"]) > 0,
-                        'tumor_rnaseq_variants': len(flagsWithArrs["tumor_rnaseq_variants"]) == 0 and len(flagsPresentWithArrs["tumor_rnaseq_variants"]) > 0,
+                        'normal_rna_seq_quantification': len(flagsWithArrs["normal_rna_seq_quantification"]) == 0 and len(flagsPresentWithArrs["normal_rna_seq_quantification"]) > 0,
+                        'tumor_rna_seq_quantification': len(flagsWithArrs["tumor_rna_seq_quantification"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_quantification"]) > 0,
                         'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
                         'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
 
@@ -561,13 +561,13 @@ def createFlags(uuid_to_donor):
 #        if not normal_type:
 #            flagsWithStr["normal_sequence"]= False
 #            flagsWithStr["normal_alignment"]= False
-#            flagsWithStr["normal_rnaseq_variants"]= False
+#            flagsWithStr["normal_rna_seq_quantification"]= False
 #            flagsWithStr["normal_germline_variants"]= False
 #
 #        if not tumor_type:
 #            flagsWithStr["tumor_sequence"]= False
 #            flagsWithStr["tumor_alignment"]= False
-#            flagsWithStr["tumor_rnaseq_variants"]= False
+#            flagsWithStr["tumor_rna_seq_quantification"]= False
 #            flagsWithStr["tumor_somatic_variants"]= False
 
         json_object['flags'] = flagsWithStr
