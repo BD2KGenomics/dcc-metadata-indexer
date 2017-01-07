@@ -65,3 +65,4 @@ target/
 output_metadata
 ucsc-storage-client
 ucsc-storage2-client
+.DS_Store
