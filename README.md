@@ -49,6 +49,11 @@ Alternatively, you may want to use Conda, see [here](http://conda.pydata.org/doc
     source activate schemas-project
     pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi python-dateutil
 
+### Redwood Client
+
+In order to get the client, you need to be given an access key and download our client tarball.  See our public [S3 bucket](https://s3-us-west-2.amazonaws.com/beni-dcc-storage-dev/20161216_ucsc-storage-client.tar.gz)
+for the tarball.
+
 ## Run Merge and Generate Elasticsearch Index
 
 This tool takes `metadata.json` files from the Redwood storage service (see above) and merges them so we can have a donor-oriented single JSON document suitable for indexing in Elasticsearch.  This command will read and download the json files from the storage system endpoint. In addition to creating a `validated.jsonl` file it will also create a `endpoint_metadata/` directory that contains all of the json files that were downloaded.
