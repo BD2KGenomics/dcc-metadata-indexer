@@ -11,6 +11,7 @@ import semver
 import logging
 import os
 import os.path
+import platform
 import argparse
 import json
 import jsonschema
@@ -123,8 +124,11 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     logging.info('Begin Download.')
     print "downloading metadata..."
     for content_id in id_to_content:
-        if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"):
-            print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"
+        file_create_time_server = id_to_content[content_id]["content"]["createdTime"]
+        if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") and \
+                creation_date(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") == file_create_time_server/1000:
+            print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json created on "+str(file_create_time_server)
+            #os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json", (file_create_time_server/1000, file_create_time_server/1000))
         else:
             print "  + downloading "+content_id
             # build command string
@@ -151,11 +155,32 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
             try:
                 c_data=Popen(command, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = c_data.communicate()
+                # now set the create timestamp
+                os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
+                         (file_create_time_server/1000, file_create_time_server/1000))
             except Exception:
                 logging.error('Error while downloading file with content ID: %s' % content_id)
                 print 'Error while downloading file with content ID: %s' % content_id
 
+
     logging.info('End Download.')
+
+def creation_date(path_to_file):
+    """
+    Try to get the date that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    """
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime
 
 def load_json_obj(json_path):
     """
@@ -520,20 +545,6 @@ def createFlags(uuid_to_donor):
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                      json_object,submitter_specimen_types)}
 
-#        normal_sequence= len(flagsWithArrs["normal_sequence"])
-#        normal_sequence_qc_report= len(flagsWithArrs["normal_sequence_qc_report"])
-#        normal_alignment= len(flagsWithArrs["normal_alignment"])
-#        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment_qc_report"])
-#        normal_rna_seq_quantification= len(flagsWithArrs["normal_rna_seq_quantification"])
-#        normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
-#
-#        tumor_sequence= len(flagsWithArrs["tumor_sequence"])
-#        tumor_sequence_qc_report= len(flagsWithArrs["tumor_sequence_qc_report"])
-#        tumor_alignment= len(flagsWithArrs["tumor_alignment"])
-#        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment_qc_report"])
-#        tumor_rna_seq_quantification= len(flagsWithArrs["tumor_rna_seq_quantification"])
-#        tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
-
         flagsWithStr = {'normal_sequence' : len(flagsWithArrs["normal_sequence"]) == 0 and len(flagsPresentWithArrs["normal_sequence"]) > 0,
                         'normal_sequence_qc_report' : len(flagsWithArrs["normal_sequence_qc_report"]) == 0 and len(flagsPresentWithArrs["normal_sequence_qc_report"]) > 0,
                         'tumor_sequence': len(flagsWithArrs["tumor_sequence"]) == 0 and len(flagsPresentWithArrs["tumor_sequence"]) > 0,
@@ -546,29 +557,6 @@ def createFlags(uuid_to_donor):
                         'tumor_rna_seq_quantification': len(flagsWithArrs["tumor_rna_seq_quantification"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_quantification"]) > 0,
                         'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
                         'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
-
-        # TODO: I have no idea what Jean was doing here. I don't think it's appropriate to hack on the flags in this way. --Brian
-        # If there is a normal submitter_specimen_types then "normal_type" will be true.
-        # Similarly if there is a tumor submitter_specimen_types then "normal_type" will be true.
-#        normal_type= False
-#        tumor_type= False
-#        for specimen_type in submitter_specimen_types:
-#            if re.search("#Normal - ",specimen_type):
-#                normal_type= True
-#            else:
-#                tumor_type= True
-#
-#        if not normal_type:
-#            flagsWithStr["normal_sequence"]= False
-#            flagsWithStr["normal_alignment"]= False
-#            flagsWithStr["normal_rna_seq_quantification"]= False
-#            flagsWithStr["normal_germline_variants"]= False
-#
-#        if not tumor_type:
-#            flagsWithStr["tumor_sequence"]= False
-#            flagsWithStr["tumor_alignment"]= False
-#            flagsWithStr["tumor_rna_seq_quantification"]= False
-#            flagsWithStr["tumor_somatic_variants"]= False
 
         json_object['flags'] = flagsWithStr
         json_object['missing_items'] = flagsWithArrs
@@ -617,7 +605,6 @@ def main():
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0"), context=ctx).read()
- # json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0")).read()
         metadata_struct = json.loads(json_str)
 
         # Download all of the data that is stored.
@@ -709,7 +696,7 @@ def main():
     valid_version_arr= []
     for donor_object in donorLevelObjs:
         obj_schema_version= donor_object["schema_version"]
-	p = re.compile(schema_version)
+        p = re.compile(schema_version)
         if not p.match(obj_schema_version):
             invalid_version_arr.append(donor_object)
         else:
