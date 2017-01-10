@@ -33,6 +33,7 @@ def input_Options():
     """
     parser = argparse.ArgumentParser(description='Directory that contains Json files.')
     parser.add_argument('-d', '--test-directory', help='Directory that contains the json metadata files')
+    parser.add_argument('-u', '--skip-uuid-directory', help='Directory that contains files with file uuids (one per line, file ending with .redacted) that represent metadata.json that should be skipped, useful for redacting content (but not deleting it)')
     parser.add_argument('-m', '--metadata-schema', help='File that contains the metadata schema')
     parser.add_argument('-s', '--skip-program', help='Lets user skip certain json files that contain a specific program test')
     parser.add_argument('-o', '--only-program', help='Lets user include certain json files that contain a specific program  test')
@@ -196,7 +197,7 @@ def load_json_obj(json_path):
     return json_obj
 
 
-def load_json_arr(input_dir, data_arr):
+def load_json_arr(input_dir, data_arr, redacted):
     """
     :param input_dir: Directory that contains the json files.
     :param data_arr: Empty array.
@@ -208,7 +209,8 @@ def load_json_arr(input_dir, data_arr):
         current_folder = os.path.join(input_dir, folder)
         if os.path.isdir(current_folder):
             for file in os.listdir(current_folder):
-                if file.endswith(".json"):
+                file_uuid = file.split('.')[-2]
+                if file.endswith(".json") and not redacted[file_uuid]:
                     current_file = os.path.join(current_folder, file)
                     try:
                         json_obj = load_json_obj(current_file)
@@ -585,10 +587,27 @@ def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
                 json.dump(donor, outfile)
                 outfile.write('\n')
 
+def findRedactedUuids(skip_uuid_directory):
+    """
+    Creates a dict of file UUIDs that need to be skipped
+    """
+    result = {}
+    for file in os.listdir(skip_uuid_directory):
+        if file.endswith(".redacted"):
+            current_file = os.path.join(skip_uuid_directory, file)
+            f = open(current_file, "r")
+            for line in f.readlines():
+                result[line] = True
+            f.close()
+    return result
 
 def main():
     args = input_Options()
     directory_meta = args.test_directory
+
+    # redacted metadata.json file UUIDs
+    skip_uuid_directory = args.skip_uuid_directory
+    skip_uuids = findRedactedUuids(skip_uuid_directory)
 
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
@@ -651,7 +670,7 @@ def main():
     data_arr = []
 
     # Loads the json files and stores them into an array.
-    load_json_arr(directory_meta, data_arr)
+    load_json_arr(directory_meta, data_arr, skip_uuids)
 
 
     donorLevelObjs = []
