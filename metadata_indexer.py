@@ -33,7 +33,7 @@ def input_Options():
     """
     parser = argparse.ArgumentParser(description='Directory that contains Json files.')
     parser.add_argument('-d', '--test-directory', help='Directory that contains the json metadata files')
-    parser.add_argument('-u', '--skip-uuid-directory', help='Directory that contains files with file uuids (one per line, file ending with .redacted) that represent metadata.json that should be skipped, useful for redacting content (but not deleting it)')
+    parser.add_argument('-u', '--skip-uuid-directory', help='Directory that contains files with file uuids (bundle uuids, one per line, file ending with .redacted) that represent databundles that should be skipped, useful for redacting content (but not deleting it)')
     parser.add_argument('-m', '--metadata-schema', help='File that contains the metadata schema')
     parser.add_argument('-s', '--skip-program', help='Lets user skip certain json files that contain a specific program test')
     parser.add_argument('-o', '--only-program', help='Lets user include certain json files that contain a specific program  test')
@@ -209,8 +209,7 @@ def load_json_arr(input_dir, data_arr, redacted):
         current_folder = os.path.join(input_dir, folder)
         if os.path.isdir(current_folder):
             for file in os.listdir(current_folder):
-                file_uuid = file.split('.')[-2]
-                if file.endswith(".json") and not redacted[file_uuid]:
+                if file.endswith(".json") and folder not in redacted:
                     current_file = os.path.join(current_folder, file)
                     try:
                         json_obj = load_json_obj(current_file)
@@ -592,13 +591,15 @@ def findRedactedUuids(skip_uuid_directory):
     Creates a dict of file UUIDs that need to be skipped
     """
     result = {}
-    for file in os.listdir(skip_uuid_directory):
-        if file.endswith(".redacted"):
-            current_file = os.path.join(skip_uuid_directory, file)
-            f = open(current_file, "r")
-            for line in f.readlines():
-                result[line] = True
-            f.close()
+    if skip_uuid_directory is not None:
+        for file in os.listdir(skip_uuid_directory):
+            if file.endswith(".redacted"):
+                current_file = os.path.join(skip_uuid_directory, file)
+                f = open(current_file, "r")
+                for line in f.readlines():
+                    result[line.rstrip()] = True
+                f.close()
+    print result
     return result
 
 def main():
