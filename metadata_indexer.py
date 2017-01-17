@@ -484,6 +484,42 @@ def arrayItems(itemsName, regex, items,submitter_specimen_types, missing):
 
     return results
 
+
+def arrayMissingItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were missing.
+    """
+    return arrayItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types, True)
+
+def arrayContainingItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were present.
+    """
+    return arrayItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types, False)
+
+def arrayItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types, missing):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were missing.
+    """
+    analysis_type = False
+    results = []
+    for specimen in items['specimen']:
+        if re.search(regex, specimen['submitter_specimen_type']):
+            submitter_specimen_types.append(specimen['submitter_specimen_type'])
+            for sample in specimen['samples']:
+                for analysis in sample['analysis']:
+
+                    if analysis["workflow_name"] == workflow_name and re.search(workflow_version_regex, analysis["workflow_version"]):
+                        analysis_type = True
+                        break
+
+                if (missing and not analysis_type) or (not missing and analysis_type):
+                    results.append(sample['sample_uuid'])
+
+                analysis_type = False
+
+    return results
+
 def createFlags(uuid_to_donor):
     """
     uuid_to_donor: dictionary that maps uuid with its json object.
@@ -514,6 +550,12 @@ def createFlags(uuid_to_donor):
                          'tumor_rna_seq_quantification': arrayMissingItems('rna_seq_quantification',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
+
+                         'normal_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
                          'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
@@ -541,6 +583,12 @@ def createFlags(uuid_to_donor):
                          'tumor_rna_seq_quantification': arrayContainingItems('rna_seq_quantification',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
+
+                         'normal_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
                          'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayContainingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
@@ -556,6 +604,9 @@ def createFlags(uuid_to_donor):
                         'tumor_alignment_qc_report': len(flagsWithArrs["tumor_alignment_qc_report"]) == 0 and len(flagsPresentWithArrs["tumor_alignment_qc_report"]) > 0,
                         'normal_rna_seq_quantification': len(flagsWithArrs["normal_rna_seq_quantification"]) == 0 and len(flagsPresentWithArrs["normal_rna_seq_quantification"]) > 0,
                         'tumor_rna_seq_quantification': len(flagsWithArrs["tumor_rna_seq_quantification"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_quantification"]) > 0,
+                        'normal_rna_seq_cgl_workflow_3_0_x': len(flagsWithArrs["normal_rna_seq_cgl_workflow_3_0_x"]) == 0 and len(flagsPresentWithArrs["normal_rna_seq_cgl_workflow_3_0_x"]) > 0,
+                        'tumor_rna_seq_cgl_workflow_3_0_x': len(flagsWithArrs["tumor_rna_seq_cgl_workflow_3_0_x"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_cgl_workflow_3_0_x"]) > 0,
+
                         'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
                         'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
 
