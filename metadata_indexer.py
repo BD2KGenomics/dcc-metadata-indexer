@@ -42,6 +42,7 @@ def input_Options():
     parser.add_argument('-a', '--storage-access-token', default="NA", help='Storage access token to download the metadata.json files')
     parser.add_argument('-c', '--client-path', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
     parser.add_argument('-n', '--server-host', default="storage.ucsc-cgl.org", help='hostname for the storage service')
+    parser.add_argument('-preserve-version',action='store_true', default=False, help='Keep all copies of analysis events')
 
     args = parser.parse_args()
     return args
@@ -113,6 +114,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     storageUrl= "https://"+args.server_host+":5431"
     trustStore = os.path.join(client_Path,"ssl/cacerts")
     trustStorePw = "changeit"
+
 
     # If the path is not correct then the download and merge will not be performed.
     if not os.path.isfile(metadataClientJar):
@@ -245,7 +247,7 @@ def validate_json(json_obj,schema):
     return True
 
 
-def insert_detached_metadata(detachedObjs, uuid_mapping):
+def insert_detached_metadata(detachedObjs, uuid_mapping, preserve_version=False):
     """
     Inserts a Analysis object, that contains a parent ID, to its respective donor object.
     """
@@ -291,24 +293,27 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                             # compare 2 analysis to keep only most relevant one
                             # saved is analysisObj
                             # currently being considered is new_analysis
-                            new_workflow_version = detachedObjs["workflow_version"]
-
-                            saved_version = analysisObj["workflow_version"]
-                            # current is older than new
-                            if saved_version == new_workflow_version:
-                                # use the timestamp
-                                if "timestamp" in detachedObjs and "timestamp" in analysisObj:
-                                    saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
-                                    new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
-
-                                    timestamp_diff = saved_timestamp - new_timestamp
-                                    if timestamp_diff.total_seconds() < 0:
-                                        sample["analysis"].remove(analysisObj)
-                                        sample["analysis"].append(detachedObjs)
-                            elif semver.compare(saved_version, new_workflow_version) == -1:
-                                sample["analysis"].remove(analysisObj)
+                            if preserve_version:
                                 sample["analysis"].append(detachedObjs)
-                            #if semver.compare(saved_version, new_workflow_version) == 0:
+                            else:
+                                new_workflow_version = detachedObjs["workflow_version"]
+
+                                saved_version = analysisObj["workflow_version"]
+                                # current is older than new
+                                if saved_version == new_workflow_version:
+                                    # use the timestamp
+                                    if "timestamp" in detachedObjs and "timestamp" in analysisObj:
+                                        saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
+                                        new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
+
+                                        timestamp_diff = saved_timestamp - new_timestamp
+                                        if timestamp_diff.total_seconds() < 0:
+                                            sample["analysis"].remove(analysisObj)
+                                            sample["analysis"].append(detachedObjs)
+                                elif semver.compare(saved_version, new_workflow_version) == -1:
+                                    sample["analysis"].remove(analysisObj)
+                                    sample["analysis"].append(detachedObjs)
+                                #if semver.compare(saved_version, new_workflow_version) == 0:
 
 
             timestamp_diff = donor_timestamp - de_timestamp
@@ -660,6 +665,7 @@ def main():
     # redacted metadata.json file UUIDs
     skip_uuid_directory = args.skip_uuid_directory
     skip_uuids = findRedactedUuids(skip_uuid_directory)
+    preserve_version = args.preserve_version
 
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
@@ -778,7 +784,7 @@ def main():
     # Inserts the detached analysis to the merged donor obj.
     uuid_mapping = mergeDonors(valid_version_arr)
     for de_obj in detachedObjs:
-        insert_detached_metadata(de_obj, uuid_mapping)
+        insert_detached_metadata(de_obj, uuid_mapping, preserve_version)
 
     # Creates and adds the flags and missingItems to each donor obj.
     createFlags(uuid_mapping)
