@@ -321,7 +321,7 @@ def insert_detached_metadata(detachedObjs, uuid_mapping, preserve_version=False)
                 donor_obj["timestamp"] = detachedObjs["timestamp"]
 
 
-def mergeDonors(metadataObjs):
+def mergeDonors(metadataObjs, preserve_version):
     '''
     Merge data bundle metadata.json objects into correct donor objects.
     '''
@@ -380,7 +380,7 @@ def mergeDonors(metadataObjs):
                         if analysis_type == savedAnalysisType:
                             analysisObj = savedBundle
 
-                    if not analysis_type in savedAnalysisTypes:
+                    if not analysis_type in savedAnalysisTypes or preserve_version:
                         sampleObj["analysis"].append(bundle)
 
                         # timestamp mapping
@@ -666,6 +666,7 @@ def main():
     skip_uuid_directory = args.skip_uuid_directory
     skip_uuids = findRedactedUuids(skip_uuid_directory)
     preserve_version = args.preserve_version
+    print(preserve_version)
 
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
@@ -782,7 +783,7 @@ def main():
     print len(valid_version_arr), " valid donor objects with correct schema version."
 
     # Inserts the detached analysis to the merged donor obj.
-    uuid_mapping = mergeDonors(valid_version_arr)
+    uuid_mapping = mergeDonors(valid_version_arr, preserve_version)
     for de_obj in detachedObjs:
         insert_detached_metadata(de_obj, uuid_mapping, preserve_version)
 
