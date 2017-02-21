@@ -666,7 +666,6 @@ def main():
     skip_uuid_directory = args.skip_uuid_directory
     skip_uuids = findRedactedUuids(skip_uuid_directory)
     preserve_version = args.preserve_version
-    print(preserve_version)
 
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
