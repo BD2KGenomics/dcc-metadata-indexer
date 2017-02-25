@@ -808,7 +808,7 @@ def main():
         print  "%s merged json objects were valid." % (validated_num)
     if preserve_version:
         dumpResult(validated, "duped_validated.jsonl")
-        dumpResult(validated, 'duped_elasticsearch.jsonl')
+        dumpResult(validated, 'duped_elasticsearch.jsonl', ES_file_name="duped_elasticsearch.jsonl")
         logging.info("All done, find index in duped_elasticsearch.jsonl")
         print "All done, find index in duped_elasticsearch.jsonl"
     else:
