@@ -4,19 +4,21 @@
 #   Description:This script merges metadata json files into one jsonl file. Each json object is grouped by donor and then each individual
 #   donor object is merged into one jsonl file.
 #
-#   Usage: python merge_gen_meta.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
+#   Usage: python metadata_indexer.py --only_Program TEST --only_Project TEST --awsAccessToken `cat ucsc-storage-client/accessToken`  --clientPath ucsc-storage-client/ --metadataSchema metadata_schema.json
 
 
 import semver
 import logging
 import os
 import os.path
+import platform
 import argparse
 import json
 import jsonschema
 import datetime
 import re
 import dateutil
+import ssl
 import dateutil.parser
 from urllib import urlopen
 from subprocess import Popen, PIPE
@@ -31,6 +33,7 @@ def input_Options():
     """
     parser = argparse.ArgumentParser(description='Directory that contains Json files.')
     parser.add_argument('-d', '--test-directory', help='Directory that contains the json metadata files')
+    parser.add_argument('-u', '--skip-uuid-directory', help='Directory that contains files with file uuids (bundle uuids, one per line, file ending with .redacted) that represent databundles that should be skipped, useful for redacting content (but not deleting it)')
     parser.add_argument('-m', '--metadata-schema', help='File that contains the metadata schema')
     parser.add_argument('-s', '--skip-program', help='Lets user skip certain json files that contain a specific program test')
     parser.add_argument('-o', '--only-program', help='Lets user include certain json files that contain a specific program  test')
@@ -39,6 +42,7 @@ def input_Options():
     parser.add_argument('-a', '--storage-access-token', default="NA", help='Storage access token to download the metadata.json files')
     parser.add_argument('-c', '--client-path', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
     parser.add_argument('-n', '--server-host', default="storage.ucsc-cgl.org", help='hostname for the storage service')
+    parser.add_argument('-preserve-version',action='store_true', default=False, help='Keep all copies of analysis events')
 
     args = parser.parse_args()
     return args
@@ -111,6 +115,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     trustStore = os.path.join(client_Path,"ssl/cacerts")
     trustStorePw = "changeit"
 
+
     # If the path is not correct then the download and merge will not be performed.
     if not os.path.isfile(metadataClientJar):
         logging.critical("File not found: %s. Path may not be correct: %s" % (metadataClientJar,client_Path))
@@ -122,8 +127,11 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
     logging.info('Begin Download.')
     print "downloading metadata..."
     for content_id in id_to_content:
-        if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"):
-            print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"
+        file_create_time_server = id_to_content[content_id]["content"]["createdTime"]
+        if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") and \
+                creation_date(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") == file_create_time_server/1000:
+            print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json created on "+str(file_create_time_server)
+            #os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json", (file_create_time_server/1000, file_create_time_server/1000))
         else:
             print "  + downloading "+content_id
             # build command string
@@ -145,14 +153,37 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
             command.append("--output-layout")
             command.append("bundle")
 
+            #print " ".join(command)
+
             try:
                 c_data=Popen(command, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = c_data.communicate()
+                # now set the create timestamp
+                os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
+                         (file_create_time_server/1000, file_create_time_server/1000))
             except Exception:
                 logging.error('Error while downloading file with content ID: %s' % content_id)
                 print 'Error while downloading file with content ID: %s' % content_id
 
+
     logging.info('End Download.')
+
+def creation_date(path_to_file):
+    """
+    Try to get the date that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    """
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime
 
 def load_json_obj(json_path):
     """
@@ -168,7 +199,7 @@ def load_json_obj(json_path):
     return json_obj
 
 
-def load_json_arr(input_dir, data_arr):
+def load_json_arr(input_dir, data_arr, redacted):
     """
     :param input_dir: Directory that contains the json files.
     :param data_arr: Empty array.
@@ -180,7 +211,7 @@ def load_json_arr(input_dir, data_arr):
         current_folder = os.path.join(input_dir, folder)
         if os.path.isdir(current_folder):
             for file in os.listdir(current_folder):
-                if file.endswith(".json"):
+                if file.endswith(".json") and folder not in redacted:
                     current_file = os.path.join(current_folder, file)
                     try:
                         json_obj = load_json_obj(current_file)
@@ -216,7 +247,7 @@ def validate_json(json_obj,schema):
     return True
 
 
-def insert_detached_metadata(detachedObjs, uuid_mapping):
+def insert_detached_metadata(detachedObjs, uuid_mapping, preserve_version=False):
     """
     Inserts a Analysis object, that contains a parent ID, to its respective donor object.
     """
@@ -262,30 +293,35 @@ def insert_detached_metadata(detachedObjs, uuid_mapping):
                             # compare 2 analysis to keep only most relevant one
                             # saved is analysisObj
                             # currently being considered is new_analysis
-                            new_workflow_version = detachedObjs["workflow_version"]
-
-                            saved_version = analysisObj["workflow_version"]
-                            # current is older than new
-                            if semver.compare(saved_version, new_workflow_version) == -1:
-                                sample["analysis"].remove(analysisObj)
+                            if preserve_version:
                                 sample["analysis"].append(detachedObjs)
-                            if semver.compare(saved_version, new_workflow_version) == 0:
-                                # use the timestamp
-                                if "timestamp" in detachedObjs and "timestamp" in analysisObj:
-                                    saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
-                                    new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
+                            else:
+                                new_workflow_version = detachedObjs["workflow_version"]
 
-                                    timestamp_diff = saved_timestamp - new_timestamp
-                                    if timestamp_diff.total_seconds() < 0:
-                                        sample["analysis"].remove(analysisObj)
-                                        sample["analysis"].append(detachedObjs)
+                                saved_version = analysisObj["workflow_version"]
+                                # current is older than new
+                                if saved_version == new_workflow_version:
+                                    # use the timestamp
+                                    if "timestamp" in detachedObjs and "timestamp" in analysisObj:
+                                        saved_timestamp = dateutil.parser.parse(analysisObj["timestamp"])
+                                        new_timestamp = dateutil.parser.parse(detachedObjs["timestamp"])
+
+                                        timestamp_diff = saved_timestamp - new_timestamp
+                                        if timestamp_diff.total_seconds() < 0:
+                                            sample["analysis"].remove(analysisObj)
+                                            sample["analysis"].append(detachedObjs)
+                                elif semver.compare(saved_version, new_workflow_version) == -1:
+                                    sample["analysis"].remove(analysisObj)
+                                    sample["analysis"].append(detachedObjs)
+                                #if semver.compare(saved_version, new_workflow_version) == 0:
+
 
             timestamp_diff = donor_timestamp - de_timestamp
             if timestamp_diff.total_seconds() < 0:
                 donor_obj["timestamp"] = detachedObjs["timestamp"]
 
 
-def mergeDonors(metadataObjs):
+def mergeDonors(metadataObjs, preserve_version):
     '''
     Merge data bundle metadata.json objects into correct donor objects.
     '''
@@ -344,7 +380,7 @@ def mergeDonors(metadataObjs):
                         if analysis_type == savedAnalysisType:
                             analysisObj = savedBundle
 
-                    if not analysis_type in savedAnalysisTypes:
+                    if not analysis_type in savedAnalysisTypes or preserve_version:
                         sampleObj["analysis"].append(bundle)
 
                         # timestamp mapping
@@ -410,14 +446,27 @@ def allHaveItems(lenght):
     """
     Returns the value of each flag, based on the lenght of the array in 'missing_items'.
     """
+    #print ("ALLHAVEITEMS: %s" % lenght)
     result= False
     if lenght == 0:
         result =True
-
+    #print "RESULT: %s" % result
     return result
 
 
 def arrayMissingItems(itemsName, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were missing.
+    """
+    return arrayItems(itemsName, regex, items,submitter_specimen_types, True)
+
+def arrayContainingItems(itemsName, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were present.
+    """
+    return arrayItems(itemsName, regex, items,submitter_specimen_types, False)
+
+def arrayItems(itemsName, regex, items,submitter_specimen_types, missing):
     """
     Returns a list of 'sample_uuid' for the analysis that were missing.
     """
@@ -433,13 +482,48 @@ def arrayMissingItems(itemsName, regex, items,submitter_specimen_types):
                         analysis_type = True
                         break
 
-                if not analysis_type:
+                if (missing and not analysis_type) or (not missing and analysis_type):
                     results.append(sample['sample_uuid'])
 
                 analysis_type = False
 
     return results
 
+
+def arrayMissingItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were missing.
+    """
+    return arrayItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types, True)
+
+def arrayContainingItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were present.
+    """
+    return arrayItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types, False)
+
+def arrayItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submitter_specimen_types, missing):
+    """
+    Returns a list of 'sample_uuid' for the analysis that were missing.
+    """
+    analysis_type = False
+    results = []
+    for specimen in items['specimen']:
+        if re.search(regex, specimen['submitter_specimen_type']):
+            submitter_specimen_types.append(specimen['submitter_specimen_type'])
+            for sample in specimen['samples']:
+                for analysis in sample['analysis']:
+
+                    if analysis["workflow_name"] == workflow_name and re.search(workflow_version_regex, analysis["workflow_version"]):
+                        analysis_type = True
+                        break
+
+                if (missing and not analysis_type) or (not missing and analysis_type):
+                    results.append(sample['sample_uuid'])
+
+                analysis_type = False
+
+    return results
 
 def createFlags(uuid_to_donor):
     """
@@ -451,69 +535,89 @@ def createFlags(uuid_to_donor):
         submitter_specimen_types=[]
         flagsWithArrs = {'normal_sequence': arrayMissingItems('sequence_upload', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_sequence': arrayMissingItems('sequence_upload',
-                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line - ",
                                                              json_object,submitter_specimen_types),
+                         'normal_sequence_qc_report': arrayMissingItems('sequence_upload_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_sequence_qc_report': arrayMissingItems('sequence_upload_qc_report',
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                             json_object,submitter_specimen_types),
+
                          'normal_alignment': arrayMissingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_alignment': arrayMissingItems('alignment',
-                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                               json_object,submitter_specimen_types),
-                         'normal_rnaseq_variants': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rnaseq_variants': arrayMissingItems('rna_seq_quantification',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                         'normal_alignment_qc_report': arrayMissingItems('alignment_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_alignment_qc_report': arrayMissingItems('alignment_qc_report',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                              json_object,submitter_specimen_types),
+
+                         'normal_rna_seq_quantification': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_quantification': arrayMissingItems('rna_seq_quantification',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
+
+                         'normal_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
                          'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
-                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour -",
+                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                      json_object,submitter_specimen_types)}
 
+        flagsPresentWithArrs = {'normal_sequence': arrayContainingItems('sequence_upload', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_sequence': arrayContainingItems('sequence_upload',
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                             json_object,submitter_specimen_types),
+                         'normal_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report',
+                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                             json_object,submitter_specimen_types),
 
-        normal_sequence= len(flagsWithArrs["normal_sequence"])
-        normal_alignment= len(flagsWithArrs["normal_alignment"])
-        normal_alignment_qc_report= len(flagsWithArrs["normal_alignment"])
-        normal_rnaseq_variants= len(flagsWithArrs["normal_rnaseq_variants"])
-        normal_germline_variants= len(flagsWithArrs["normal_germline_variants"])
+                         'normal_alignment': arrayContainingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_alignment': arrayContainingItems('alignment',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                              json_object,submitter_specimen_types),
+                         'normal_alignment_qc_report': arrayContainingItems('alignment_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_alignment_qc_report': arrayContainingItems('alignment_qc_report',
+                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                              json_object,submitter_specimen_types),
 
-        tumor_sequence= len(flagsWithArrs["tumor_sequence"])
-        tumor_alignment= len(flagsWithArrs["tumor_alignment"])
-        tumor_alignment_qc_report= len(flagsWithArrs["tumor_alignment"])
-        tumor_rnaseq_variants= len(flagsWithArrs["tumor_rnaseq_variants"])
-        tumor_somatic_variants= len(flagsWithArrs["tumor_somatic_variants"])
+                         'normal_rna_seq_quantification': arrayContainingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_quantification': arrayContainingItems('rna_seq_quantification',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
 
-        flagsWithStr = {'normal_sequence' :allHaveItems(normal_sequence),
-                        'tumor_sequence': allHaveItems(tumor_sequence),
-                        'normal_alignment': allHaveItems(normal_alignment),
-                        'normal_alignment_qc_report': allHaveItems(normal_alignment_qc_report),
-                        'tumor_alignment': allHaveItems(tumor_alignment),
-                        'tumor_alignment_qc_report': allHaveItems(tumor_alignment_qc_report),
-                        'normal_rnaseq_variants': allHaveItems(normal_rnaseq_variants),
-                        'tumor_rnaseq_variants': allHaveItems(tumor_rnaseq_variants),
-                        'normal_germline_variants': allHaveItems(normal_germline_variants),
-                        'tumor_somatic_variants': allHaveItems(tumor_somatic_variants)}
+                         'normal_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
 
-        # If there is a normal submitter_specimen_types then "normal_type" will be true.
-        # Similarly if there is a tumor submitter_specimen_types then "normal_type" will be true.
-        normal_type= False
-        tumor_type= False
-        for specimen_type in submitter_specimen_types:
-            if re.search("^Normal - ",specimen_type):
-                normal_type= True
-            else:
-                tumor_type= True
+                         'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_somatic_variants': arrayContainingItems('somatic_variant_calling',
+                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                     json_object,submitter_specimen_types)}
 
-        if not normal_type:
-            flagsWithStr["normal_sequence"]= False
-            flagsWithStr["normal_alignment"]= False
-            flagsWithStr["normal_rnaseq_variants"]= False
-            flagsWithStr["normal_germline_variants"]= False
+        flagsWithStr = {'normal_sequence' : len(flagsWithArrs["normal_sequence"]) == 0 and len(flagsPresentWithArrs["normal_sequence"]) > 0,
+                        'normal_sequence_qc_report' : len(flagsWithArrs["normal_sequence_qc_report"]) == 0 and len(flagsPresentWithArrs["normal_sequence_qc_report"]) > 0,
+                        'tumor_sequence': len(flagsWithArrs["tumor_sequence"]) == 0 and len(flagsPresentWithArrs["tumor_sequence"]) > 0,
+                        'tumor_sequence_qc_report' :len(flagsWithArrs["tumor_sequence_qc_report"]) == 0 and len(flagsPresentWithArrs["tumor_sequence_qc_report"]) > 0,
+                        'normal_alignment': len(flagsWithArrs["normal_alignment"]) == 0 and len(flagsPresentWithArrs["normal_alignment"]) > 0,
+                        'normal_alignment_qc_report': len(flagsWithArrs["normal_alignment_qc_report"]) == 0 and len(flagsPresentWithArrs["normal_alignment_qc_report"]) > 0,
+                        'tumor_alignment': len(flagsWithArrs["tumor_alignment"]) == 0 and len(flagsPresentWithArrs["tumor_alignment"]) > 0,
+                        'tumor_alignment_qc_report': len(flagsWithArrs["tumor_alignment_qc_report"]) == 0 and len(flagsPresentWithArrs["tumor_alignment_qc_report"]) > 0,
+                        'normal_rna_seq_quantification': len(flagsWithArrs["normal_rna_seq_quantification"]) == 0 and len(flagsPresentWithArrs["normal_rna_seq_quantification"]) > 0,
+                        'tumor_rna_seq_quantification': len(flagsWithArrs["tumor_rna_seq_quantification"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_quantification"]) > 0,
+                        'normal_rna_seq_cgl_workflow_3_0_x': len(flagsWithArrs["normal_rna_seq_cgl_workflow_3_0_x"]) == 0 and len(flagsPresentWithArrs["normal_rna_seq_cgl_workflow_3_0_x"]) > 0,
+                        'tumor_rna_seq_cgl_workflow_3_0_x': len(flagsWithArrs["tumor_rna_seq_cgl_workflow_3_0_x"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_cgl_workflow_3_0_x"]) > 0,
 
-        if not tumor_type:
-            flagsWithStr["tumor_sequence"]= False
-            flagsWithStr["tumor_alignment"]= False
-            flagsWithStr["tumor_rnaseq_variants"]= False
-            flagsWithStr["tumor_somatic_variants"]= False
+                        'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
+                        'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
 
         json_object['flags'] = flagsWithStr
         json_object['missing_items'] = flagsWithArrs
+        json_object['present_items'] = flagsPresentWithArrs
 
 
 def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
@@ -538,10 +642,30 @@ def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
                 json.dump(donor, outfile)
                 outfile.write('\n')
 
+def findRedactedUuids(skip_uuid_directory):
+    """
+    Creates a dict of file UUIDs that need to be skipped
+    """
+    result = {}
+    if skip_uuid_directory is not None:
+        for file in os.listdir(skip_uuid_directory):
+            if file.endswith(".redacted"):
+                current_file = os.path.join(skip_uuid_directory, file)
+                f = open(current_file, "r")
+                for line in f.readlines():
+                    result[line.rstrip()] = True
+                f.close()
+    print result
+    return result
 
 def main():
     args = input_Options()
     directory_meta = args.test_directory
+
+    # redacted metadata.json file UUIDs
+    skip_uuid_directory = args.skip_uuid_directory
+    skip_uuids = findRedactedUuids(skip_uuid_directory)
+    preserve_version = args.preserve_version
 
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
@@ -554,7 +678,10 @@ def main():
         obj_arr=[]
 
         # figure out the pages
-        json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0")).read()
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        json_str = urlopen(str("https://"+args.server_host+":8444/entities?fileName=metadata.json&page=0"), context=ctx).read()
         metadata_struct = json.loads(json_str)
 
         # Download all of the data that is stored.
@@ -594,14 +721,14 @@ def main():
         exit(1)
 
     schema_version= schema["definitions"]["schema_version"]["pattern"]
-    sche_version= schema_version.replace("^","")
-    schema_version= sche_version.replace("$","")
+    #sche_version= schema_version.replace("^","")
+    #schema_version= sche_version.replace("$","")
     logging.info("Schema Version: %s" % schema_version)
     print "Schema Version: ",schema_version
     data_arr = []
 
     # Loads the json files and stores them into an array.
-    load_json_arr(directory_meta, data_arr)
+    load_json_arr(directory_meta, data_arr, skip_uuids)
 
 
     donorLevelObjs = []
@@ -646,7 +773,8 @@ def main():
     valid_version_arr= []
     for donor_object in donorLevelObjs:
         obj_schema_version= donor_object["schema_version"]
-        if obj_schema_version != schema_version:
+        p = re.compile(schema_version)
+        if not p.match(obj_schema_version):
             invalid_version_arr.append(donor_object)
         else:
             valid_version_arr.append(donor_object)
@@ -654,9 +782,9 @@ def main():
     print len(valid_version_arr), " valid donor objects with correct schema version."
 
     # Inserts the detached analysis to the merged donor obj.
-    uuid_mapping = mergeDonors(valid_version_arr)
+    uuid_mapping = mergeDonors(valid_version_arr, preserve_version)
     for de_obj in detachedObjs:
-        insert_detached_metadata(de_obj, uuid_mapping)
+        insert_detached_metadata(de_obj, uuid_mapping, preserve_version)
 
     # Creates and adds the flags and missingItems to each donor obj.
     createFlags(uuid_mapping)
@@ -678,6 +806,12 @@ def main():
     if validated_num:
         logging.info("%s merged json objects were valid." % (validated_num))
         print  "%s merged json objects were valid." % (validated_num)
+    if preserve_version:
+        dumpResult(validated, "duped_validated.jsonl")
+        dumpResult(validated, 'duped_elasticsearch.jsonl', ES_file_name="duped_elasticsearch.jsonl")
+        logging.info("All done, find index in duped_elasticsearch.jsonl")
+        print "All done, find index in duped_elasticsearch.jsonl"
+    else:
         dumpResult(validated, "validated.jsonl")
         dumpResult(validated, 'elasticsearch.jsonl')
         logging.info("All done, find index in elasticsearch.jsonl")
