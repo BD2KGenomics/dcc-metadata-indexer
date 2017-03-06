@@ -1,0 +1,399 @@
+{
+   "project" : "BRCA-UK",
+   "donor_attributes" : {
+      "example_donor_attribute:" : "string"
+   },
+   "tumour_specimen" : [
+      {
+         "alignment" : {
+            "sequencing_strategy" : "WGS",
+            "workflows" : [
+               {
+                  "host_metrics" : {
+                     "vm_instance_cores" : 4,
+                     "vm_region" : "us-east-1",
+                     "vm_instance_mem_gb" : 256,
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_location" : "aws"
+                  },
+                  "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
+                  "workflow_description" : "This is the alignment for specimen PD41189 from donor CGP_donor_1199138.",
+                  "workflow_outputs" : {
+                     "foo.bam" : {
+                        "file_type_cv_terms" : [
+                           "EDAM:1293829"
+                        ],
+                        "file_type_label" : "bam"
+                     },
+                     "foo.bam.bai" : {
+                        "file_type_cv_terms" : [
+                           "EDAM:278392"
+                        ],
+                        "file_type_label" : "bai"
+                     }
+                  },
+                  "workflow_version" : "1.0.0",
+                  "timing_metrics" : {
+                     "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                     "step_timing" : {
+                        "alignment" : {
+                           "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                           "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                           "walltime_seconds" : 60000
+                        }
+                     },
+                     "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                     "overall_walltime_seconds" : 60000
+                  },
+                  "workflow_name" : "bwa-mem-alignment",
+                  "workflow_params" : {
+                     "param1" : 12121,
+                     "param2" : 2389239
+                  },
+                  "workflow_source_url" : "http://foo.bar/bwa-workflow-src",
+                  "workflow_inputs" : [
+                     {
+                        "file_storage_bundle_files" : {
+                           "file_storage_metadata_json_uri" : "153c380c-0bcb-4ee9-abdf-629db73a62e5",
+                           "foo1.fastq.gz" : {
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ],
+                              "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                              "file_type_label" : "fastq"
+                           },
+                           "file_storage_bundle_uri" : "0e99945c-631e-4123-9158-5132a8fe2150",
+                           "foo2.fastq.gz" : {
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ],
+                              "file_type_label" : "fastq",
+                              "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198"
+                           }
+                        }
+                     }
+                  ],
+                  "qc_metrics" : {
+                     "coverage_average" : 123.4,
+                     "insert_size_average" : 10456,
+                     "insert_size_sd" : 313
+                  }
+               }
+            ]
+         },
+         "submitter_specimen_type" : "Primary tumour - solid tissue",
+         "analysis_specimen_attributes" : [
+            {
+               "example_specimen_attribute:" : "string"
+            }
+         ],
+         "sequencing_upload" : {
+            "workflows" : [
+               {
+                  "workflow_description" : "This is the upload of the fastq from a sample using the submission script.",
+                  "workflow_bundle_url" : "http://foo.bar/tool",
+                  "host_metrics" : {
+                     "vm_instance_mem_gb" : 256,
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_location" : "aws",
+                     "vm_instance_cores" : 4,
+                     "vm_region" : "us-east-1"
+                  },
+                  "workflow_inputs" : {},
+                  "qc_metrics" : {},
+                  "workflow_source_url" : "http://foo.bar/tool-src",
+                  "workflow_name" : "fastq-submission",
+                  "workflow_version" : "1.0.0",
+                  "timing_metrics" : {},
+                  "workflow_outputs" : {
+                     "foo1.fastq.gz" : {
+                        "file_type_label" : "fastq",
+                        "file_type_cv_terms" : [
+                           "EDAM:123232"
+                        ]
+                     },
+                     "foo2.fastq.gz" : {
+                        "file_type_label" : "fastq",
+                        "file_type_cv_terms" : [
+                           "EDAM:123232"
+                        ]
+                     }
+                  }
+               }
+            ]
+         },
+         "tumour_sample_attributes" : [
+            {
+               "submitter_sample_id" : "PD41189-1",
+               "analysis_sample_attributes" : [
+                  {
+                     "example_sample_attribute" : "EGAN00001000597"
+                  }
+               ]
+            }
+         ],
+         "submitter_specimen_id" : "PD41189"
+      }
+   ],
+   "somatic_variant_calling" : {
+      "workflows" : [
+         {
+            "workflow_inputs" : [
+               {
+                  "file_storage_bundle_files" : {
+                     "foo.bam" : {
+                        "file_type_label" : "bam",
+                        "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                        "file_type_cv_terms" : [
+                           "EDAM:1293829"
+                        ]
+                     },
+                     "foo.bam.bai" : {
+                        "file_storage_uri" : "04731ba6-9d5a-42f8-a25a-bf6416d7f00a",
+                        "file_type_label" : "bai",
+                        "file_type_cv_terms" : [
+                           "EDAM:123232"
+                        ]
+                     }
+                  },
+                  "file_storage_bundle_uri" : "b6525378-d904-4276-b42a-5cf01506ca8a",
+                  "file_storage_metadata_json_uri" : "050a0b5b-ba9a-4200-96f8-fc7982f02416"
+               }
+            ],
+            "qc_metrics" : {
+               "variants_called" : 3456423,
+               "contamination_percent" : 1.2
+            },
+            "workflow_outputs" : [
+               {
+                  "foo.vcf" : {
+                     "file_type_label" : "vcf",
+                     "file_type_cv_terms" : [
+                        "EDAM:12293829"
+                     ]
+                  },
+                  "foo.vcf.tbi" : {
+                     "file_type_label" : "tbi",
+                     "file_type_cv_terms" : [
+                        "EDAM:2783392"
+                     ]
+                  }
+               }
+            ],
+            "workflow_version" : "1.0.0",
+            "timing_metrics" : {
+               "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+               "step_timing" : {
+                  "variant_calling" : {
+                     "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                     "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                     "walltime_seconds" : 60000
+                  }
+               },
+               "overall_walltime_seconds" : 60000,
+               "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016"
+            },
+            "workflow_name" : "sanger-variant-calling",
+            "workflow_source_url" : "http://foo.bar/sanger-workflow-src",
+            "workflow_params" : {
+               "param2" : 2389239,
+               "param1" : 12121
+            },
+            "analysis_attributes" : {
+               "use_ctrl" : "PD41189",
+               "assembly_short_name" : "GRCh37"
+            },
+            "workflow_bundle_url" : "http://foo.bar/sanger-workflow",
+            "workflow_description" : "This is the variant calling for specimen PD41189 from donor CGP_donor_1199138.",
+            "host_metrics" : {
+               "vm_instance_mem_gb" : 256,
+               "vm_instance_type" : "m1.xlarge",
+               "vm_location" : "aws",
+               "vm_instance_cores" : 4,
+               "vm_region" : "us-east-1"
+            }
+         }
+      ],
+      "variant_calling_strategy" : "string"
+   },
+   "normal_specimen" : [
+      {
+         "submitter_specimen_type" : "Normal - solid tissue",
+         "specimen_attributes" :
+            {
+               "example_specimen_attribute:" : "string"
+            }
+         ,
+         "normal_sample_attributes" : [
+            {
+               "submitter_sample_id" : "PD41189-1",
+               "analysis_sample_attributes" : [
+                  {
+                     "example_sample_attribute" : "EGAN00001000597"
+                  }
+               ]
+            }
+         ],
+         "alignment" : {
+            "sequencing_strategy" : "WGS",
+            "workflows" : [
+               {
+                  "host_metrics" : {
+                     "vm_location" : "aws",
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_instance_mem_gb" : 256,
+                     "vm_region" : "us-east-1",
+                     "vm_instance_cores" : 4
+                  },
+                  "workflow_description" : "This is the alignment for specimen PD41189 from donor CGP_donor_1199138.",
+                  "workflow_bundle_url" : "http://foo.bar/bwa-workflow",
+                  "workflow_params" : {
+                     "param1" : 12121,
+                     "param2" : 2389239
+                  },
+                  "workflow_source_url" : "http://foo.bar/bwa-workflow-src",
+                  "workflow_name" : "bwa-mem-alignment",
+                  "workflow_version" : "1.0.0",
+                  "timing_metrics" : {
+                     "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016",
+                     "overall_walltime_seconds" : 60000,
+                     "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                     "step_timing" : {
+                        "alignment" : {
+                           "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                           "walltime_seconds" : 60000,
+                           "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+                        }
+                     }
+                  },
+                  "workflow_outputs" : {
+                     "foo.bam.bai" : {
+                        "file_type_label" : "bai",
+                        "file_type_cv_terms" : [
+                           "EDAM:278392"
+                        ]
+                     },
+                     "foo.bam" : {
+                        "file_type_label" : "bam",
+                        "file_type_cv_terms" : [
+                           "EDAM:1293829"
+                        ]
+                     }
+                  },
+                  "qc_metrics" : {
+                     "insert_size_average" : 10456,
+                     "insert_size_sd" : 313,
+                     "coverage_average" : 123.4
+                  },
+                  "workflow_inputs" : [
+                     {
+                        "file_storage_bundle_files" : {
+                           "file_storage_metadata_json_uri" : "153c380c-0bcb-4ee9-abdf-629db73a62e5",
+                           "foo1.fastq.gz" : {
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ],
+                              "file_type_label" : "fastq",
+                              "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7"
+                           },
+                           "foo2.fastq.gz" : {
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ],
+                              "file_type_label" : "fastq",
+                              "file_storage_uri" : "9014505b-fa59-4913-a05c-4666c6efe198"
+                           },
+                           "file_storage_bundle_uri" : "0e99945c-631e-4123-9158-5132a8fe2150"
+                        }
+                     }
+                  ]
+               }
+            ]
+         },
+         "submitter_specimen_id" : "PD41189",
+         "germline_variant_calling" : {
+            "workflows" : [
+               {
+                  "qc_metrics" : {
+                     "variants_called" : 3456423,
+                     "contamination_percent" : 1.2
+                  },
+                  "workflow_inputs" : [
+                     {
+                        "file_storage_metadata_json_uri" : "050a0b5b-ba9a-4200-96f8-fc7982f02416",
+                        "file_storage_bundle_uri" : "b6525378-d904-4276-b42a-5cf01506ca8a",
+                        "file_storage_bundle_files" : {
+                           "foo.bam" : {
+                              "file_storage_uri" : "ae616ade-3734-4c48-a609-f2b292ecdbc7",
+                              "file_type_label" : "bam",
+                              "file_type_cv_terms" : [
+                                 "EDAM:1293829"
+                              ]
+                           },
+                           "foo.bam.bai" : {
+                              "file_type_label" : "bai",
+                              "file_storage_uri" : "04731ba6-9d5a-42f8-a25a-bf6416d7f00a",
+                              "file_type_cv_terms" : [
+                                 "EDAM:123232"
+                              ]
+                           }
+                        }
+                     }
+                  ],
+                  "workflow_name" : "sanger-variant-calling",
+                  "workflow_source_url" : "http://foo.bar/sanger-workflow-src",
+                  "workflow_params" : {
+                     "param2" : 2389239,
+                     "param1" : 12121
+                  },
+                  "workflow_outputs" : [
+                     {
+                        "foo.vcf.tbi" : {
+                           "file_type_label" : "tbi",
+                           "file_type_cv_terms" : [
+                              "EDAM:2783392"
+                           ]
+                        },
+                        "foo.vcf" : {
+                           "file_type_label" : "vcf",
+                           "file_type_cv_terms" : [
+                              "EDAM:12293829"
+                           ]
+                        }
+                     }
+                  ],
+                  "timing_metrics" : {
+                     "step_timing" : {
+                        "variant_calling" : {
+                           "walltime_seconds" : 60000,
+                           "stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                           "start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+                        }
+                     },
+                     "overall_walltime_seconds" : 60000,
+                     "overall_stop_time_utc" : "Thu Apr 14 24:18:30 UTC 2016",
+                     "overall_start_time_utc" : "Thu Apr 14 22:18:30 UTC 2016"
+                  },
+                  "workflow_version" : "1.0.0",
+                  "workflow_description" : "This is the variant calling for specimen PD41189 from donor CGP_donor_1199138.",
+                  "analysis_attributes" : {
+                     "assembly_short_name" : "GRCh37",
+                     "use_ctrl" : "PD41189"
+                  },
+                  "workflow_bundle_url" : "http://foo.bar/sanger-workflow",
+                  "host_metrics" : {
+                     "vm_region" : "us-east-1",
+                     "vm_instance_cores" : 4,
+                     "vm_location" : "aws",
+                     "vm_instance_type" : "m1.xlarge",
+                     "vm_instance_mem_gb" : 256
+                  }
+               }
+            ]
+         }
+      }
+   ],
+   "submitter_donor_id" : "CGP_donor_1199138",
+   "program" : "ICGC",
+   "center_name" : "WTSI"
+}

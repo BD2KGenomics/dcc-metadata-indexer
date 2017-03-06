@@ -60,3 +60,10 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+# custom
+output_metadata
+ucsc-storage-client
+ucsc-storage2-client
+accessToken
+.DS_Store

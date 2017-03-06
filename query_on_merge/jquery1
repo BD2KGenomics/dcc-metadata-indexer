@@ -1,0 +1,40 @@
+{
+   "aggs": {
+      "project_f": {
+         "aggs": {
+            "project": {
+               "terms": {
+                  "field": "program",
+                  "size": 1000
+               },
+               "aggs": {
+               "donor_id": {
+                  "terms": {
+                     "field": "project",
+                     "size": 10000
+                  }
+               }
+            }
+         }
+      },
+      "filter": {
+         "fquery": {
+            "query": {
+               "filtered": {
+                  "query": {
+                     "bool": {
+                        "should": [ {
+                           "query_string": {
+                           "query": "*"
+                        }
+                        } ]
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+},
+   "size": 0
+}

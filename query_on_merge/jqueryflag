@@ -1,0 +1,332 @@
+{
+   "aggs": {
+      "alignment_normal_tumor_exists": {
+         "aggs": {
+            "project": {
+               "terms": {
+                  "field": "program",
+                  "size": 1000
+               },
+               "aggs": {
+               "donor_id": {
+                  "terms": {
+                     "field": "project",
+                     "size": 10000
+                  }
+               }
+            }
+         }
+      },
+      "filter": {
+         "fquery": {
+            "query": {
+               "filtered": {
+                  "query": {
+                     "bool": {
+                        "should": [ {
+                           "query_string": {
+                           "query": "*"
+                        }
+                        } ]
+                     }
+                  },
+                  "filter": {
+                     "bool": {
+                        "must": [
+                           {
+                              "terms": {
+                                 "flags.donor1_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.donor2_exists": [
+                                    "true"
+                                 ]
+                              }
+                           }
+                        ],
+                        "must_not": [
+                           {
+                              "terms": {
+                                 "flags.fastqNormal_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.fastqtumor_exists": [
+                                    "true"
+                                 ]
+                              }
+                           }
+                        ]
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+},
+   "size": 0
+},
+#donor1 and donor2 exist
+#How many samples are pending upload (they lack a sequence upload)?
+
+{
+   "aggs": {
+      "alignment_normal_tumor_exists": {
+         "aggs": {
+            "project": {
+               "terms": {
+                  "field": "program",
+                  "size": 1000
+               },
+               "aggs": {
+               "donor_id": {
+                  "terms": {
+                     "field": "project",
+                     "size": 10000
+                  }
+               }
+            }
+         }
+      },
+      "filter": {
+         "fquery": {
+            "query": {
+               "filtered": {
+                  "query": {
+                     "bool": {
+                        "should": [ {
+                           "query_string": {
+                           "query": "*"
+                        }
+                        } ]
+                     }
+                  },
+                  "filter": {
+                     "bool": {
+                        "must": [
+                           {
+                              "terms": {
+                                 "flags.alignmentNormal_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.alignmentTumor_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.fastqNormal_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.fastqTumor_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.donor1_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.donor2_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.variantCalling_exists": [
+                                    "true"
+                                 ]
+                              }
+                           }
+                        ]
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+},
+   "size": 0
+},
+#all flags are "true"
+#How many donors are complete in their upload vs. how many have one or more missing samples?
+
+{
+   "aggs": {
+      "alignment_normal_tumor_exists": {
+         "aggs": {
+            "project": {
+               "terms": {
+                  "field": "program",
+                  "size": 1000
+               },
+               "aggs": {
+               "donor_id": {
+                  "terms": {
+                     "field": "project",
+                     "size": 10000
+                  }
+               }
+            }
+         }
+      },
+      "filter": {
+         "fquery": {
+            "query": {
+               "filtered": {
+                  "query": {
+                     "bool": {
+                        "should": [ {
+                           "query_string": {
+                           "query": "*"
+                        }
+                        } ]
+                     }
+                  },
+                  "filter": {
+                     "bool": {
+                        "must": [
+                           {
+                              "terms": {
+                                 "flags.alignmentNormal_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.alignmentTumor_exists": [
+                                    "true"
+                                 ]
+                              }
+                           }
+                        ],
+                        "must_not": [
+                           {
+                              "terms": {
+                                 "flags.variantCalling_exists": [
+                                    "true"
+                                 ]
+                              }
+                           }
+                        ]
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+},
+   "size": 0
+},
+#alignment normal and tumor exist
+#somatic variant calling does not exist
+#How many tumor WES/WGS/panel samples have alignment done but no somatic variant calling done?
+
+{
+   "aggs": {
+      "fastq_normal_tumor_exists": {
+         "aggs": {
+            "project": {
+               "terms": {
+                  "field": "program",
+                  "size": 1000
+               },
+               "aggs": {
+               "donor_id": {
+                  "terms": {
+                     "field": "project",
+                     "size": 10000
+                  }
+               }
+            }
+         }
+      },
+      "filter": {
+         "fquery": {
+            "query": {
+               "filtered": {
+                  "query": {
+                     "bool": {
+                        "should": [ {
+                           "query_string": {
+                           "query": "*"
+                        }
+                        } ]
+                     }
+                  },
+                  "filter": {
+                     "bool": {
+                        "must": [
+                           {
+                              "terms": {
+                                 "flags.fastqNormal_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.fastqTumor_exists": [
+                                    "true"
+                                 ]
+                              }
+                           }
+                        ],
+                        "must_not": [
+                           {
+                              "terms": {
+                                 "flags.alignmentNormal_exists": [
+                                    "true"
+                                 ]
+                              }
+                           },
+                           {
+                              "terms": {
+                                 "flags.alignmentTumor_exists": [
+                                    "true"
+                                 ]
+                              }
+                           }
+                        ]
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+},
+   "size": 0
+}
+#fastq normal and tumor exist
+#alignment does not exist
+#How many samples have fastq uploaded but don’t have alignment?
+
+
+#How many tumor RNAseq samples have alignment done but no expression values done?

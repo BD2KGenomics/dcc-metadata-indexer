@@ -1,0 +1,36 @@
+{
+    "center_name": "Stanford",
+    "donor_uuid": "1708baad-237f-58e3-adc6-ae46a23a9c71",
+    "program": "TEST",
+    "project": "TEST",
+    "schema_version": "0.0.2",
+    "specimen": [
+        {
+            "samples": [
+                {
+                    "analysis": [
+                        {
+                            "analysis_type": "sequence_upload",
+                            "bundle_uuid": "4b4471a7-9297-54f0-ae42-e6eb6f163847",
+                            "workflow_name": "Sequence Uploader",
+                            "workflow_outputs": [
+                                {
+                                    "file_path": "sample_upload_files/normal.fastq.gz",
+                                    "file_type": "fastq"
+                                }
+                            ],
+                            "workflow_version": "1.0.0"
+                        }
+                    ],
+                    "sample_uuid": "2cdfdc6b-ea77-5392-88c5-d8ce7f9a6dd0",
+                    "submitter_sample_id": "S176411a1"
+                }
+            ],
+            "specimen_uuid": "bc441512-58bf-5662-ac7b-983315da1841",
+            "submitter_specimen_id": "S176411a",
+            "submitter_specimen_type": "Normal - blood derived"
+        }
+    ],
+    "submitter_donor_id": "S176411",
+    "timestamp": "2016-07-20T21:39:38.985583"
+}

@@ -1,0 +1,40 @@
+{
+    "center_name": "Stanford",
+    "donor_uuid": "5e6233fb-f193-59da-8102-b073a370a94f",
+    "program": "TEST",
+    "project": "TEST",
+    "schema_version": "0.0.2",
+    "specimen": [
+        {
+            "samples": [
+                {
+                    "analysis": [
+                        {
+                            "analysis_type": "somatic_variant_calling",
+                            "bundle_uuid": "9761a5fb-af6b-5988-8a39-99d64cd38426",
+                            "workflow_name": "pcawg_sanger_workflow",
+                            "workflow_outputs": [
+                                {
+                                    "file_path": "sample_upload_files/somatic.snv.vcf",
+                                    "file_type": "vcf"
+                                },
+                                {
+                                    "file_path": "sample_upload_files/somatic.indel.vcf",
+                                    "file_type": "vcf"
+                                }
+                            ],
+                            "workflow_version": "2.9.9"
+                        }
+                    ],
+                    "sample_uuid": "7f1f6df6-9719-51c8-b82d-8e121e3d1d31",
+                    "submitter_sample_id": "S191920b1"
+                }
+            ],
+            "specimen_uuid": "6ec0271a-a40d-5813-97ab-7d0582fccf35",
+            "submitter_specimen_id": "S191920b",
+            "submitter_specimen_type": "Primary tumour - solid tissue"
+        }
+    ],
+    "submitter_donor_id": "S191920",
+    "timestamp": "2016-07-20T21:39:38.985566"
+}

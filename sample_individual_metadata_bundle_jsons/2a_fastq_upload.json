@@ -1,6 +1,6 @@
 {
-   "parents" : [
-      "7ca6b5c5-5d3a-46d3-a9c3-8c62896ccf6d"
+   "parent_uuids" : [
+      "0c653582-4087-41b5-ab51-15fbf5119be6"
    ],
    "workflow_bundle_url" : "http://foo.bar/tool",
    "workflow_version" : "1.0.0",
@@ -30,5 +30,8 @@
          ]
       }
    },
-   "qc_metrics" : {}
+   "qc_metrics" : {},
+   "analysis_attributes" : {
+      "sequencing_strategy" : "WGS"
+   }
 }
