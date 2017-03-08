@@ -561,6 +561,16 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
+                         'normal_rna_seq_cgl_workflow_3_1_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_rna_seq_cgl_workflow_3_1_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
+                         'normal_protect_cgl_workflow_2_3_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_protect_cgl_workflow_2_3_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
                          'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
