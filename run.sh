@@ -1,9 +1,9 @@
 #!/bin/bash
-#now=$(date +"%T")
-#Add shell script code
 
+#Exit if an error is detected
 set -o errexit
 
+#Functions for assigning variables from flags
 storageAccessToken(){
     storageAccessToken=$1
 }
@@ -52,26 +52,32 @@ helpmenu(){
 -preserve-version Keep all copies of analysis events 
 "
 }
+
+#Declare the associative array i.e. a dictionary
+declare -A ARGS
+
 #Add default args to ARGS
 clientPath='/app/redwood-client/ucsc-storage-client/'
 metadataSchema='/app/dcc-metadata-indexer/metadata_schema.json'
-declare -A ARGS
+
+#Assign the key and variable pair in the associative array (Dictionary)
 ARGS["--client-path"]=$clientPath
 ARGS["--metadata-schema"]=$metadataSchema
-#ARGS=()
+
+#Declare array with the arguments for the metadata-indexer.py
 ARGUMENTS=()
-#declare -A ARGS
+
+#Assign the arguments in a dictionary; Exit if flag was empty
 empty_arg(){
     if [[ -z "$1" ]]
     then
         echo "Missing value. Please enter a non-empty value"
         exit
     fi
-    #ARGS+=($2 $1)
     ARGS[$2]=$1
-    #echo ${ARGS[@]}
 }
 
+#Assign variables
 while [ ! $# -eq 0 ]
 do
     case "$1" in
@@ -127,10 +133,24 @@ do
     shift
 done
 
-
+#Add the arguments for the metadata-indexer.py
 for key in ${!ARGS[@]}; do
     ARGUMENTS+=(${key} ${ARGS[${key}]})
 done
+
+#Run the metadata-indexer
 python metadata_indexer.py ${ARGUMENTS[@]}
 
-#Still need to insert the code to copy the jsonl files to the appropriate folder so they are available for other containers.
+#This moves all the .jsonl files to the es-jsonls folder (easier to mount only the jsonl files as opposed to everything else.)
+#find . -name "*.jsonl" -exec cp {} /app/dcc-metadata-indexer/es-jsonls \;
+cp /app/dcc-metadata-indexer/*jsonl /app/dcc-metadata-indexer/es-jsonls
+
+#Make ownership to that of the executer of the docker image. 
+user=$USER_GROUP
+if [[ ! -z "$user" ]]
+then  
+  chown -R ${user} /app/dcc-metadata-indexer/es-jsonls/
+  chown -R ${user} /app/dcc-metadata-indexer/endpoint_metadata/
+  chown -R ${user} /app/dcc-metadata-indexer/redacted/
+fi
+
