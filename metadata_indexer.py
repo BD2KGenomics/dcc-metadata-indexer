@@ -42,6 +42,7 @@ def input_Options():
     parser.add_argument('-a', '--storage-access-token', default="NA", help='Storage access token to download the metadata.json files')
     parser.add_argument('-c', '--client-path', default="ucsc-storage-client/", help='Path to access the ucsc-storage-client tool')
     parser.add_argument('-n', '--server-host', default="storage.ucsc-cgl.org", help='hostname for the storage service')
+    parser.add_argument('-p', '--max-pages', default=None, type=int, help='Specify maximum number of pages to download')
     parser.add_argument('-preserve-version',action='store_true', default=False, help='Keep all copies of analysis events')
 
     args = parser.parse_args()
@@ -721,6 +722,8 @@ def main():
         metadata_struct = json.loads(json_str)
 
         # Download all of the data that is stored.
+        if args.max_pages is not None:
+            metadata_struct["totalPages"] = int(args.max_pages)
         for page in range(0, metadata_struct["totalPages"]):
             print "DOWNLOADING PAGE "+str(page)
             meta_cmd= ["curl", "-k"]
