@@ -625,6 +625,7 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
+
                          'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayContainingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
