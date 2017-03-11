@@ -1,0 +1,10 @@
+jsonschema==2.6.0
+jsonmerge==1.2.1
+openpyxl==2.4.2
+sets==0.3.2
+json-spec==0.10.1
+elasticsearch==5.2.0
+semver==2.7.5
+luigi==2.6.0
+python-dateutil==2.6.0
+pycurl==7.43.0
