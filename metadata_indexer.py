@@ -20,7 +20,6 @@ import re
 import dateutil
 import ssl
 import dateutil.parser
-import pycurl
 import ast
 from urllib import urlopen
 from subprocess import Popen, PIPE
@@ -30,7 +29,7 @@ index_index = 0
 #Dictionary to hold the File UUIDs to later get the right file size
 bundle_uuid_filename_to_file_uuid = {}
 #List that will hold the UUIDs and sizes
-file_uuid_and_size = []
+#file_uuid_and_size = []
 
 #Call the storage endpoint and get the list of the 
 def get_size_list(token, redwood_host):
@@ -39,7 +38,7 @@ def get_size_list(token, redwood_host):
      so they can be used later to fill the missing file_size entries
      """
      print "Downloading the listing"
-     c = pycurl.Curl()
+     #c = pycurl.Curl()
      #Attempt to download
      try:
           #Set the curl options
@@ -55,13 +54,21 @@ def get_size_list(token, redwood_host):
           command.append("Authorization: Bearer "+token)
           command.append("https://aws:"+token+"@"+redwood_host+":5431/listing")
           c_data=Popen(command, stdout=PIPE, stderr=PIPE)
-          file_uuid_and_size, stderr = c_data.communicate()
-          file_uuid_and_size = ast.literal_eval(file_uuid_and_size)
+          #c_data=check_call(command, stdout=PIPE, stderr=PIPE)
+          size_list, stderr = c_data.communicate()
+          #headers = {"Authorization":"Bearer %s" %token}
+          #print headers
+          #r = requests.get("https://aws:"+token+"@"+redwood_host+":5431/listing", verify=False, headers=headers)
+          file_uuid_and_size = ast.literal_eval(size_list) 
+          #file_uuid_and_size = r.json()
           print "Done downloading the file size listing"
-          #print file_uuid_and_size[1]
+          #print file_uuid_and_size
      except Exception:
           logging.error('Error while performing the curl operation')
           print 'Error while performing the curl operation'
+
+     print file_uuid_and_size[1]
+     return file_uuid_and_size
 
 #Fills in the contents of bundle_uuid_filename_to_file_uuid
 def requires(redwood_host):
@@ -92,29 +99,54 @@ def requires(redwood_host):
                   if file_hash["fileName"].endswith(".wiggle.bg"):
                         bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_wiggle.bg"] = file_hash["id"]
 
-def insert_size(uuid_dict, file_name):
+def insert_size(file_name, file_uuid_and_size):
      """
      Opens the file and inserts any missing file_size
      """
      #Open the file and do the size insertion
      with open(file_name, 'r') as f:
           data = json.load(f)
-          for specimen in data['specimen']:
-               for sample in specimen['sample']:
-                    for analysis in sample['analysis']:
-                         bundle_uuid = analysis['bundle_uuid']
-                         for file_ in analysis['workflow_outputs']:
-                                   file_name = file_['file_path']
-                                   if 'file_size' not in file_:
-                                        try:
-                                             #Get the size for the file uuid
-                                             file_uuid = bundle_uuid_filename_to_file_uuid[bundle_uuid+'_'+file_name]
-                                             file_entry = next(filter(lambda file_entry: file_entry['id'] == file_uuid, file_uuid_and_size))
-                                             file_['file_size'] = file_entry['size']
-                                        except Exception as e:
-                                             logging.error('Error while assigning missing size. File Id: %s' % file_uuid)
-                                             print 'Error while assigning missing size. File Id: %s' % file_uuid
-                                             print str(e)
+          print file_name
+          #print data.items() #TEST
+          #Dealing with a different metadata.json format
+          if 'workflow_outputs' in data:
+               bundle_uuid = data['bundle_uuid']
+               for file_ in data['workflow_outputs']:
+                    file_name_uploaded = file_['file_path']
+                    if 'file_size' not in file_:
+                         try:
+                              file_uuid = bundle_uuid_filename_to_file_uuid[bundle_uuid+'_'+file_name_uploaded]
+                              #print (file_uuid_and_size)
+                              #print str(uuid_dict)
+                              file_entry = filter(lambda x:x['id'] == file_uuid, file_uuid_and_size)
+                              #print str(file_entry) #TEST
+                              file_['file_size'] = file_entry[0]['size']
+                         except Exception as e:
+                              logging.error('Error while assigning missing size. File Id: %s' % file_uuid)
+                              print 'Error while assigning missing size. File Id: %s' % file_uuid
+                              print str(e)
+          
+          #The more generic format
+          else:
+               for specimen in data['specimen']:
+                    for sample in specimen['samples']:
+                         for analysis in sample['analysis']:
+                                   bundle_uuid = analysis['bundle_uuid']
+                                   for file_ in analysis['workflow_outputs']:
+                                        file_name_uploaded = file_['file_path']
+                                        if 'file_size' not in file_:
+                                             try:
+                                                  #Get the size for the file uuid
+                                                  file_uuid = bundle_uuid_filename_to_file_uuid[bundle_uuid+'_'+file_name_uploaded]
+                                                  file_entry = filter(lambda x: x['id'] == file_uuid, file_uuid_and_size)
+                                                  #print (file_uuid_and_size)
+                                                  #print str(uuid_dict)
+                                                  #print str(file_entry) #TEST
+                                                  file_['file_size'] = file_entry[0]['size']
+                                             except Exception as e:
+                                                  logging.error('Error while assigning missing size. File Id: %s' % file_uuid)
+                                                  print 'Error while assigning missing size. File Id: %s' % file_uuid
+                                                  print str(e)
      #Remove and replace the old file with the new one. 
      os.remove(file_name)
      with open(file_name, 'w') as f:
@@ -179,7 +211,7 @@ def endpint_mapping(data_array):
     return my_dictionary
 
 
-def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
+def create_merge_input_folder(id_to_content,directory,accessToken,client_Path, size_list):
     """
     id_to_content: dictionary that maps content id to content object.
     directory: name of directory where the json files will be stored.
@@ -225,7 +257,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
         if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") and \
                 creation_date(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") == file_create_time_server/1000:
             #Assign any missing file size
-            insert_size(file_uuid_and_size, directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json")
+            insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
             #Open the file and add the file size if missing. 
             print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json created on "+str(file_create_time_server)
             #os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json", (file_create_time_server/1000, file_create_time_server/1000))
@@ -258,7 +290,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
                 # now set the create timestamp
                 os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
                          (file_create_time_server/1000, file_create_time_server/1000))
-                insert_size(file_uuid_and_size, directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json")
+                insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
             except Exception:
                 logging.error('Error while downloading file with content ID: %s' % content_id)
                 print 'Error while downloading file with content ID: %s' % content_id
@@ -759,7 +791,7 @@ def findRedactedUuids(skip_uuid_directory):
 def main():
     args = input_Options()
     directory_meta = args.test_directory
-
+    #get_size_list(args.storage_access_token, args.server_host)
     # redacted metadata.json file UUIDs
     skip_uuid_directory = args.skip_uuid_directory
     skip_uuids = findRedactedUuids(skip_uuid_directory)
@@ -773,7 +805,9 @@ def main():
         #Getting the File UUIDs
         requires(args.server_host)
         #Get the size listing
-        get_size_list(args.storage_access_token, args.server_host)
+        file_uuid_and_size = get_size_list(args.storage_access_token, args.server_host)
+        print "Checking if variable was assigned"
+        print file_uuid_and_size[0] #TEST
         #Trying to download the data.
         last= False
         page=0
@@ -808,7 +842,7 @@ def main():
         directory_meta= make_output_dir()
         access_Token=args.storage_access_token
         client_Path= args.client_path
-        create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path)
+        create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path, file_uuid_and_size)
 
         # END DOWNLOAD
 

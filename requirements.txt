@@ -7,4 +7,3 @@ elasticsearch==5.2.0
 semver==2.7.5
 luigi==2.6.0
 python-dateutil==2.6.0
-pycurl==7.43.0
