@@ -806,7 +806,6 @@ def findRedactedUuids(skip_uuid_directory):
 def main():
     args = input_Options()
     directory_meta = args.test_directory
-    #get_size_list(args.storage_access_token, args.server_host)
     # redacted metadata.json file UUIDs
     skip_uuid_directory = args.skip_uuid_directory
     skip_uuids = findRedactedUuids(skip_uuid_directory)
