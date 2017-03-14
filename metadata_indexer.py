@@ -258,6 +258,9 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path, s
                 creation_date(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") == file_create_time_server/1000:
             #Assign any missing file size
             insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
+            #Set the time created to be the one supplied by redwood (since insert_size() modifies the file)
+            os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
+                         (file_create_time_server/1000, file_create_time_server/1000))
             #Open the file and add the file size if missing. 
             print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json created on "+str(file_create_time_server)
             #os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json", (file_create_time_server/1000, file_create_time_server/1000))
@@ -288,9 +291,9 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path, s
                 c_data=Popen(command, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = c_data.communicate()
                 # now set the create timestamp
+                insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
                 os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
                          (file_create_time_server/1000, file_create_time_server/1000))
-                insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
             except Exception:
                 logging.error('Error while downloading file with content ID: %s' % content_id)
                 print 'Error while downloading file with content ID: %s' % content_id
