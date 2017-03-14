@@ -28,8 +28,6 @@ first_write = dict()
 index_index = 0
 #Dictionary to hold the File UUIDs to later get the right file size
 bundle_uuid_filename_to_file_uuid = {}
-#List that will hold the UUIDs and sizes
-#file_uuid_and_size = []
 
 #Call the storage endpoint and get the list of the 
 def get_size_list(token, redwood_host):
@@ -38,36 +36,22 @@ def get_size_list(token, redwood_host):
      so they can be used later to fill the missing file_size entries
      """
      print "Downloading the listing"
-     #c = pycurl.Curl()
      #Attempt to download
      try:
-          #Set the curl options
-          #c.setopt(c.URL, "https://aws:"+token+"@"+redwood_host+":5431/listing")
-          #c.setopt(c.SSL_VERIFYPEER, 0)
-          #c.setopt(c.HTTPHEADER, ['Authorization: Bearer '+token])
-          #p.setopt(pycurl.WRITEFUNCTION, lambda x: None)
-          
-          #file_uuid_and_size = c.perform()
           command = ["curl"]
           command.append("-k")
           command.append("-H")
           command.append("Authorization: Bearer "+token)
           command.append("https://aws:"+token+"@"+redwood_host+":5431/listing")
           c_data=Popen(command, stdout=PIPE, stderr=PIPE)
-          #c_data=check_call(command, stdout=PIPE, stderr=PIPE)
           size_list, stderr = c_data.communicate()
-          #headers = {"Authorization":"Bearer %s" %token}
-          #print headers
-          #r = requests.get("https://aws:"+token+"@"+redwood_host+":5431/listing", verify=False, headers=headers)
           file_uuid_and_size = ast.literal_eval(size_list) 
-          #file_uuid_and_size = r.json()
           print "Done downloading the file size listing"
-          #print file_uuid_and_size
      except Exception:
-          logging.error('Error while performing the curl operation')
-          print 'Error while performing the curl operation'
-
-     print file_uuid_and_size[1]
+          logging.error('Error while getting the list of file sizes')
+          print 'Error while while getting the list of file sizes'
+     
+     #Return the list of file sizes. 
      return file_uuid_and_size
 
 #Fills in the contents of bundle_uuid_filename_to_file_uuid
@@ -106,9 +90,7 @@ def insert_size(file_name, file_uuid_and_size):
      #Open the file and do the size insertion
      with open(file_name, 'r') as f:
           data = json.load(f)
-          print file_name
-          #print data.items() #TEST
-          #Dealing with a different metadata.json format
+          #Special flat-ish kind of format. 
           if 'workflow_outputs' in data:
                bundle_uuid = data['bundle_uuid']
                for file_ in data['workflow_outputs']:
@@ -116,15 +98,11 @@ def insert_size(file_name, file_uuid_and_size):
                     if 'file_size' not in file_:
                          try:
                               file_uuid = bundle_uuid_filename_to_file_uuid[bundle_uuid+'_'+file_name_uploaded]
-                              #print (file_uuid_and_size)
-                              #print str(uuid_dict)
                               file_entry = filter(lambda x:x['id'] == file_uuid, file_uuid_and_size)
-                              #print str(file_entry) #TEST
                               file_['file_size'] = file_entry[0]['size']
                          except Exception as e:
-                              logging.error('Error while assigning missing size. File Id: %s' % file_uuid)
-                              print 'Error while assigning missing size. File Id: %s' % file_uuid
-                              print str(e)
+                              logging.error('Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid)
+                              print 'Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid
           
           #The more generic format
           else:
@@ -139,14 +117,10 @@ def insert_size(file_name, file_uuid_and_size):
                                                   #Get the size for the file uuid
                                                   file_uuid = bundle_uuid_filename_to_file_uuid[bundle_uuid+'_'+file_name_uploaded]
                                                   file_entry = filter(lambda x: x['id'] == file_uuid, file_uuid_and_size)
-                                                  #print (file_uuid_and_size)
-                                                  #print str(uuid_dict)
-                                                  #print str(file_entry) #TEST
                                                   file_['file_size'] = file_entry[0]['size']
                                              except Exception as e:
-                                                  logging.error('Error while assigning missing size. File Id: %s' % file_uuid)
-                                                  print 'Error while assigning missing size. File Id: %s' % file_uuid
-                                                  print str(e)
+                                                  logging.error('Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid)
+                                                  print 'Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid
      #Remove and replace the old file with the new one. 
      os.remove(file_name)
      with open(file_name, 'w') as f:
@@ -847,8 +821,6 @@ def main():
         requires(args.server_host)
         #Get the size listing
         file_uuid_and_size = get_size_list(args.storage_access_token, args.server_host)
-        print "Checking if variable was assigned"
-        print file_uuid_and_size[0] #TEST
         #Trying to download the data.
         last= False
         page=0
