@@ -11,10 +11,12 @@ WORKDIR /app
 
 COPY . /app/dcc-metadata-indexer
 
+ENV PYCURL_SSL_LIBRARY openssl
+
 RUN cd /app/dcc-metadata-indexer\
   && mkdir /app/dcc-metadata-indexer/es-jsonls\
   && mkdir /app/dcc-metadata-indexer/redacted\
-  && pip install jsonschema jsonmerge openpyxl sets json-spec elasticsearch semver luigi python-dateutil\
+  && pip install -r requirements.txt\
   && cd /app
 
 

@@ -37,6 +37,9 @@ clientPath(){
 preserveVersion(){
     preserveVersion=$1
 }
+maxPages(){
+    maxPages=$1
+}
 helpmenu(){
     echo "--help | -h for help 
 --storage-access-token | -a for the access token 
@@ -49,6 +52,7 @@ helpmenu(){
 --skip-project | -r Lets user skip certain json files that contain a specific program test
 --only-project | -t Lets user include certain json files that contain a specific program  test
 --client-path | -c Path to access the ucsc-storage-client tool
+--max-pages | -p Specify maximum number of pages to download
 -preserve-version Keep all copies of analysis events 
 "
 }
@@ -124,6 +128,10 @@ do
         --client-path | -c)
             empty_arg $2 $1
             clientPath $2
+            ;;
+        --max-pages | -p)
+            empty_arg $2 $1
+            maxPages $2
             ;;
         -preserve-version)
             empty_arg $2 $1

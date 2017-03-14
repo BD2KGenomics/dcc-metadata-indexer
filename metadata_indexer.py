@@ -20,12 +20,112 @@ import re
 import dateutil
 import ssl
 import dateutil.parser
+import ast
 from urllib import urlopen
 from subprocess import Popen, PIPE
 
 first_write = dict()
 index_index = 0
+#Dictionary to hold the File UUIDs to later get the right file size
+bundle_uuid_filename_to_file_uuid = {}
 
+#Call the storage endpoint and get the list of the 
+def get_size_list(token, redwood_host):
+     """
+     This function assigns file_uuid_and_size with all the ids and file size, 
+     so they can be used later to fill the missing file_size entries
+     """
+     print "Downloading the listing"
+     #Attempt to download
+     try:
+          command = ["curl"]
+          command.append("-k")
+          command.append("-H")
+          command.append("Authorization: Bearer "+token)
+          command.append("https://aws:"+token+"@"+redwood_host+":5431/listing")
+          c_data=Popen(command, stdout=PIPE, stderr=PIPE)
+          size_list, stderr = c_data.communicate()
+          file_uuid_and_size = ast.literal_eval(size_list) 
+          print "Done downloading the file size listing"
+     except Exception:
+          logging.error('Error while getting the list of file sizes')
+          print 'Error while while getting the list of file sizes'
+     
+     #Return the list of file sizes. 
+     return file_uuid_and_size
+
+#Fills in the contents of bundle_uuid_filename_to_file_uuid
+def requires(redwood_host):
+        """
+        Fills the dictionary for the files and their UUIDs. 
+        """
+        print "** COORDINATOR **"
+        print "**ACQUIRING FILE UUIDS**"
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        # now query the metadata service so I have the mapping of bundle_uuid & file names -> file_uuid
+        print str("https://"+redwood_host+":8444/entities?page=0")
+        json_str = urlopen(str("https://"+redwood_host+":8444/entities?page=0"), context=ctx).read()
+        metadata_struct = json.loads(json_str)
+        print "** METADATA TOTAL PAGES: "+str(metadata_struct["totalPages"])
+        for i in range(0, metadata_struct["totalPages"]):
+             print "** CURRENT METADATA TOTAL PAGES: "+str(i)
+             json_str = urlopen(str("https://"+redwood_host+":8444/entities?page="+str(i)), context=ctx).read()
+             metadata_struct = json.loads(json_str)
+             for file_hash in metadata_struct["content"]:
+                  bundle_uuid_filename_to_file_uuid[file_hash["gnosId"]+"_"+file_hash["fileName"]] = file_hash["id"]
+                  # HACK!!!  Please remove once the behavior has been fixed in the workflow!!
+                  if file_hash["fileName"].endswith(".sortedByCoord.md.bam"):
+                        bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_sortedByCoord.md.bam"] = file_hash["id"]
+                  if file_hash["fileName"].endswith(".tar.gz"):
+                        bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_tar.gz"] = file_hash["id"]
+                  if file_hash["fileName"].endswith(".wiggle.bg"):
+                        bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_wiggle.bg"] = file_hash["id"]
+
+def insert_size(file_name, file_uuid_and_size):
+     """
+     Opens the file and inserts any missing file_size
+     """
+     #Open the file and do the size insertion
+     with open(file_name, 'r') as f:
+          data = json.load(f)
+          #Special flat-ish kind of format. 
+          if 'workflow_outputs' in data:
+               bundle_uuid = data['bundle_uuid']
+               for file_ in data['workflow_outputs']:
+                    file_name_uploaded = file_['file_path']
+                    if 'file_size' not in file_:
+                         try:
+                              file_uuid = bundle_uuid_filename_to_file_uuid[bundle_uuid+'_'+file_name_uploaded]
+                              file_entry = filter(lambda x:x['id'] == file_uuid, file_uuid_and_size)
+                              file_['file_size'] = file_entry[0]['size']
+                         except Exception as e:
+                              logging.error('Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid)
+                              print 'Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid
+          
+          #The more generic format
+          else:
+               for specimen in data['specimen']:
+                    for sample in specimen['samples']:
+                         for analysis in sample['analysis']:
+                                   bundle_uuid = analysis['bundle_uuid']
+                                   for file_ in analysis['workflow_outputs']:
+                                        file_name_uploaded = file_['file_path']
+                                        if 'file_size' not in file_:
+                                             try:
+                                                  #Get the size for the file uuid
+                                                  file_uuid = bundle_uuid_filename_to_file_uuid[bundle_uuid+'_'+file_name_uploaded]
+                                                  file_entry = filter(lambda x: x['id'] == file_uuid, file_uuid_and_size)
+                                                  file_['file_size'] = file_entry[0]['size']
+                                             except Exception as e:
+                                                  logging.error('Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid)
+                                                  print 'Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid
+     #Remove and replace the old file with the new one. 
+     os.remove(file_name)
+     with open(file_name, 'w') as f:
+          json.dump(data, f, indent=4)
+                         
 
 def input_Options():
     """
@@ -86,7 +186,7 @@ def endpint_mapping(data_array):
     return my_dictionary
 
 
-def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
+def create_merge_input_folder(id_to_content,directory,accessToken,client_Path, size_list):
     """
     id_to_content: dictionary that maps content id to content object.
     directory: name of directory where the json files will be stored.
@@ -131,6 +231,12 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
         file_create_time_server = id_to_content[content_id]["content"]["createdTime"]
         if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") and \
                 creation_date(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") == file_create_time_server/1000:
+            #Assign any missing file size
+            insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
+            #Set the time created to be the one supplied by redwood (since insert_size() modifies the file)
+            os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
+                         (file_create_time_server/1000, file_create_time_server/1000))
+            #Open the file and add the file size if missing. 
             print "  + using cached file "+directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json created on "+str(file_create_time_server)
             #os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json", (file_create_time_server/1000, file_create_time_server/1000))
         else:
@@ -160,6 +266,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path):
                 c_data=Popen(command, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = c_data.communicate()
                 # now set the create timestamp
+                insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
                 os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
                          (file_create_time_server/1000, file_create_time_server/1000))
             except Exception:
@@ -699,7 +806,6 @@ def findRedactedUuids(skip_uuid_directory):
 def main():
     args = input_Options()
     directory_meta = args.test_directory
-
     # redacted metadata.json file UUIDs
     skip_uuid_directory = args.skip_uuid_directory
     skip_uuids = findRedactedUuids(skip_uuid_directory)
@@ -710,6 +816,10 @@ def main():
     logging.basicConfig(filename=logfileName, level=logging.DEBUG, format=logging_format, datefmt='%m/%d/%Y %I:%M:%S %p')
 
     if not directory_meta:
+        #Getting the File UUIDs
+        requires(args.server_host)
+        #Get the size listing
+        file_uuid_and_size = get_size_list(args.storage_access_token, args.server_host)
         #Trying to download the data.
         last= False
         page=0
@@ -746,7 +856,7 @@ def main():
         directory_meta= make_output_dir()
         access_Token=args.storage_access_token
         client_Path= args.client_path
-        create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path)
+        create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path, file_uuid_and_size)
 
         # END DOWNLOAD
 
