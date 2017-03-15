@@ -30,5 +30,6 @@ RUN cd /app/dcc-metadata-indexer
 WORKDIR /app/dcc-metadata-indexer
 
 RUN chmod a+x run.sh
+EXPOSE 9200
 ENTRYPOINT ["./run.sh"]
 
