@@ -151,7 +151,7 @@ python metadata_indexer.py ${ARGUMENTS[@]}
 
 #This moves all the .jsonl files to the es-jsonls folder (easier to mount only the jsonl files as opposed to everything else.)
 #find . -name "*.jsonl" -exec cp {} /app/dcc-metadata-indexer/es-jsonls \;
-cp /app/dcc-metadata-indexer/*jsonl /app/dcc-metadata-indexer/es-jsonls
+\cp /app/dcc-metadata-indexer/*jsonl /app/dcc-metadata-indexer/es-jsonls
 
 #Make ownership to that of the executer of the docker image. 
 user=$USER_GROUP
