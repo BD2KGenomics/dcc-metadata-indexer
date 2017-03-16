@@ -503,3 +503,4 @@ def generate_daily_reports(date):
             Billing.create(compute_cost=compute_costs, storage_cost=storage_costs, start_date=monthstart, \
                             end_date=timeend, project=project, closed_out=False,
                             cost_by_analysis=itemized_costs)
+generate_daily_reports("")
