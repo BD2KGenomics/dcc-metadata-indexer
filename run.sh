@@ -176,7 +176,7 @@ curl -XPUT http://$esService:9200/analysis_real/_bulk?pretty --data-binary @elas
 curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "analysis_buffer", "alias" : "analysis_index" } }, { "add" : { "index" : "analysis_real", "alias" : "analysis_index" } } ] }'
 echo "Starting es_filebrowser_index.py; Creating fb_index"
 #Run the 
-python es_filebrowser_index.py --access public --repoBaseUrl storage.ucsc-cgl.org --repoCountry US --repoName Redwood-AWS-Oregon --repoOrg UCSC --repoType Redwood --repoCountry US
+python es_filebrowser_index.py --access public --repoBaseUrl $storageHost --repoCountry US --repoName Redwood-AWS-Oregon --repoOrg UCSC --repoType Redwood --repoCountry US
 
 echo "Updating fb_index"
 curl -XDELETE http://$esService:9200/fb_buffer/
