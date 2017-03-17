@@ -2,6 +2,7 @@ from datetime import datetime
 from active_alchemy import ActiveAlchemy
 from elasticsearch import Elasticsearch
 from decimal import Decimal
+import pytz
 import calendar
 import json
 import os
@@ -17,56 +18,22 @@ SECONDS_IN_HR = 3600
 BYTES_IN_GB = 1000000000
 STORAGE_PRICE_GB_MONTH = 0.03
 
-class CRUDMixin(object):
-    """Mixin that adds convenience methods for CRUD (create, read, update, delete) operations."""
-
-    @classmethod
-    def create(cls, **kwargs):
-        """Create a new record and save it the database."""
-        instance = cls(**kwargs)
-        return instance.save()
-
-    def update(self, commit=True, **kwargs):
-        """Update specific fields of a record."""
-        for attr, value in kwargs.items():
-            setattr(self, attr, value)
-        return commit and self.save() or self
-
-    def save(self, commit=True):
-        """Save the record."""
-        db.session.add(self)
-        if commit:
-            db.session.commit()
-        return self
-
-    def delete(self, commit=True):
-        """Remove the record from the database."""
-        db.session.delete(self)
-        return commit and db.session.commit()
-
-
-class Model(CRUDMixin, db.Model):
-    """Base model class that includes CRUD convenience methods."""
-
-    __abstract__ = True
-
-
-class Billing(Model):
+class Billing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     storage_cost = db.Column(db.Numeric, nullable=False, default=0)
     compute_cost = db.Column(db.Numeric, nullable=False, default=0)
     project = db.Column(db.Text)
     start_date = db.Column(db.DateTime)
     end_date = db.Column(db.DateTime)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_date = db.Column(db.DateTime, default=datetime.utcnow())
     closed_out = db.Column(db.Boolean, nullable=False, default=False)
     cost_by_analysis = db.Column(db.JSON)
     __table_args__ = (db.UniqueConstraint('project', 'start_date', name='unique_prj_start'),)
 
     def __init__(self, compute_cost, storage_cost, project, cost_by_analysis, start_date, end_date, **kwargs):
         db.Model.__init__(self, compute_cost=compute_cost, storage_cost=storage_cost, project=project,
-                          start_date=start_date,
-                          end_date=end_date,
+                          start_date=start_date.replace(tzinfo=pytz.UTC),
+                          end_date=end_date.replace(tzinfo=pytz.UTC),
                           cost_by_analysis=cost_by_analysis,
                         **kwargs)
 
@@ -88,7 +55,7 @@ class Billing(Model):
         return dict_representation
 
     def __close_out__(self):
-        self.end_date = datetime.utcnow
+        self.end_date = datetime.utcnow().replace(tzinfo=pytz.UTC)
         self.closed_out = True
 
     @property
@@ -111,7 +78,7 @@ def get_projects_list():
     return projects
 
 def get_previous_file_sizes (timeend, project):
-    timeendstring = timeend.strftime('%Y-%m-%dT%H:%M:%S')
+    timeendstring = timeend.replace(tzinfo=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
     es_resp = es.search(index='billing_idx', body={
         "query": {
             "bool": {
@@ -150,8 +117,8 @@ def get_previous_file_sizes (timeend, project):
     return es_resp
 
 def get_months_uploads(project, timefrom, timetil):
-    timestartstring = timefrom.strftime('%Y-%m-%dT%H:%M:%S')
-    timeendstring = timetil.strftime('%Y-%m-%dT%H:%M:%S')
+    timestartstring = timefrom.replace(tzinfo=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
+    timeendstring = timetil.replace(tzinfo=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
     es_resp = es.search(index='billing_idx', body =
     {
         "query": {
@@ -205,8 +172,8 @@ def make_search_filter_query(timefrom, timetil, project):
     :param project: string, this is the name of the particular project that we are trying to generate for
     :return:
     """
-    timestartstring = timefrom.strftime('%Y-%m-%dT%H:%M:%S')
-    timeendstring = timetil.strftime('%Y-%m-%dT%H:%M:%S')
+    timestartstring = timefrom.replace(tzinfo=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
+    timeendstring = timetil.replace(tzinfo=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')
     es_resp = es.search(index='billing_idx', body={
         "query": {
             "bool": {
@@ -281,7 +248,7 @@ def make_search_filter_query(timefrom, timetil, project):
     return es_resp
 
 def get_datetime_from_es(timestr):
-    return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%f")
+    return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%f").replace(tzinfo=pytz.UTC)
 
 def calculate_compute_cost(total_seconds, vm_cost_hr):
     return Decimal(Decimal(total_seconds)/Decimal(SECONDS_IN_HR)*Decimal(vm_cost_hr)*Decimal(EXTRA_MONEY))
@@ -321,7 +288,7 @@ def make_bills(comp_aggregations, previous_month_bytes, portion_of_month, this_m
         'buckets']
     for ts_sum in this_month_timestamps:
         time_string = ts_sum['key_as_string']
-        time = datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+        time = datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC)
 
         timediff = (curr_time - time).total_seconds()
         month_portion = Decimal(timediff)/Decimal(seconds_in_month)
@@ -438,7 +405,7 @@ def get_storage_costs(previous_month_bytes, portion_of_month, this_month_timesta
         'buckets']
     for ts_sum in this_month_timestamps:
         time_string = ts_sum['key_as_string']
-        time = datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+        time = datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC)
 
         timediff = (curr_time - time).total_seconds()
         month_portion = Decimal(timediff)/Decimal(seconds_in_month)
@@ -457,16 +424,16 @@ def generate_daily_reports(date):
     # January
 
     try:
-        timeend = datetime.strptime(date, '%Y/%m/%d')
+        timeend = datetime.strptime(date, '%Y/%m/%d').replace(tzinfo=pytz.UTC)
     except:
-        timeend = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        timeend = datetime.utcnow().replace(tzinfo=pytz.UTC).replace(minute=0, second=0, hour=0, microsecond=0)
 
 
     # HANDLE CLOSING OUT BILLINGS at end of month
     if timeend.day == 1:
         projects = get_projects_list()
         for project in projects:
-            bill = Billing.query.filter(Billing.end_data.month == (timeend.month-1) % 12) \
+            bill = Billing.query.filter(Billing.end_date.month == (timeend.month-1) % 12) \
                 .filter(Billing.closed_out is False).filter(Billing.project == project).first()
             if bill:
                 bill.update(end_date=timeend, closed_out=True)
@@ -491,7 +458,7 @@ def generate_daily_reports(date):
         storage_costs = get_storage_costs( file_size, portion_of_month,
                                             this_months_files, timeend, daysinmonth*3600*24)
 
-        bill = Billing.query().filter(Billing.project == project).filter(Billing.start_date == monthstart).first()
+        bill = Billing.query().filter(Billing.project == project).filter(Billing.start_date.month == monthstart.month).first()
         itemized_costs = {
             "itemized_compute_costs": analysis_compute_json,
             "itemized_storage_costs": analysis_storage_json
@@ -503,4 +470,6 @@ def generate_daily_reports(date):
             Billing.create(compute_cost=compute_costs, storage_cost=storage_costs, start_date=monthstart, \
                             end_date=timeend, project=project, closed_out=False,
                             cost_by_analysis=itemized_costs)
-generate_daily_reports("")
+
+if __name__ == '__main__':
+	generate_daily_reports("")

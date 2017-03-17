@@ -8,3 +8,6 @@ semver==2.7.5
 luigi==2.6.0
 python-dateutil==2.6.0
 jsonlines==1.1.0
+Active-Alchemy==1.0.0
+psycopg2==2.6.2
+pytz==2016.10
