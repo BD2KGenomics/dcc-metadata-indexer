@@ -213,7 +213,7 @@ curl -XPUT http://elasticsearch1:9200/billing_real/_bulk?pretty --data-binary @d
 curl -XPOST http://elasticsearch1:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "billing_buffer", "alias" : "billing_idx" } }, { "add" : { "index" : "billing_real", "alias" : "billing_idx" } } ] }'
 
 #TODO: add code to do the daily report generation
-
+python generate_billings.py
 #This moves all the .jsonl files to the es-jsonls folder (easier to mount only the jsonl files as opposed to everything else.)
 #find . -name "*.jsonl" -exec cp {} /app/dcc-metadata-indexer/es-jsonls \;
 \cp /app/dcc-metadata-indexer/*jsonl /app/dcc-metadata-indexer/es-jsonls
