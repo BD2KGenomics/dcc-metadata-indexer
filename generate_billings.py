@@ -1,5 +1,6 @@
 from datetime import datetime
 from active_alchemy import ActiveAlchemy
+from sqlalchemy import distinct, func
 from elasticsearch import Elasticsearch
 from decimal import Decimal
 import pytz
@@ -458,7 +459,7 @@ def generate_daily_reports(date):
         storage_costs = get_storage_costs( file_size, portion_of_month,
                                             this_months_files, timeend, daysinmonth*3600*24)
 
-        bill = Billing.query().filter(Billing.project == project).filter(Billing.start_date.month == monthstart.month).first()
+        bill = Billing.query().filter(Billing.project == project).filter(func.extract('month', Billing.start_date) == monthstart.month).first()
         itemized_costs = {
             "itemized_compute_costs": analysis_compute_json,
             "itemized_storage_costs": analysis_storage_json
