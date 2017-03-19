@@ -5,6 +5,7 @@ RUN pip install --upgrade pip
 RUN apk add --update bash
 RUN apk add --update --no-cache gcc g++ py-lxml py-numpy
 RUN apk add --update python2-dev libxml2-dev libxslt-dev curl-dev curl
+RUN apk add --update py-psycopg2
 
 RUN pip install numpy
 WORKDIR /app
