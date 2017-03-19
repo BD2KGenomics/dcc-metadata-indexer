@@ -10,12 +10,16 @@
 import jsonlines, ast, json, luigi, ssl, argparse
 from elasticsearch import Elasticsearch
 from urllib import urlopen
+import os
+
+es_service = os.environ.get("ES_SERVICE", "localhost")
+redwood_host = os.environ.get("REDWOOD_SERVER", "storage.ucsc-cgl.org")
 
 counter = 0;
-es = Elasticsearch(['http://elasticsearch1:9200'])
+es = Elasticsearch(['http://'+es_service+':9200'])
 
 
-redwood_host = 'storage.ucsc-cgl.org'#redwood_host = luigi.Parameter(default='storage.ucsc-cgl.org') # Put storage instead of storage2
+#redwood_host = 'storage.ucsc-cgl.org'#redwood_host = luigi.Parameter(default='storage.ucsc-cgl.org') # Put storage instead of storage2
 bundle_uuid_filename_to_file_uuid = {}
 #index_size = 0
 
