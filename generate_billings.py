@@ -29,7 +29,7 @@ class Billing(db.Model):
     created_date = db.Column(db.DateTime, default=datetime.utcnow())
     closed_out = db.Column(db.Boolean, nullable=False, default=False)
     cost_by_analysis = db.Column(db.JSON)
-    __table_args__ = (db.UniqueConstraint('project', 'start_date', name='unique_prj_start'),)
+    __table_args__ = (db.UniqueConstraint('is_deleted', 'project', 'start_date', name='unique_prj_start'),)
 
     def __init__(self, compute_cost, storage_cost, project, cost_by_analysis, start_date, end_date, **kwargs):
         db.Model.__init__(self, compute_cost=compute_cost, storage_cost=storage_cost, project=project,
@@ -459,18 +459,22 @@ def generate_daily_reports(date):
         storage_costs = get_storage_costs( file_size, portion_of_month,
                                             this_months_files, timeend, daysinmonth*3600*24)
 
+
         bill = Billing.query().filter(Billing.project == project).filter(func.extract('month', Billing.start_date) == monthstart.month).first()
         itemized_costs = {
             "itemized_compute_costs": analysis_compute_json,
             "itemized_storage_costs": analysis_storage_json
         }
-        if bill:
-            bill.update(compute_cost=compute_costs, storage_cost=storage_costs, end_date=timeend,
-                        cost_by_analysis=itemized_costs)
-        else:
-            Billing.create(compute_cost=compute_costs, storage_cost=storage_costs, start_date=monthstart, \
-                            end_date=timeend, project=project, closed_out=False,
+        try:
+            if bill:
+                bill.update(compute_cost=compute_costs, storage_cost=storage_costs, end_date=timeend,
                             cost_by_analysis=itemized_costs)
+            else:
+                Billing.create(compute_cost=compute_costs, storage_cost=storage_costs, start_date=monthstart, \
+                                end_date=timeend, project=project, closed_out=False,
+                                cost_by_analysis=itemized_costs)
+        except:
+            print("IT'S GONE FAR SOUTH")
 
 if __name__ == '__main__':
 	generate_daily_reports("")
