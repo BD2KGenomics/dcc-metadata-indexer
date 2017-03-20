@@ -58,6 +58,7 @@ helpmenu(){
 --max-pages | -p Specify maximum number of pages to download
 -preserve-version Keep all copies of analysis events 
 --es-service | -e Specify the name of the host for the elasticsearch service.
+--cron-job | -j Include this flag to run the whole indexing process as a cron job
 "
 }
 
@@ -145,6 +146,9 @@ do
         --es-service | -e)
             esService $2
             ;;
+        --cron-job | -j)
+            cronJob=1
+            ;;
     esac
     shift
 done
@@ -153,6 +157,9 @@ done
 for key in ${!ARGS[@]}; do
     ARGUMENTS+=(${key} ${ARGS[${key}]})
 done
+
+#Go into the indexer folder
+cd /app/dcc-metadata-indexer
 
 #Run the metadata-indexer
 python metadata_indexer.py ${ARGUMENTS[@]}
@@ -220,7 +227,7 @@ curl -XPUT http://$esService:9200/billing_real/_bulk?pretty --data-binary @duped
 #Change the alias again, so that billing_idx points again to the real billing_real index
 curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "billing_buffer", "alias" : "billing_idx" } }, { "add" : { "index" : "billing_real", "alias" : "billing_idx" } } ] }'
 
-#TODO: add code to do the daily report generation
+#Generate billing reports. 
 python generate_billings.py
 #This moves all the .jsonl files to the es-jsonls folder (easier to mount only the jsonl files as opposed to everything else.)
 #find . -name "*.jsonl" -exec cp {} /app/dcc-metadata-indexer/es-jsonls \;
@@ -236,3 +243,10 @@ then
   chown -R ${user} /app/dcc-metadata-indexer/redacted/
 fi
 
+#Now set/reset the cronjob if a flag is passed
+if [[ ! -z "$cronJob" ]]
+then
+  echo "Setting the cron job"
+  env > /app/env.txt && crontab /etc/cron.d/indexer-cron && /usr/sbin/crond -f -d 0
+ while true; do sleep 10000; done
+fi
