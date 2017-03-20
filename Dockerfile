@@ -30,7 +30,16 @@ RUN mkdir /app/redwood-client\
 RUN cd /app/dcc-metadata-indexer
 WORKDIR /app/dcc-metadata-indexer
 
+#Make the script executable
 RUN chmod a+x run.sh
 EXPOSE 9200
+
+#Cron tab preparation
+# Add crontab file in the cron directory
+ADD crontab /etc/cron.d/indexer-cron
+
+# Give execution rights on the cron job
+RUN chmod 0644 /etc/cron.d/indexer-cron
+
 ENTRYPOINT ["./run.sh"]
 
