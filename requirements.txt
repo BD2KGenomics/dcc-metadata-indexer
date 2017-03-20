@@ -1,0 +1,13 @@
+jsonschema==2.6.0
+jsonmerge==1.2.1
+openpyxl==2.4.2
+sets==0.3.2
+json-spec==0.10.1
+elasticsearch==5.2.0
+semver==2.7.5
+luigi==2.6.0
+python-dateutil==2.6.0
+jsonlines==1.1.0
+Active-Alchemy==1.0.0
+psycopg2==2.6.2
+pytz==2016.10
