@@ -222,14 +222,14 @@ In order to run the image, you have to mount 2 folders (with an additional one b
 To sample run of the image would look something like this:
 
 ```
-docker run -e USER_GROUP=<USER:GROUP> -v <FOLDER_WITH_JSONLs>:/app/dcc-metadata-indexer/es-jsonls \
+docker run -e USER_GROUP=<USER:GROUP> -e ES_SERVICE=localhost -e DATABASE_URL=<DB_URL> -v <FOLDER_WITH_JSONLs>:/app/dcc-metadata-indexer/es-jsonls \
 -v <OUTPUT_METADATA_FOLDER>:/app/dcc-metadata-indexer/endpoint_metadata \
--v <REDACTED_FOLDER>:/app/dcc-metadata-indexer/redacted \
+-v <REDACTED_FOLDER>:/app/dcc-metadata-indexer/redacted -p 9200:9200 \
 <DOCKER_IMAGE_NAME> --storage-access-token <YOUR_ACCESS_TOKEN> \
 --server-host storage.ucsc-cgl.org --skip-uuid-directory /app/dcc-metadata-indexer/redacted \
 --skip-program TEST --skip-project TEST
 ```
-The `USER_GROUP` environment variable is so that the output metadata and jsonl files get set to your current user:group instead of root. If you don't know your user:group, you can easily get it by substituting `<USER:GROUP>` with `$(stat -c '%u:%g' $HOME)`; this gets the `user:group` of your home folder. 
+The `USER_GROUP` environment variable is so that the output metadata and jsonl files get set to your current user:group instead of root. If you don't know your user:group, you can easily get it by substituting `<USER:GROUP>` with `$(stat -c '%u:%g' $HOME)`; this gets the `user:group` of your home folder. The `DATABASE_URL` indicates the url with the username, password, and all required information, to access the database to store invoicing information. `ES_SERVICE` indicates the domain name pointing to the elasticsearch service. In the example above, it is set to `localhost`, and the host port 9200 bound to the container 9200 port. This should allow the indexer to access elasticsearch. This may come in handy if using docker-compose and want to use a standalone elasticsearch image. 
 
 ## TODO
 
