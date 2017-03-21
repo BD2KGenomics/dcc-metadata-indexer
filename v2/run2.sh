@@ -66,7 +66,7 @@ metadataSchema='/app/dcc-metadata-indexer/metadata_schema.json'
 esService=elasticsearch1
 
 #Assign the key and variable pair in the associative array (Dictionary)
-ARGS["--client-path"]=$clientPath
+#ARGS["--client-path"]=$clientPath
 ARGS["--metadata-schema"]=$metadataSchema
 
 #Declare array with the arguments for the metadata-indexer.py
@@ -195,7 +195,8 @@ curl -XPUT http://$esService:9200/fb_index/_bulk?pretty --data-binary @fb_index.
 curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "fb_buffer", "alias" : "fb_alias" } }, { "add" : { "index" : "fb_index", "alias" : "fb_alias" } } ] }'
 
 ###NOW HANDLE CREATING THE NEW BILLINGINDEX###
-python metadata_indexer_v2.py -preserve-version --skip-program TEST --skip-project TEST  --storage-access-token $storageAccessToken  --metadata-schema $metadataSchema --server-host $storageHost
+#python metadata_indexer_v2.py -preserve-version --skip-program TEST --skip-project TEST  --storage-access-token $storageAccessToken  --metadata-schema $metadataSchema --server-host $storageHost
+python metadata_indexer_v2.py -preserve-version ${ARGUMENTS[@]}
 
 #Populate the billing index
 #Change the Buffer index
