@@ -2,7 +2,7 @@ FROM quay.io/ucsc_cgl/redwood-client:1.1.0
 
 RUN apt-get update
 RUN apt-get install -y apt-utils
-RUN apt-get install -y python-dev libxml2-dev libxslt-dev lib32z1-dev
+RUN apt-get install -y python-dev libxml2-dev libxslt-dev lib32z1-dev libpq-dev
 RUN apt-get install -y python-pip wget
 RUN pip install -U pip
 RUN pip install --upgrade cffi
