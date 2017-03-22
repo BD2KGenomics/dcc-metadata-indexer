@@ -1,7 +1,7 @@
 FROM quay.io/ucsc_cgl/redwood-client:1.1.0
 
 RUN apt-get update
-RUN apt-get install -y apt-utils
+RUN apt-get install -y apt-utils build-essential libssl-dev libffi-dev
 RUN apt-get install -y python-dev libxml2-dev libxslt-dev lib32z1-dev libpq-dev
 RUN apt-get install -y python-pip wget
 RUN pip install -U pip
@@ -19,7 +19,7 @@ RUN cd /app/dcc-metadata-indexer\
 RUN cd /app/dcc-metadata-indexer
 WORKDIR /app/dcc-metadata-indexer
 
-RUN chmod a+x run.sh
+RUN chmod a+x run2.sh
 EXPOSE 9200
 
 #Cron tab preparation
