@@ -863,7 +863,7 @@ def main():
             metadata_struct["totalPages"] = int(args.max_pages)
         for page in range(0, metadata_struct["totalPages"]):
             print "DOWNLOADING PAGE "+str(page)
-            meta_cmd= ["curl", "-k", "-H", "Host: storage.redwood.io"]
+            meta_cmd= ["curl", "-k", "-H", "Host: metadata.redwood.io"]
             url= 'https://metadata.'+args.server_host+':9443/entities?fileName=metadata.json&page='
             new_url=  url + str(page)
             meta_cmd.append(new_url)
