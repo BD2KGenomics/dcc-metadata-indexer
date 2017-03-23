@@ -50,10 +50,11 @@ def get_size_list(token, redwood_host):
           size_list, stderr = c_data.communicate()
           file_uuid_and_size = ast.literal_eval(size_list) 
           print "Done downloading the file size listing"
-     except Exception:
+     except Exception as e:
           logging.error('Error while getting the list of file sizes')
+          print str(e)
           print 'Error while while getting the list of file sizes'
-     
+          file_uuid_and_size = [] 
      #Return the list of file sizes. 
      return file_uuid_and_size
 
