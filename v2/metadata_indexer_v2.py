@@ -52,7 +52,6 @@ def get_size_list(token, redwood_host):
           print "Done downloading the file size listing"
      except Exception as e:
           logging.error('Error while getting the list of file sizes')
-          print str(e)
           print 'Error while while getting the list of file sizes'
           file_uuid_and_size = [] 
      #Return the list of file sizes. 

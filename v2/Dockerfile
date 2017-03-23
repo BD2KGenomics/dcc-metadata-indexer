@@ -1,6 +1,7 @@
 FROM quay.io/ucsc_cgl/redwood-client:1.1.0
 
 RUN apt-get update
+RUN apt-get install -y curl
 RUN apt-get install -y apt-utils build-essential libssl-dev libffi-dev
 RUN apt-get install -y python-dev libxml2-dev libxslt-dev lib32z1-dev libpq-dev
 RUN apt-get install -y python-pip wget
