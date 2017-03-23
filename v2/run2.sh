@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Exit if an error is detected
-set -o errexit
+#set -o errexit
 
 #Functions for assigning variables from flags
 storageAccessToken(){
