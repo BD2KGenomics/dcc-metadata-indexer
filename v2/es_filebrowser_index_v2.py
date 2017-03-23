@@ -9,7 +9,7 @@
 #This takes the "validated.jsonl" file produced by the many scripts in the Fall Demo Script
 import jsonlines, ast, json, luigi, ssl, argparse
 from elasticsearch import Elasticsearch
-from urllib import urlopen
+from urllib2 import urlopen, Request
 import os
 
 es_service = os.environ.get("ES_SERVICE", "localhost")
@@ -42,7 +42,15 @@ parser.add_argument('--repoType', dest='repoType', action='store',
 #Get the arguments into args
 args = parser.parse_args()
 
+def requestConstructor(url, headers):
+        '''
+        Helper function to make requests to use on with urlopen()
+        '''
+        req = Request(url)
+        for key, value in headers.items():
+             req.add_header(key, value)
 
+        return req
 
 def requires():
         print "** COORDINATOR **"
@@ -50,14 +58,17 @@ def requires():
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
+        headers = {'Host':'metadata.redwood.io'}
         # now query the metadata service so I have the mapping of bundle_uuid & file names -> file_uuid
         print str("https://metadata."+redwood_host+":9443/entities?page=0")
-        json_str = urlopen(str("https://metadata."+redwood_host+":9443/entities?page=0"), context=ctx).read()
+#        json_str = urlopen(str("https://metadata."+redwood_host+":9443/entities?page=0"), context=ctx).read()
+        json_str = urlopen(requestConstructor(str("https://metadata."+redwood_host+":9443/entities?page=0"), headers), context=ctx).read()
         metadata_struct = json.loads(json_str)
         print "** METADATA TOTAL PAGES: "+str(metadata_struct["totalPages"])
         for i in range(0, metadata_struct["totalPages"]):
             print "** CURRENT METADATA TOTAL PAGES: "+str(i)
-            json_str = urlopen(str("https://metadata."+redwood_host+":9443/entities?page="+str(i)), context=ctx).read()
+            #json_str = urlopen(str("https://metadata."+redwood_host+":9443/entities?page="+str(i)), context=ctx).read()
+            json_str = urlopen(requestConstructor(str("https://metadata."+redwood_host+":9443/entities?page="+str(i)), headers), context=ctx).read()
             metadata_struct = json.loads(json_str)
             for file_hash in metadata_struct["content"]:
                 bundle_uuid_filename_to_file_uuid[file_hash["gnosId"]+"_"+file_hash["fileName"]] = file_hash["id"]
