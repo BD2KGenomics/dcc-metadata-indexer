@@ -202,7 +202,7 @@ def endpint_mapping(data_array):
     return my_dictionary
 
 
-def create_merge_input_folder(id_to_content,directory,accessToken,client_Path, size_list):
+def create_merge_input_folder(id_to_content,directory,accessToken, size_list):
     """
     id_to_content: dictionary that maps content id to content object.
     directory: name of directory where the json files will be stored.
@@ -881,8 +881,7 @@ def main():
         # Download the metadata.json files using the id stored in id_to_content dictionary
         directory_meta= make_output_dir()
         access_Token=args.storage_access_token
-        client_Path= args.client_path
-        create_merge_input_folder(id_to_content, directory_meta,access_Token,client_Path, file_uuid_and_size)
+        create_merge_input_folder(id_to_content, directory_meta,access_Token, file_uuid_and_size)
 
         # END DOWNLOAD
 
