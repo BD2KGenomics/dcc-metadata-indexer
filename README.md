@@ -244,3 +244,40 @@ The `USER_GROUP` environment variable is so that the output metadata and jsonl f
 In the future, look at adding options here for specifying where files should be merged:
 
     python merge.py --sample alignment:alignment1.json --sample alignment:alignment2.json --donor somatic_variant_calling:somatic.json
+
+## Billing and database.
+The metadata indexer was recently modified to deploy using docker as part of an
+ongoing migration to docker. For compartmentalization and containerizing, the
+work of generating invoices was moved intot he metadata indexer. To get this
+working, you need to install everything from requirements.txt and then also set
+the DATABASE_URL environment variable is set to point to a database URI in the
+format expected by SQLAlchemy (see
+http://docs.sqlalchemy.org/en/latest/core/engines.html).  You can point this to
+any SQL database, but I will write down a few particular steps on getting this
+runnning on AWS RDS using a postgreSQL instance.
+* From the AWS management console, select the RDS tab and navigate to the
+  instances tab. If you have a particular database instance already created you
+  wish to set up with the indedxer, skip to GENERATING A DATABSE URI FROM AWS
+* Select the Launch DB Instance tab, within it, select postgreSQL, provision it
+  as you deem necessary for the purposes (cores, IOP/S, network connection,
+  etc.)
+## GENERATING A DATABSE URI FROM AWS
+This assumes that you have located the database instance in AWS which you wish
+to create a database URI for, after selecting it, click the see details
+information panel in instance actions. a SQLALCHEMY DATABASE URI is composed of
+a few parts, a username, a password, a port, a database name/hostname, and a
+protocol.
+
+Assuming you are setting up a postgreSQL database, your connection string will
+begin with "postgresql://"
+
+Working with a hypothetical database instance at the hostname
+"test-db-endpoint.com" with port 5432 (this should likely not change if using
+postgres, and you are connecting to a database named billings on that instance,
+using a username "TESTUSER" and password "TESTPASSWORD", the SQLAlchemy
+database URI for this would be the following
+
+"postgresql://TESTUSER:TESTPASSWORD@test-db-endpoint.com:5432/billings"
+
+More gonerally, they have form 
+{PROTOCOL}{USERNAME}:{PASSWORD}@{HOSTNAME}:{PORT}/{DATABASE_NAME}
