@@ -276,7 +276,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken, size_list):
             #command.append("--output-layout")
             #command.append("bundle")
          
-            command = ["dcc-metadata-client"]
+            command = ["icgc-storage-client"]
             command.append("download")
             command.append("--output-dir")
             command.append(str(directory))
