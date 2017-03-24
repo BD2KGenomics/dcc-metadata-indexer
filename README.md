@@ -248,7 +248,7 @@ In the future, look at adding options here for specifying where files should be 
 ## Billing and database.
 The metadata indexer was recently modified to deploy using docker as part of an
 ongoing migration to docker. For compartmentalization and containerizing, the
-work of generating invoices was moved intot he metadata indexer. To get this
+work of generating invoices was moved into the metadata indexer. To get this
 working, you need to install everything from requirements.txt and then also set
 the DATABASE_URL environment variable is set to point to a database URI in the
 format expected by SQLAlchemy (see
