@@ -43,9 +43,9 @@ def get_size_list(token, redwood_host):
           command.append("-k")
           command.append("-H")
           command.append("Authorization: Bearer "+token)
-          command.append("-H")
-          command.append("Host: storage.redwood.io")
-          command.append("https://aws:"+token+"@storage."+redwood_host+":9443/listing")
+          #command.append("-H")
+          #command.append("Host: storage.redwood.io")
+          command.append("https://aws:"+token+"@storage."+redwood_host+"/listing")
           c_data=Popen(command, stdout=PIPE, stderr=PIPE)
           size_list, stderr = c_data.communicate()
           file_uuid_and_size = ast.literal_eval(size_list) 
@@ -78,17 +78,18 @@ def requires(redwood_host):
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        headers = {'Host':'metadata.redwood.io'}
+        #headers = {'Host':'metadata.redwood.io'}
+        headers = {}
         # now query the metadata service so I have the mapping of bundle_uuid & file names -> file_uuid
-        print str("https://metadata."+redwood_host+":9443/entities?page=0")
+        print str("https://metadata."+redwood_host+"/entities?page=0")
 #        json_str = urlopen(str("https://metadata."+redwood_host+":9443/entities?page=0"), context=ctx).read()
-        json_str = urlopen(requestConstructor(str("https://metadata."+redwood_host+":9443/entities?page=0") , headers), context=ctx).read()
+        json_str = urlopen(requestConstructor(str("https://metadata."+redwood_host+"/entities?page=0") , headers), context=ctx).read()
         metadata_struct = json.loads(json_str)
         print "** METADATA TOTAL PAGES: "+str(metadata_struct["totalPages"])
         for i in range(0, metadata_struct["totalPages"]):
              print "** CURRENT METADATA TOTAL PAGES: "+str(i)
 #             json_str = urlopen(str("https://metadata."+redwood_host+":9443/entities?page="+str(i)), context=ctx).read()
-             json_str = urlopen(requestConstructor(str("https://metadata."+redwood_host+":9443/entities?page="+str(i)), headers), context=ctx).read()
+             json_str = urlopen(requestConstructor(str("https://metadata."+redwood_host+"/entities?page="+str(i)), headers), context=ctx).read()
              metadata_struct = json.loads(json_str)
              for file_hash in metadata_struct["content"]:
                   bundle_uuid_filename_to_file_uuid[file_hash["gnosId"]+"_"+file_hash["fileName"]] = file_hash["id"]
@@ -853,9 +854,10 @@ def main():
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        headers = {'Host':'metadata.redwood.io'}
+        #headers = {'Host':'metadata.redwood.io'}
+        headers = {}
 #        json_str = urlopen(str("https://metadata."+args.server_host+":9443/entities?fileName=metadata.json&page=0"), context=ctx).read()
-        json_str = urlopen(requestConstructor(str("https://metadata."+args.server_host+":9443/entities?fileName=metadata.json&page=0"), headers), context=ctx).read()
+        json_str = urlopen(requestConstructor(str("https://metadata."+args.server_host+"/entities?fileName=metadata.json&page=0"), headers), context=ctx).read()
         metadata_struct = json.loads(json_str)
 
         # Download all of the data that is stored.
@@ -863,8 +865,8 @@ def main():
             metadata_struct["totalPages"] = int(args.max_pages)
         for page in range(0, metadata_struct["totalPages"]):
             print "DOWNLOADING PAGE "+str(page)
-            meta_cmd= ["curl", "-k", "-H", "Host: metadata.redwood.io"]
-            url= 'https://metadata.'+args.server_host+':9443/entities?fileName=metadata.json&page='
+            meta_cmd= ["curl", "-k"]
+            url= 'https://metadata.'+args.server_host+'/entities?fileName=metadata.json&page='
             new_url=  url + str(page)
             meta_cmd.append(new_url)
 
