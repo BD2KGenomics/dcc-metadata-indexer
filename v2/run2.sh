@@ -2,7 +2,7 @@
 
 #Exit if an error is detected
 #set -o errexit
-
+sleep 15
 #Functions for assigning variables from flags
 storageAccessToken(){
     storageAccessToken=$1
@@ -172,9 +172,10 @@ curl -XPUT http://$esService:9200/analysis_real/_bulk?pretty --data-binary @elas
 
 #Change alias one last time from buffer to real
 curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "analysis_buffer", "alias" : "analysis_index" } }, { "add" : { "index" : "analysis_real", "alias" : "analysis_index" } } ] }'
-echo "Starting es_filebrowser_index.py; Creating fb_index"
+echo "Starting es_filebrowser_index_v2.py; Creating fb_index"
 #Run the 
-python es_filebrowser_index_v2.py --access public --repoBaseUrl $storageHost --repoCountry US --repoName Redwood-AWS-Oregon --repoOrg UCSC --repoType Redwood --repoCountry US
+sleep 6
+python es_filebrowser_index_v2.py --access public --repoBaseUrl $storageHost --repoCountry US --repoName Redwood-AWS-Oregon --repoOrg UCSC --repoType Redwood --repoCountry US >> /app/dcc-metadata-indexer/es-jsonls/log.txt  2>&1
 
 echo "Updating fb_index"
 curl -XDELETE http://$esService:9200/fb_buffer/

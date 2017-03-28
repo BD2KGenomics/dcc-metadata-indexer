@@ -15,6 +15,9 @@ import os
 es_service = os.environ.get("ES_SERVICE", "localhost")
 redwood_host = os.environ.get("REDWOOD_SERVER", "redwood.io")
 
+print "redwood_host is {}".format(redwood_host)
+print "es_service is {}".format(es_service)
+
 counter = 0;
 es = Elasticsearch(['http://'+es_service+':9200'])
 
