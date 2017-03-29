@@ -242,6 +242,6 @@ then
   echo "Setting the cron job"
   #Used this for the cronjob: https://gist.github.com/mhubig/a01276e17496e9fd6648cf426d9ceeec
   #env > /app/env.txt && crontab /etc/cron.d/indexer-cron && /usr/sbin/crond -f -d 0
-  env > /app/env.txt && cron -f -L 15
+  env > /root/env.txt && cron -f -L 15 && echo "Cron Job set"
  while true; do sleep 10000; done
 fi

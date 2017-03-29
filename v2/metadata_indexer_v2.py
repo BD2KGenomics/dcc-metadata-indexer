@@ -285,6 +285,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken, size_list):
             command.append(str(content_id))
             command.append("--output-layout")
             command.append("bundle")
+            command.append("--force")
             print " ".join(command)
 
             try:
@@ -294,10 +295,11 @@ def create_merge_input_folder(id_to_content,directory,accessToken, size_list):
                 insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
                 os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
                          (file_create_time_server/1000, file_create_time_server/1000))
-            except Exception:
+            except Exception as e:
                 logging.error('Error while downloading file with content ID: %s' % content_id)
+                logging.error('%s %s' % (e, stderr))
                 print 'Error while downloading file with content ID: %s' % content_id
-
+                print '%s %s' % (e, stderr)
 
     logging.info('End Download.')
 
