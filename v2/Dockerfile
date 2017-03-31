@@ -21,7 +21,7 @@ RUN cd /app/dcc-metadata-indexer
 WORKDIR /app/dcc-metadata-indexer
 
 RUN chmod a+x run2.sh
-RUN chmod a+x debug.sh
+#RUN chmod a+x debug.sh
 RUN chmod a+x cron.sh
 EXPOSE 9200
 
