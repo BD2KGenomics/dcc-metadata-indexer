@@ -88,7 +88,7 @@ def requires():
                 if file_hash["fileName"].endswith(".wiggle.bg"):
                     bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_wiggle.bg"] = file_hash[
                         "id"]
-        print bundle_uuid_filename_to_file_uuid
+        #print bundle_uuid_filename_to_file_uuid
         # index_size = len(bundle_uuid_filename_to_file_uuid)
         # print index_size #TEST        
 

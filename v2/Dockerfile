@@ -5,6 +5,7 @@ RUN apt-get install -y curl
 RUN apt-get install -y apt-utils build-essential libssl-dev libffi-dev
 RUN apt-get install -y python-dev libxml2-dev libxslt-dev lib32z1-dev libpq-dev
 RUN apt-get install -y python-pip wget
+RUN DEBIAN_FRONTEND=noninteractive apt-get -q -y install procmail
 RUN pip install -U pip
 RUN pip install --upgrade cffi
 
@@ -19,6 +20,7 @@ RUN cd /app/dcc-metadata-indexer\
 
 RUN cd /app/dcc-metadata-indexer
 WORKDIR /app/dcc-metadata-indexer
+RUN lockfile cron.lock
 
 RUN chmod a+x run2.sh
 #RUN chmod a+x debug.sh
