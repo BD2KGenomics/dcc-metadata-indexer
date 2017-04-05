@@ -221,6 +221,8 @@ curl -XPUT http://$esService:9200/billing_real/_bulk?pretty --data-binary @duped
 curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "billing_buffer", "alias" : "billing_idx" } }, { "add" : { "index" : "billing_real", "alias" : "billing_idx" } } ] }'
 
 #Generate billing reports. 
+echo 'Generating billings'
+sleep 6
 python generate_billings.py
 #This moves all the .jsonl files to the es-jsonls folder (easier to mount only the jsonl files as opposed to everything else.)
 #find . -name "*.jsonl" -exec cp {} /app/dcc-metadata-indexer/es-jsonls \;
