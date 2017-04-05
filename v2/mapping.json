@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "donor_uuid":{
+        "type":"text",
+        "analyzer":"autocomplete"
+      }
+  }
+}
