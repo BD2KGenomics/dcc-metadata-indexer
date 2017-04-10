@@ -228,6 +228,14 @@ python generate_billings.py
 #find . -name "*.jsonl" -exec cp {} /app/dcc-metadata-indexer/es-jsonls \;
 \cp /app/dcc-metadata-indexer/*jsonl /app/dcc-metadata-indexer/es-jsonls
 
+echo "Removing existing validated.jsonl.gz and fb_index.jsonl.gz"
+rm /app/dcc-metadata-indexer/es-jsonls/validated.jsonl.gz
+rm /app/dcc-metadata-indexer/es-jsonls/fb_index.jsonl.gz
+
+echo "Gzip validated.jsonl and fb_index.jsonl" 
+gzip /app/dcc-metadata-indexer/es-jsonls/validated.jsonl
+gzip /app/dcc-metadata-indexer/es-jsonls/fb_index.jsonl
+
 #curl -XGET http://$esService:9200/_cat/health
 #Make ownership to that of the executer of the docker image. 
 user=$USER_GROUP
@@ -236,6 +244,7 @@ then
   chown -R ${user} /app/dcc-metadata-indexer/es-jsonls/
   chown -R ${user} /app/dcc-metadata-indexer/endpoint_metadata/
   chown -R ${user} /app/dcc-metadata-indexer/redacted/
+  chown -R ${user} /app/dcc-metadata-indexer/logs/
 fi
 
 #Now set/reset the cronjob if a flag is passed
