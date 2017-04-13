@@ -152,6 +152,15 @@ done
 #Go into the indexer folder
 cd /app/dcc-metadata-indexer
 
+#Check health of elasticsearch:
+
+while ! curl -XGET "$esService:9200/_cluster/health?wait_for_status=yellow&timeout=50s&pretty"
+do
+  echo "Elasticsearch still booting. Please stand by; timestamp: $(date)"
+  sleep 1
+done
+echo "Elasticsearch is now operational"
+
 #Run the metadata-indexer
 python metadata_indexer_v2.py ${ARGUMENTS[@]}
 
