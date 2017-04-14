@@ -15,6 +15,7 @@ COPY . /app/dcc-metadata-indexer
 RUN cd /app/dcc-metadata-indexer\
   && mkdir /app/dcc-metadata-indexer/es-jsonls\
   && mkdir /app/dcc-metadata-indexer/redacted\
+  && mkdir /app/dcc-metadata-indexer/logs\
   && pip install -r requirements.txt\
   && cd /app
 
