@@ -684,9 +684,8 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
-                         #TODO - update this.
-                         'normal_cnv_workflow': arrayContainingItemsWorkflow('todo', '1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_cnv_workflow': arrayContainingItemsWorkflow('todo', '1\.0\.',
+                         'normal_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
@@ -738,9 +737,8 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
-                         #TODO - update this
-                         'normal_cnv_workflow': arrayContainingItemsWorkflow('todo', '1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_cnv_workflow': arrayContainingItemsWorkflow('todo', '1\.0\.',
+                         'normal_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
