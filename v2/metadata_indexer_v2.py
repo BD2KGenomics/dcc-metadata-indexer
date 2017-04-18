@@ -128,7 +128,7 @@ def insert_size(file_name, file_uuid_and_size):
                               print 'Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid
           
           #The more generic format
-          else:
+          elif 'specimen' in data:
                for specimen in data['specimen']:
                     for sample in specimen['samples']:
                          for analysis in sample['analysis']:
@@ -173,7 +173,7 @@ def insert_timestamp(file_name, file_uuid_and_time):
                     logging.error('Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid)
                     print 'Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid
           #The more generic format
-          else:
+          elif 'specimen' in data:
                for specimen in data['specimen']:
                     for sample in specimen['samples']:
                          for analysis in sample['analysis']:
@@ -349,6 +349,14 @@ def create_merge_input_folder(id_to_content,directory,accessToken, size_list):
                 os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
                          (file_create_time_server/1000, file_create_time_server/1000))
             except Exception as e:
+                #HACK ; Please remove once icgc-storage-client no longer redirects stdout to stderr
+                if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"):
+                    logging.error('File actually downloaded; there is something wrong with the redwood-client. file ID: %s' % content_id)
+                    print 'File actually downloaded; there is something wrong with the redwood-client. file ID: %s' % content_id
+                    insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
+                    insert_timestamp(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", bundle_uuid_filename_to_time)
+                    os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
+                             (file_create_time_server/1000, file_create_time_server/1000))
                 logging.error('Error while downloading file with content ID: %s' % content_id)
                 logging.error('%s %s' % (e, stderr))
                 print 'Error while downloading file with content ID: %s' % content_id
