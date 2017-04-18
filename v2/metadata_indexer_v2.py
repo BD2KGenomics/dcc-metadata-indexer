@@ -168,6 +168,8 @@ def insert_timestamp(file_name, file_uuid_and_time):
                     logging.info('Timestamp assigned for {}: {}'.format(bundle_uuid, data['timestamp']))
                     print 'Timestamp assigned for {}: {}'.format(bundle_uuid, data['timestamp'])
                except Exception as e:
+                    #In case timestamp not found in either the metadata.json file or redwood, use UTC now.
+                    data['timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
                     logging.error('Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid)
                     print 'Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid
           #The more generic format
@@ -186,6 +188,7 @@ def insert_timestamp(file_name, file_uuid_and_time):
                                    print 'Timestamp assigned for {}: {}'.format(bundle_uuid, data['timestamp'])
                               except Exception as e:
                                    logging.error('Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid)
+                                   analysis['timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
                                    print 'Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid
      #Remove and replace the old file with the new one. 
      os.remove(file_name)
