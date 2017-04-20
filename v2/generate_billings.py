@@ -7,6 +7,7 @@ import pytz
 import calendar
 import json
 import os
+import sys
 
 db = ActiveAlchemy(os.environ['DATABASE_URL'])
 es_service = os.environ.get("ES_SERVICE", "localhost")
@@ -18,6 +19,8 @@ SECONDS_IN_HR = 3600
 
 BYTES_IN_GB = 1000000000
 STORAGE_PRICE_GB_MONTH = 0.03
+
+getLastMonth = lambda x: x-1 if x > 1 else 12
 
 class Billing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -167,7 +170,6 @@ def get_months_uploads(project, timefrom, timetil):
 
 def make_search_filter_query(timefrom, timetil, project):
     """
-
     :param timefrom: datetime object, filters all values less than this
     :param timetil: datetime object, filters all values greater than or equal to this
     :param project: string, this is the name of the particular project that we are trying to generate for
@@ -425,7 +427,7 @@ def generate_daily_reports(date):
     # January
 
     try:
-        timeend = datetime.strptime(date, '%Y/%m/%d').replace(tzinfo=pytz.UTC)
+        timeend = datetime.strptime(date, '%Y/%m/%d').replace(tzinfo=pytz.UTC).replace(minute=0, second=0, hour=0, microsecond=0)
     except:
         timeend = datetime.utcnow().replace(tzinfo=pytz.UTC).replace(minute=0, second=0, hour=0, microsecond=0)
 
@@ -434,7 +436,7 @@ def generate_daily_reports(date):
     if timeend.day == 1:
         projects = get_projects_list()
         for project in projects:
-            bill = Billing.query.filter(Billing.end_date.month == (timeend.month-1) % 12) \
+            bill = Billing.query().filter(func.extract('month', Billing.end_date) == getLastMonth(timeend.month)) \
                 .filter(Billing.closed_out is False).filter(Billing.project == project).first()
             if bill:
                 bill.update(end_date=timeend, closed_out=True)
@@ -476,5 +478,14 @@ def generate_daily_reports(date):
         except:
             print("IT'S GONE FAR SOUTH")
 
+def main():
+    # Calls generate_daily_reports() with the first date fast in the args
+    if len(sys.argv) > 1:
+        generate_daily_reports(sys.argv[1])
+    else:
+        generate_daily_reports("")
+
+
 if __name__ == '__main__':
-	generate_daily_reports("")
+	#generate_daily_reports("")
+        main()
