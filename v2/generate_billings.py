@@ -92,10 +92,13 @@ def get_previous_file_sizes (timeend, project):
                             "project.keyword": project
                         }
                     },
-                    {
-                        "range": {
-                            "timestamp": {
-                                "lt": timeendstring,
+                    "nested": {
+                        "path": "specimen.samples.analysis",
+                        "query": {            
+                            "range": {
+                                "timestamp": {
+                                    "lt": timeendstring,
+                                }
                             }
                         }
                     }
@@ -109,10 +112,22 @@ def get_previous_file_sizes (timeend, project):
                     "path": "specimen.samples.analysis"
                 },
                 "aggs": {
-                    "sum_sizes": {
-                        "sum": {
-                            "field": "specimen.samples.analysis.workflow_outputs.file_size"
-                        }
+                    "filtered_range": {
+                        "filter": {
+                            "range": {
+                                "specimen.samples.analysis.timestamp": {
+                                    "lt": timeendstring,
+                                    "format": "yyy-MM-dd'T'HH:mm:ss"
+                                }
+                            }
+                        },
+                        "aggs": {
+                            "sum_sizes": {
+                                "sum": {
+                                    "field": "specimen.samples.analysis.workflow_outputs.file_size"
+                                }
+                            }
+                        }                        
                     }
                 }
             }
@@ -129,10 +144,15 @@ def get_months_uploads(project, timefrom, timetil):
             "bool": {
                 "must": [
                     {
-                        "range": {
-                            "timestamp": {
-                                "gte": timestartstring,
-                                "lt": timeendstring
+                        "nested": {
+                            "path": "specimen.samples.analysis",
+                            "query": {            
+                                "range": {
+                                    "timestamp": {
+                                        "lt": timeendstring,
+                                        "gte": timestartstring
+                                    }
+                                }
                             }
                         }
                     },
@@ -150,17 +170,31 @@ def get_months_uploads(project, timefrom, timetil):
                     "path": "specimen.samples.analysis"
                 },
                 "aggs": {
-                    "times": {
-                        "terms": {
-                            "field": "specimen.samples.analysis.timestamp"
-                        },
-                        "aggs": {
-                            "sum_sizes": {
-                                "sum": {
-                                    "field": "specimen.samples.analysis.workflow_outputs.file_size"
+                    "filtered_range": {
+                        "filter": {
+                            "range": {
+                                "specimen.samples.analysis.timestamp": {
+                                    "lt": timeendstring,
+                                    "gte": timestartstring,
+                                    "format": "yyy-MM-dd'T'HH:mm:ss"
                                 }
                             }
-                        }
+                        },
+                        "aggs": {
+                            "times":{
+                                "terms": {
+                                    "field": "specimen.samples.analysis.timestamp",
+                                    "size": 9999
+                                },
+                                "aggs":{
+                                     "sum_sizes": {
+                                        "sum": {
+                                            "field": "specimen.samples.analysis.workflow_outputs.file_size"
+                                        }
+                                    }                               
+                                }
+                            }
+                        }                        
                     }
                 }
             }
@@ -348,6 +382,22 @@ def create_analysis_costs_json(this_month_comp_hits, bill_time_start, bill_time_
                                     }
                                 )
                                 analysis_cost_actual += cost
+                        #Handle cost in case compute started last month and ended in current month
+                        elif analysis_end_time < bill_time_end and analysis_end_time >= bill_time_start:
+                            host_metrics = analysis.get("host_metrics")
+                            if host_metrics:
+                                cost = calculate_compute_cost(time, pricing.get(get_vm_string(host_metrics)))
+                                analysis_costs.append(
+                                    {
+                                        "donor": donor.get("submitter_donor_id"),
+                                        "specimen": specimen.get("submitter_specimen_id"),
+                                        "sample": sample.get("submitter_sample_id"),
+                                        "workflow": analysis.get("analysis_type"),
+                                        "version": analysis.get("workflow_version"),
+                                        "cost": str(cost)
+                                    }
+                                )
+                                analysis_cost_actual += cost
 
     return analysis_costs
 
@@ -399,12 +449,12 @@ def create_storage_costs_json(project_files_hits, bill_time_start, bill_time_end
 
 def get_storage_costs(previous_month_bytes, portion_of_month, this_month_timestamps_sizes, curr_time, seconds_in_month):
     storage_costs = Decimal(0)
-    storage_size_bytes = previous_month_bytes['aggregations']['filtered_nested_timestamps']['sum_sizes']['value']
+    storage_size_bytes = previous_month_bytes['aggregations']['filtered_nested_timestamps']['filtered_range']['sum_sizes']['value']
     storage_size_gb = Decimal(storage_size_bytes)/Decimal(BYTES_IN_GB)
     storage_costs += calculate_storage_cost(portion_of_month, storage_size_gb)
 
     # calculate the money spent on storing workflow outputs which were uploaded during this month
-    this_month_timestamps = this_month_timestamps_sizes['aggregations']['filtered_nested_timestamps']['times'][
+    this_month_timestamps = this_month_timestamps_sizes['aggregations']['filtered_nested_timestamps']['filtered_range']['times'][
         'buckets']
     for ts_sum in this_month_timestamps:
         time_string = ts_sum['key_as_string']
