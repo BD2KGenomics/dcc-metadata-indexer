@@ -92,16 +92,18 @@ def get_previous_file_sizes (timeend, project):
                             "project.keyword": project
                         }
                     },
-                    "nested": {
-                        "path": "specimen.samples.analysis",
-                        "query": {            
-                            "range": {
-                                "timestamp": {
-                                    "lt": timeendstring,
+                    {
+                        "nested": {
+                            "path": "specimen.samples.analysis",
+                            "query": {            
+                                "range": {
+                                    "timestamp": {
+                                        "lt": timeendstring,
+                                    }
                                 }
                             }
                         }
-                    }
+                    }    
                 ]
 
             }
