@@ -132,7 +132,21 @@ def get_previous_file_sizes (timeend, project):
                 }
             }
         }
-    }, size=9999)
+    }, size=9999, scroll='2m')
+    #Get scrolling info
+    sid = es_resp['_scroll_id']
+    scroll_size = es_resp['hits']['total']
+    #Scroll through the results
+    while(scroll_size > 0):
+        print "Scrolling..."
+        page = es.scroll(scroll_id = sid, scroll = '2m')
+        #Update the Scroll ID
+        sid = page['_scroll_id']
+        #Ge the number of results that we returned in the last scroll
+        scroll_size = len(page['hits']['hits'])
+        #Extend the result list
+        es_resp['hits']['hits'].extend([x for x in page['hits']['hits']])
+        print "Scroll Size: %d" % scroll_size
     return es_resp
 
 def get_months_uploads(project, timefrom, timetil):
@@ -199,7 +213,22 @@ def get_months_uploads(project, timefrom, timetil):
                 }
             }
         }
-    }, size=9999)
+    }, size=9999, scroll='2m')
+
+    #Get scrolling info
+    sid = es_resp['_scroll_id']
+    scroll_size = es_resp['hits']['total']
+    #Scroll through the results
+    while(scroll_size > 0):
+        print "Scrolling..."
+        page = es.scroll(scroll_id = sid, scroll = '2m')
+        #Update the Scroll ID
+        sid = page['_scroll_id']
+        #Ge the number of results that we returned in the last scroll
+        scroll_size = len(page['hits']['hits'])
+        #Extend the result list
+        es_resp['hits']['hits'].extend([x for x in page['hits']['hits']])
+        print "Scroll Size: %d" % scroll_size
     return es_resp
 
 def make_search_filter_query(timefrom, timetil, project):
@@ -280,7 +309,21 @@ def make_search_filter_query(timefrom, timetil, project):
                 }
             }
         }
-    }, size=9999)
+    }, size=9999, scroll='2m')
+    #Get scrolling info
+    sid = es_resp['_scroll_id']
+    scroll_size = es_resp['hits']['total']
+    #Scroll through the results
+    while(scroll_size > 0):
+        print "Scrolling..."
+        page = es.scroll(scroll_id = sid, scroll = '2m')
+        #Update the Scroll ID
+        sid = page['_scroll_id']
+        #Ge the number of results that we returned in the last scroll
+        scroll_size = len(page['hits']['hits'])
+        #Extend the result list
+        es_resp['hits']['hits'].extend([x for x in page['hits']['hits']])
+        print "Scroll Size: %d" % scroll_size
 
     return es_resp
 
