@@ -97,8 +97,8 @@ def get_previous_file_sizes (timeend, project):
                             "path": "specimen.samples.analysis",
                             "query": {            
                                 "range": {
-                                    "timestamp": {
-                                        "lt": timeendstring,
+                                    "specimen.samples.analysis.timestamp": {
+                                        "lt": timeendstring
                                     }
                                 }
                             }
@@ -164,7 +164,7 @@ def get_months_uploads(project, timefrom, timetil):
                             "path": "specimen.samples.analysis",
                             "query": {            
                                 "range": {
-                                    "timestamp": {
+                                    "specimen.samples.analysis.timestamp": {
                                         "lt": timeendstring,
                                         "gte": timestartstring
                                     }
