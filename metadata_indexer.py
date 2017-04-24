@@ -28,7 +28,8 @@ first_write = dict()
 index_index = 0
 #Dictionary to hold the File UUIDs to later get the right file size
 bundle_uuid_filename_to_file_uuid = {}
-
+#Dictionary to hold the date created
+bundle_uuid_filename_to_time = {}
 #Call the storage endpoint and get the list of the 
 def get_size_list(token, redwood_host):
      """
@@ -75,13 +76,17 @@ def requires(redwood_host):
              metadata_struct = json.loads(json_str)
              for file_hash in metadata_struct["content"]:
                   bundle_uuid_filename_to_file_uuid[file_hash["gnosId"]+"_"+file_hash["fileName"]] = file_hash["id"]
+                  bundle_uuid_filename_to_time[file_hash["gnosId"]+"_"+file_hash["fileName"]] = file_hash["createdTime"]
                   # HACK!!!  Please remove once the behavior has been fixed in the workflow!!
                   if file_hash["fileName"].endswith(".sortedByCoord.md.bam"):
                         bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_sortedByCoord.md.bam"] = file_hash["id"]
+                        bundle_uuid_filename_to_time[file_hash["gnosId"]+"_sortedByCoord.md.bam"] = file_hash["createdTime"]
                   if file_hash["fileName"].endswith(".tar.gz"):
                         bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_tar.gz"] = file_hash["id"]
+                        bundle_uuid_filename_to_time[file_hash["gnosId"]+"_tar.gz"] = file_hash["createdTime"]
                   if file_hash["fileName"].endswith(".wiggle.bg"):
                         bundle_uuid_filename_to_file_uuid[file_hash["gnosId"] + "_wiggle.bg"] = file_hash["id"]
+                        bundle_uuid_filename_to_time[file_hash["gnosId"]+"_wiggle.bg"] = file_hash["createdTime"]
 
 def insert_size(file_name, file_uuid_and_size):
      """
@@ -121,6 +126,52 @@ def insert_size(file_name, file_uuid_and_size):
                                              except Exception as e:
                                                   logging.error('Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid)
                                                   print 'Error while assigning missing size. Associated file may not exist. File Id: %s' % file_uuid
+     #Remove and replace the old file with the new one. 
+     os.remove(file_name)
+     with open(file_name, 'w') as f:
+          json.dump(data, f, indent=4)
+          
+def insert_timestamp(file_name, file_uuid_and_time):
+     """
+     Opens the file and inserts any missing timestamp
+     """
+     #Open the file and do the size insertion
+     with open(file_name, 'r') as f:
+          data = json.load(f)
+          #Special flat-ish kind of format. 
+          if 'workflow_outputs' in data and 'timestamp' not in data:
+               bundle_uuid = data['bundle_uuid']
+               try:
+                    #Get the bundle timestamp using the metadata.json file
+                    bundle_timestamp = bundle_uuid_filename_to_time["{}_metadata.json".format(bundle_uuid)]
+                    #Convert to appropriate string. Dividing by 1000 because python can't handle 13 digit timestamps
+                    #Stick it in the data
+                    data['timestamp'] = datetime.datetime.utcfromtimestamp(bundle_timestamp/1000).strftime('%Y-%m-%dT%H:%M:%S')
+                    logging.info('Timestamp assigned for {}: {}'.format(bundle_uuid, data['timestamp']))
+                    print 'Timestamp assigned for {}: {}'.format(bundle_uuid, data['timestamp'])
+               except Exception as e:
+                    #In case timestamp not found in either the metadata.json file or redwood, use UTC now.
+                    data['timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
+                    logging.error('Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid)
+                    print 'Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid
+          #The more generic format
+          elif 'specimen' in data:
+               for specimen in data['specimen']:
+                    for sample in specimen['samples']:
+                         for analysis in sample['analysis']:
+                              bundle_uuid = analysis['bundle_uuid']
+                              try:
+                                   #Get the bundle timestamp using the metadata.json file
+                                   bundle_timestamp = bundle_uuid_filename_to_time["{}_metadata.json".format(bundle_uuid)]
+                                   #Convert to appropriate string. Dividing by 1000 because python can't handle 13 digit timestamps
+                                   #Stick it in the data
+                                   analysis['timestamp'] = datetime.datetime.utcfromtimestamp(bundle_timestamp/1000).strftime('%Y-%m-%dT%H:%M:%S')
+                                   logging.info('Timestamp assigned for {}: {}'.format(bundle_uuid, data['timestamp']))
+                                   print 'Timestamp assigned for {}: {}'.format(bundle_uuid, data['timestamp'])
+                              except Exception as e:
+                                   logging.error('Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid)
+                                   analysis['timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
+                                   print 'Error while assigning missing timestamp. Associated %s + metadata.json may not exist: %s' % bundle_uuid
      #Remove and replace the old file with the new one. 
      os.remove(file_name)
      with open(file_name, 'w') as f:
@@ -233,6 +284,7 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path, s
                 creation_date(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json") == file_create_time_server/1000:
             #Assign any missing file size
             insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
+            insert_timestamp(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", bundle_uuid_filename_to_time)
             #Set the time created to be the one supplied by redwood (since insert_size() modifies the file)
             os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
                          (file_create_time_server/1000, file_create_time_server/1000))
@@ -267,9 +319,18 @@ def create_merge_input_folder(id_to_content,directory,accessToken,client_Path, s
                 stdout, stderr = c_data.communicate()
                 # now set the create timestamp
                 insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
+                insert_timestamp(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", bundle_uuid_filename_to_time)
                 os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
                          (file_create_time_server/1000, file_create_time_server/1000))
             except Exception:
+                #HACK ; Please remove once icgc-storage-client no longer redirects stdout to stderr
+                if os.path.isfile(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json"):
+                    logging.error('File actually downloaded; there is something wrong with the redwood-client. file ID: %s' % content_id)
+                    print 'File actually downloaded; there is something wrong with the redwood-client. file ID: %s' % content_id
+                    insert_size(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", size_list)
+                    insert_timestamp(directory+"/"+id_to_content[content_id]["content"]["gnosId"]+"/metadata.json", bundle_uuid_filename_to_time)
+                    os.utime(directory + "/" + id_to_content[content_id]["content"]["gnosId"] + "/metadata.json",
+                             (file_create_time_server/1000, file_create_time_server/1000))               
                 logging.error('Error while downloading file with content ID: %s' % content_id)
                 print 'Error while downloading file with content ID: %s' % content_id
 
@@ -807,9 +868,12 @@ def main():
     args = input_Options()
     directory_meta = args.test_directory
     # redacted metadata.json file UUIDs
-    skip_uuid_directory = args.skip_uuid_directory
-    skip_uuids = findRedactedUuids(skip_uuid_directory)
+    skip_uuid_directory = args.skip_uuid_directory    
     preserve_version = args.preserve_version
+    #If preserving all of the files, set the skip_uuid_directory to None so it doesn't redact any uuids
+    if preserve_version:
+        skip_uuid_directory = None
+    skip_uuids = findRedactedUuids(skip_uuid_directory)
 
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
