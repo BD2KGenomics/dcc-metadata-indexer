@@ -896,8 +896,12 @@ def main():
     directory_meta = args.test_directory
     # redacted metadata.json file UUIDs
     skip_uuid_directory = args.skip_uuid_directory
-    skip_uuids = findRedactedUuids(skip_uuid_directory)
     preserve_version = args.preserve_version
+    #If preserving all of the files, set the skip_uuid_directory to None so it doesn't redact any uuids
+    if preserve_version:
+        skip_uuid_directory = None
+    skip_uuids = findRedactedUuids(skip_uuid_directory)
+#    preserve_version = args.preserve_version
 
     logfileName = os.path.basename(__file__).replace(".py", ".log")
     logging_format= '%(asctime)s - %(levelname)s: %(message)s'
