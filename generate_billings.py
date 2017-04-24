@@ -7,6 +7,7 @@ import pytz
 import calendar
 import json
 import os
+import sys
 
 db = ActiveAlchemy(os.environ['DATABASE_URL'])
 es_service = os.environ.get("ES_SERVICE", "localhost")
@@ -18,6 +19,8 @@ SECONDS_IN_HR = 3600
 
 BYTES_IN_GB = 1000000000
 STORAGE_PRICE_GB_MONTH = 0.03
+
+getLastMonth = lambda x: x-1 if x > 1 else 12
 
 class Billing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -90,12 +93,17 @@ def get_previous_file_sizes (timeend, project):
                         }
                     },
                     {
-                        "range": {
-                            "timestamp": {
-                                "lt": timeendstring,
+                        "nested": {
+                            "path": "specimen.samples.analysis",
+                            "query": {            
+                                "range": {
+                                    "specimen.samples.analysis.timestamp": {
+                                        "lt": timeendstring
+                                    }
+                                }
                             }
                         }
-                    }
+                    }    
                 ]
 
             }
@@ -106,15 +114,41 @@ def get_previous_file_sizes (timeend, project):
                     "path": "specimen.samples.analysis"
                 },
                 "aggs": {
-                    "sum_sizes": {
-                        "sum": {
-                            "field": "specimen.samples.analysis.workflow_outputs.file_size"
-                        }
+                    "filtered_range": {
+                        "filter": {
+                            "range": {
+                                "specimen.samples.analysis.timestamp": {
+                                    "lt": timeendstring,
+                                    "format": "yyy-MM-dd'T'HH:mm:ss"
+                                }
+                            }
+                        },
+                        "aggs": {
+                            "sum_sizes": {
+                                "sum": {
+                                    "field": "specimen.samples.analysis.workflow_outputs.file_size"
+                                }
+                            }
+                        }                        
                     }
                 }
             }
         }
-    }, size=9999)
+    }, size=9999, scroll='2m')
+    #Get scrolling info
+    sid = es_resp['_scroll_id']
+    scroll_size = es_resp['hits']['total']
+    #Scroll through the results
+    while(scroll_size > 0):
+        print "Scrolling..."
+        page = es.scroll(scroll_id = sid, scroll = '2m')
+        #Update the Scroll ID
+        sid = page['_scroll_id']
+        #Ge the number of results that we returned in the last scroll
+        scroll_size = len(page['hits']['hits'])
+        #Extend the result list
+        es_resp['hits']['hits'].extend([x for x in page['hits']['hits']])
+        print "Scroll Size: %d" % scroll_size
     return es_resp
 
 def get_months_uploads(project, timefrom, timetil):
@@ -126,10 +160,15 @@ def get_months_uploads(project, timefrom, timetil):
             "bool": {
                 "must": [
                     {
-                        "range": {
-                            "timestamp": {
-                                "gte": timestartstring,
-                                "lt": timeendstring
+                        "nested": {
+                            "path": "specimen.samples.analysis",
+                            "query": {            
+                                "range": {
+                                    "specimen.samples.analysis.timestamp": {
+                                        "lt": timeendstring,
+                                        "gte": timestartstring
+                                    }
+                                }
                             }
                         }
                     },
@@ -147,27 +186,55 @@ def get_months_uploads(project, timefrom, timetil):
                     "path": "specimen.samples.analysis"
                 },
                 "aggs": {
-                    "times": {
-                        "terms": {
-                            "field": "specimen.samples.analysis.timestamp"
-                        },
-                        "aggs": {
-                            "sum_sizes": {
-                                "sum": {
-                                    "field": "specimen.samples.analysis.workflow_outputs.file_size"
+                    "filtered_range": {
+                        "filter": {
+                            "range": {
+                                "specimen.samples.analysis.timestamp": {
+                                    "lt": timeendstring,
+                                    "gte": timestartstring,
+                                    "format": "yyy-MM-dd'T'HH:mm:ss"
                                 }
                             }
-                        }
+                        },
+                        "aggs": {
+                            "times":{
+                                "terms": {
+                                    "field": "specimen.samples.analysis.timestamp",
+                                    "size": 9999
+                                },
+                                "aggs":{
+                                     "sum_sizes": {
+                                        "sum": {
+                                            "field": "specimen.samples.analysis.workflow_outputs.file_size"
+                                        }
+                                    }                               
+                                }
+                            }
+                        }                        
                     }
                 }
             }
         }
-    }, size=9999)
+    }, size=9999, scroll='2m')
+
+    #Get scrolling info
+    sid = es_resp['_scroll_id']
+    scroll_size = es_resp['hits']['total']
+    #Scroll through the results
+    while(scroll_size > 0):
+        print "Scrolling..."
+        page = es.scroll(scroll_id = sid, scroll = '2m')
+        #Update the Scroll ID
+        sid = page['_scroll_id']
+        #Ge the number of results that we returned in the last scroll
+        scroll_size = len(page['hits']['hits'])
+        #Extend the result list
+        es_resp['hits']['hits'].extend([x for x in page['hits']['hits']])
+        print "Scroll Size: %d" % scroll_size
     return es_resp
 
 def make_search_filter_query(timefrom, timetil, project):
     """
-
     :param timefrom: datetime object, filters all values less than this
     :param timetil: datetime object, filters all values greater than or equal to this
     :param project: string, this is the name of the particular project that we are trying to generate for
@@ -244,7 +311,21 @@ def make_search_filter_query(timefrom, timetil, project):
                 }
             }
         }
-    }, size=9999)
+    }, size=9999, scroll='2m')
+    #Get scrolling info
+    sid = es_resp['_scroll_id']
+    scroll_size = es_resp['hits']['total']
+    #Scroll through the results
+    while(scroll_size > 0):
+        print "Scrolling..."
+        page = es.scroll(scroll_id = sid, scroll = '2m')
+        #Update the Scroll ID
+        sid = page['_scroll_id']
+        #Ge the number of results that we returned in the last scroll
+        scroll_size = len(page['hits']['hits'])
+        #Extend the result list
+        es_resp['hits']['hits'].extend([x for x in page['hits']['hits']])
+        print "Scroll Size: %d" % scroll_size
 
     return es_resp
 
@@ -346,6 +427,22 @@ def create_analysis_costs_json(this_month_comp_hits, bill_time_start, bill_time_
                                     }
                                 )
                                 analysis_cost_actual += cost
+                        #Handle cost in case compute started last month and ended in current month
+                        elif analysis_end_time < bill_time_end and analysis_end_time >= bill_time_start:
+                            host_metrics = analysis.get("host_metrics")
+                            if host_metrics:
+                                cost = calculate_compute_cost(time, pricing.get(get_vm_string(host_metrics)))
+                                analysis_costs.append(
+                                    {
+                                        "donor": donor.get("submitter_donor_id"),
+                                        "specimen": specimen.get("submitter_specimen_id"),
+                                        "sample": sample.get("submitter_sample_id"),
+                                        "workflow": analysis.get("analysis_type"),
+                                        "version": analysis.get("workflow_version"),
+                                        "cost": str(cost)
+                                    }
+                                )
+                                analysis_cost_actual += cost
 
     return analysis_costs
 
@@ -397,12 +494,12 @@ def create_storage_costs_json(project_files_hits, bill_time_start, bill_time_end
 
 def get_storage_costs(previous_month_bytes, portion_of_month, this_month_timestamps_sizes, curr_time, seconds_in_month):
     storage_costs = Decimal(0)
-    storage_size_bytes = previous_month_bytes['aggregations']['filtered_nested_timestamps']['sum_sizes']['value']
+    storage_size_bytes = previous_month_bytes['aggregations']['filtered_nested_timestamps']['filtered_range']['sum_sizes']['value']
     storage_size_gb = Decimal(storage_size_bytes)/Decimal(BYTES_IN_GB)
     storage_costs += calculate_storage_cost(portion_of_month, storage_size_gb)
 
     # calculate the money spent on storing workflow outputs which were uploaded during this month
-    this_month_timestamps = this_month_timestamps_sizes['aggregations']['filtered_nested_timestamps']['times'][
+    this_month_timestamps = this_month_timestamps_sizes['aggregations']['filtered_nested_timestamps']['filtered_range']['times'][
         'buckets']
     for ts_sum in this_month_timestamps:
         time_string = ts_sum['key_as_string']
@@ -425,7 +522,7 @@ def generate_daily_reports(date):
     # January
 
     try:
-        timeend = datetime.strptime(date, '%Y/%m/%d').replace(tzinfo=pytz.UTC)
+        timeend = datetime.strptime(date, '%Y/%m/%d').replace(tzinfo=pytz.UTC).replace(minute=0, second=0, hour=0, microsecond=0)
     except:
         timeend = datetime.utcnow().replace(tzinfo=pytz.UTC).replace(minute=0, second=0, hour=0, microsecond=0)
 
@@ -434,7 +531,7 @@ def generate_daily_reports(date):
     if timeend.day == 1:
         projects = get_projects_list()
         for project in projects:
-            bill = Billing.query.filter(Billing.end_date.month == (timeend.month-1) % 12) \
+            bill = Billing.query().filter(func.extract('month', Billing.end_date) == getLastMonth(timeend.month)) \
                 .filter(Billing.closed_out is False).filter(Billing.project == project).first()
             if bill:
                 bill.update(end_date=timeend, closed_out=True)
@@ -476,5 +573,14 @@ def generate_daily_reports(date):
         except:
             print("IT'S GONE FAR SOUTH")
 
+def main():
+    # Calls generate_daily_reports() with the first date fast in the args
+    if len(sys.argv) > 1:
+        generate_daily_reports(sys.argv[1])
+    else:
+        generate_daily_reports("")
+
+
 if __name__ == '__main__':
-	generate_daily_reports("")
+	#generate_daily_reports("")
+        main()
