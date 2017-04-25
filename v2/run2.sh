@@ -152,6 +152,15 @@ done
 #Go into the indexer folder
 cd /app/dcc-metadata-indexer
 
+#Check health of elasticsearch:
+
+while ! curl -XGET "$esService:9200/_cluster/health?wait_for_status=yellow&timeout=50s&pretty"
+do
+  echo "Elasticsearch still booting. Please stand by; timestamp: $(date)"
+  sleep 1
+done
+echo "Elasticsearch is now operational"
+
 #Run the metadata-indexer
 python metadata_indexer_v2.py ${ARGUMENTS[@]}
 
@@ -228,6 +237,14 @@ python generate_billings.py
 #find . -name "*.jsonl" -exec cp {} /app/dcc-metadata-indexer/es-jsonls \;
 \cp /app/dcc-metadata-indexer/*jsonl /app/dcc-metadata-indexer/es-jsonls
 
+echo "Removing existing validated.jsonl.gz and fb_index.jsonl.gz"
+rm /app/dcc-metadata-indexer/es-jsonls/validated.jsonl.gz
+rm /app/dcc-metadata-indexer/es-jsonls/fb_index.jsonl.gz
+
+echo "Gzip validated.jsonl and fb_index.jsonl" 
+gzip /app/dcc-metadata-indexer/es-jsonls/validated.jsonl
+gzip /app/dcc-metadata-indexer/es-jsonls/fb_index.jsonl
+
 #curl -XGET http://$esService:9200/_cat/health
 #Make ownership to that of the executer of the docker image. 
 user=$USER_GROUP
@@ -236,6 +253,7 @@ then
   chown -R ${user} /app/dcc-metadata-indexer/es-jsonls/
   chown -R ${user} /app/dcc-metadata-indexer/endpoint_metadata/
   chown -R ${user} /app/dcc-metadata-indexer/redacted/
+  chown -R ${user} /app/dcc-metadata-indexer/logs/
 fi
 
 #Now set/reset the cronjob if a flag is passed
