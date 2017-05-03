@@ -184,7 +184,7 @@ curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove
 echo "Starting es_filebrowser_index_v2.py; Creating fb_index"
 #Run the 
 sleep 6
-python es_filebrowser_index_v2.py --access public --repoBaseUrl $storageHost --repoCountry US --repoName Redwood-AWS-Oregon --repoOrg UCSC --repoType Redwood --repoCountry US >> /app/dcc-metadata-indexer/es-jsonls/log.txt  2>&1
+python es_filebrowser_index_v2.py --access public --repoBaseUrl $storageHost --repoCountry US --repoName Redwood-AWS-Oregon --repoOrg UCSC --repoType Redwood --repoCountry US > /app/dcc-metadata-indexer/logs/fb_indexer_log.txt  2>&1
 
 echo "Updating fb_index"
 curl -XDELETE http://$esService:9200/fb_buffer/
