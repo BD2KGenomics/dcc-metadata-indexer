@@ -24,6 +24,7 @@ import ast
 #from urllib import urlopen
 from urllib2 import urlopen, Request
 from subprocess import Popen, PIPE
+from functools import partial
 
 first_write = dict()
 index_index = 0
@@ -417,19 +418,10 @@ def load_json_arr(input_dir, data_arr, redacted):
 
 
 def skip_option(donorLevelObjs, option_skip, key):
-    for json_obj in donorLevelObjs:
-        keys = json_obj[key]
-        if keys == option_skip:
-            donorLevelObjs.remove(json_obj)
-
-
+    donorLevelObjs[:] = filter(partial(lambda j,o,k: j[k] != o, o=option_skip, k=key), donorLevelObjs)
 
 def only_option(donorLevelObjs,option_only, key):
-    for json_obj in donorLevelObjs:
-        keys = json_obj[key]
-        if keys != option_only:
-            donorLevelObjs.remove(json_obj)
-
+    donorLevelObjs[:] = filter(partial(lambda j,o,k: j[k] == o, o=option_skip, k=key), donorLevelObjs)
 
 def validate_json(json_obj,schema):
     """
