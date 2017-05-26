@@ -684,6 +684,11 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
+                         'normal_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
                          'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
                                                                      "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
@@ -732,6 +737,10 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
+                         'normal_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_cnv_workflow': arrayContainingItemsWorkflow('https://github.com/BD2KGenomics/dockstore_workflow_cnv', '1\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
 
                          'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayContainingItems('somatic_variant_calling',
@@ -756,6 +765,9 @@ def createFlags(uuid_to_donor):
                         'tumor_rna_seq_cgl_workflow_3_2_x': len(flagsWithArrs["tumor_rna_seq_cgl_workflow_3_2_x"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_cgl_workflow_3_2_x"]) > 0,
                         'normal_protect_cgl_workflow_2_3_x': len(flagsWithArrs["normal_protect_cgl_workflow_2_3_x"]) == 0 and len(flagsPresentWithArrs["normal_protect_cgl_workflow_2_3_x"]) > 0,
                         'tumor_protect_cgl_workflow_2_3_x': len(flagsWithArrs["tumor_protect_cgl_workflow_2_3_x"]) == 0 and len(flagsPresentWithArrs["tumor_protect_cgl_workflow_2_3_x"]) > 0,
+
+                        'normal_cnv_workflow': len(flagsWithArrs["normal_cnv_workflow"]) == 0 and len(flagsPresentWithArrs["normal_cnv_workflow"]) > 0,
+                        'tumor_cnv_workflow': len(flagsWithArrs["tumor_cnv_workflow"]) == 0 and len(flagsPresentWithArrs["tumor_cnv_workflow"]) > 0,
 
                         'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
                         'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
