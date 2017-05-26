@@ -421,11 +421,7 @@ def skip_option(donorLevelObjs, option_skip, key):
     donorLevelObjs[:] = filter(partial(lambda j,o,k: j[k] != o, o=option_skip, k=key), donorLevelObjs)
 
 def only_option(donorLevelObjs,option_only, key):
-    for json_obj in donorLevelObjs:
-        keys = json_obj[key]
-        if keys != option_only:
-            donorLevelObjs.remove(json_obj)
-
+    donorLevelObjs[:] = filter(partial(lambda j,o,k: j[k] == o, o=option_skip, k=key), donorLevelObjs)
 
 def validate_json(json_obj,schema):
     """
