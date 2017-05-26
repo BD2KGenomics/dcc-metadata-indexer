@@ -160,7 +160,7 @@
         "missing_items": {
             "description": "record parent_uuids of missing items",
             "type": "object",
-            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment" , "normal_germline_variants" , "tumor_somatic_variants", "normal_rna_seq_quantification" , "tumor_rna_seq_quantification", "normal_rna_seq_cgl_workflow_3_0_x", "tumor_rna_seq_cgl_workflow_3_0_x", "normal_rna_seq_cgl_workflow_3_1_x", "tumor_rna_seq_cgl_workflow_3_1_x", "normal_rna_seq_cgl_workflow_3_2_x", "tumor_rna_seq_cgl_workflow_3_2_x", "normal_rna_seq_cgl_workflow_3_3_x", "tumor_rna_seq_cgl_workflow_3_3_x",  "normal_protect_cgl_workflow_2_3_x", "tumor_protect_cgl_workflow_2_3_x", "normal_protect_cgl_workflow_2_4_x", "tumor_protect_cgl_workflow_2_4_x",  "normal_cnv_workflow", "tumor_cnv_workflow"],
+            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment" , "normal_germline_variants" , "tumor_somatic_variants", "normal_rna_seq_quantification" , "tumor_rna_seq_quantification", "normal_rna_seq_cgl_workflow_3_0_x", "tumor_rna_seq_cgl_workflow_3_0_x", "normal_rna_seq_cgl_workflow_3_1_x", "tumor_rna_seq_cgl_workflow_3_1_x", "normal_rna_seq_cgl_workflow_3_2_x", "tumor_rna_seq_cgl_workflow_3_2_x", "normal_rna_seq_cgl_workflow_3_3_x", "tumor_rna_seq_cgl_workflow_3_3_x",  "normal_protect_cgl_workflow_2_3_x", "tumor_protect_cgl_workflow_2_3_x", "normal_protect_cgl_workflow_2_5_x", "tumor_protect_cgl_workflow_2_5_x",  "normal_cnv_workflow", "tumor_cnv_workflow"],
             "properties": {
                 "normal_sequence": {
                     "type": "array",
@@ -270,13 +270,13 @@
                         "$ref": "#/definitions/uuid"
                     }
                 },
-                "normal_protect_cgl_workflow_2_4_x": {
+                "normal_protect_cgl_workflow_2_5_x": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/uuid"
                     }
                 },
-                "tumor_protect_cgl_workflow_2_4_x": {
+                "tumor_protect_cgl_workflow_2_5_x": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/uuid"
@@ -299,7 +299,7 @@
         "flags": {
             "description": "Indicate whether or not a workflow is complete",
             "type": "object",
-            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment", "normal_rna_seq_quantification" , "tumor_rna_seq_quantification", "normal_germline_variants", "tumor_somatic_variants", "normal_rna_seq_cgl_workflow_3_0_x", "tumor_rna_seq_cgl_workflow_3_0_x", "normal_rna_seq_cgl_workflow_3_1_x", "tumor_rna_seq_cgl_workflow_3_1_x", "normal_rna_seq_cgl_workflow_3_2_x", "tumor_rna_seq_cgl_workflow_3_2_x", "normal_rna_seq_cgl_workflow_3_3_x", "tumor_rna_seq_cgl_workflow_3_3_x",  "normal_protect_cgl_workflow_2_3_x", "tumor_protect_cgl_workflow_2_3_x", "normal_protect_cgl_workflow_2_4_x", "tumor_protect_cgl_workflow_2_4_x", "normal_cnv_workflow", "tumor_cnv_workflow"],
+            "required": ["normal_sequence", "tumor_sequence", "normal_alignment", "tumor_alignment", "normal_rna_seq_quantification" , "tumor_rna_seq_quantification", "normal_germline_variants", "tumor_somatic_variants", "normal_rna_seq_cgl_workflow_3_0_x", "tumor_rna_seq_cgl_workflow_3_0_x", "normal_rna_seq_cgl_workflow_3_1_x", "tumor_rna_seq_cgl_workflow_3_1_x", "normal_rna_seq_cgl_workflow_3_2_x", "tumor_rna_seq_cgl_workflow_3_2_x", "normal_rna_seq_cgl_workflow_3_3_x", "tumor_rna_seq_cgl_workflow_3_3_x",  "normal_protect_cgl_workflow_2_3_x", "tumor_protect_cgl_workflow_2_3_x", "normal_protect_cgl_workflow_2_5_x", "tumor_protect_cgl_workflow_2_5_x", "normal_cnv_workflow", "tumor_cnv_workflow"],
             "properties": {
                 "normal_sequence": {
                     "type": "boolean"
@@ -355,10 +355,10 @@
                 "tumor_protect_cgl_workflow_2_3_x": {
                     "type": "boolean"
                 },
-                "normal_protect_cgl_workflow_2_4_x": {
+                "normal_protect_cgl_workflow_2_5_x": {
                     "type": "boolean"
                 },
-                "tumor_protect_cgl_workflow_2_4_x": {
+                "tumor_protect_cgl_workflow_2_5_x": {
                     "type": "boolean"
                 },
                 "normal_cnv_workflow": {
