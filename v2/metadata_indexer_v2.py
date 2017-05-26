@@ -769,8 +769,8 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
-                         'normal_protect_cgl_workflow_2_4_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.4\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_protect_cgl_workflow_2_4_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.4\.',
+                         'normal_protect_cgl_workflow_2_5_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_protect_cgl_workflow_2_5_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
@@ -832,8 +832,8 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
-                         'normal_protect_cgl_workflow_2_4_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.4\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_protect_cgl_workflow_2_4_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.4\.',
+                         'normal_protect_cgl_workflow_2_5_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_protect_cgl_workflow_2_5_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
@@ -867,8 +867,8 @@ def createFlags(uuid_to_donor):
                         'tumor_rna_seq_cgl_workflow_3_3_x': len(flagsWithArrs["tumor_rna_seq_cgl_workflow_3_3_x"]) == 0 and len(flagsPresentWithArrs["tumor_rna_seq_cgl_workflow_3_3_x"]) > 0,
                         'normal_protect_cgl_workflow_2_3_x': len(flagsWithArrs["normal_protect_cgl_workflow_2_3_x"]) == 0 and len(flagsPresentWithArrs["normal_protect_cgl_workflow_2_3_x"]) > 0,
                         'tumor_protect_cgl_workflow_2_3_x': len(flagsWithArrs["tumor_protect_cgl_workflow_2_3_x"]) == 0 and len(flagsPresentWithArrs["tumor_protect_cgl_workflow_2_3_x"]) > 0,
-                        'normal_protect_cgl_workflow_2_4_x': len(flagsWithArrs["normal_protect_cgl_workflow_2_4_x"]) == 0 and len(flagsPresentWithArrs["normal_protect_cgl_workflow_2_4_x"]) > 0,
-                        'tumor_protect_cgl_workflow_2_4_x': len(flagsWithArrs["tumor_protect_cgl_workflow_2_4_x"]) == 0 and len(flagsPresentWithArrs["tumor_protect_cgl_workflow_2_4_x"]) > 0,
+                        'normal_protect_cgl_workflow_2_5_x': len(flagsWithArrs["normal_protect_cgl_workflow_2_5_x"]) == 0 and len(flagsPresentWithArrs["normal_protect_cgl_workflow_2_5_x"]) > 0,
+                        'tumor_protect_cgl_workflow_2_5_x': len(flagsWithArrs["tumor_protect_cgl_workflow_2_5_x"]) == 0 and len(flagsPresentWithArrs["tumor_protect_cgl_workflow_2_5_x"]) > 0,
 
                         'normal_cnv_workflow': len(flagsWithArrs["normal_cnv_workflow"]) == 0 and len(flagsPresentWithArrs["normal_cnv_workflow"]) > 0,
                         'tumor_cnv_workflow': len(flagsWithArrs["tumor_cnv_workflow"]) == 0 and len(flagsPresentWithArrs["tumor_cnv_workflow"]) > 0,
