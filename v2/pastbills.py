@@ -19,5 +19,6 @@ generate_billings.generate_daily_reports("2017/04/01")
 generate_billings.generate_daily_reports("2017/04/30")
 generate_billings.generate_daily_reports("2017/05/01")
 generate_billings.generate_daily_reports("2017/05/31")
+generate_billings.generate_daily_reports("2017/06/01")
 generate_billings.generate_daily_reports("")
 print "Done"
