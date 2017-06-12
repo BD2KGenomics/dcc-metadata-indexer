@@ -20,16 +20,21 @@
   "specimen":{
     "type": "nested",
     "properties":{
+      "submitter_experimental_design":{
+        "type":"keyword"
+      },
       "samples": {
         "type": "nested",
         "properties": {
           "analysis": {
             "type": "nested",
             "properties":{
-              "bundle_uuid": "text",
-              "fields": {
-                "keyword":{
-                  "type": "keyword"
+              "bundle_uuid": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
                 }
               }
             }
