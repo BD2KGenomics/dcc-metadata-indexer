@@ -233,7 +233,7 @@ curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove
 #Change the Buffer index
 echo "Updating burn_idx"
 curl -XDELETE http://$esService:9200/burn_buffer/
-curl -XPUT http://$esService:9200/burn_buffer/ #-d @burn_settings.json
+curl -XPUT http://$esService:9200/burn_buffer/ -d @burn_settings.json
 curl -XPUT http://$esService:9200/burn_buffer/_mapping/meta?update_all_types  -d @burn_mapping.json
 curl -XPUT http://$esService:9200/burn_buffer/_bulk?pretty --data-binary @fb_index.jsonl
 
@@ -243,7 +243,7 @@ curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove
 #Update real burn_index
 
 curl -XDELETE http://$esService:9200/burn_real/
-curl -XPUT http://$esService:9200/burn_real/ #-d @burn_settings.json
+curl -XPUT http://$esService:9200/burn_real/ -d @burn_settings.json
 curl -XPUT http://$esService:9200/burn_real/_mapping/meta?update_all_types  -d @burn_mapping.json
 curl -XPUT http://$esService:9200/burn_real/_bulk?pretty --data-binary @fb_index.jsonl
 
