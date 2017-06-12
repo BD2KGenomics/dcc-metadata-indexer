@@ -233,21 +233,21 @@ curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove
 #Change the Buffer index
 echo "Updating burn_idx"
 curl -XDELETE http://$esService:9200/burn_buffer/
-curl -XPUT http://$esService:9200/burn_buffer/
+curl -XPUT http://$esService:9200/burn_buffer/ #-d @burn_settings.json
 curl -XPUT http://$esService:9200/burn_buffer/_mapping/meta?update_all_types  -d @burn_mapping.json
-curl -XPUT http://$esService:9200/burn_buffer/_bulk?pretty --data-binary @elasticsearch.jsonl
+curl -XPUT http://$esService:9200/burn_buffer/_bulk?pretty --data-binary @fb_index.jsonl
 
 #Change aliases
 curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "burn_real", "alias" : "burn_idx" } }, { "add" : { "index" : "burn_buffer", "alias" : "burn_idx" } } ] }'
 
-#Update real billing_index
+#Update real burn_index
 
 curl -XDELETE http://$esService:9200/burn_real/
-curl -XPUT http://$esService:9200/burn_real/
+curl -XPUT http://$esService:9200/burn_real/ #-d @burn_settings.json
 curl -XPUT http://$esService:9200/burn_real/_mapping/meta?update_all_types  -d @burn_mapping.json
-curl -XPUT http://$esService:9200/burn_real/_bulk?pretty --data-binary @elasticsearch.jsonl
+curl -XPUT http://$esService:9200/burn_real/_bulk?pretty --data-binary @fb_index.jsonl
 
-#Change the alias again, so that billing_idx points again to the real billing_real index
+#Change the alias again, so that burn_idx points again to the real burn_real index
 curl -XPOST http://$esService:9200/_aliases?pretty -d' { "actions" : [ { "remove" : { "index" : "burn_buffer", "alias" : "burn_idx" } }, { "add" : { "index" : "burn_real", "alias" : "burn_idx" } } ] }'
 
 #Generate billing reports. 
