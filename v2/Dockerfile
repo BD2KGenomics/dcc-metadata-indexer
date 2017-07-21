@@ -1,4 +1,4 @@
-FROM quay.io/ucsc_cgl/redwood-client:1.1.0
+FROM quay.io/ucsc_cgl/redwood-client:1.2.1
 
 RUN apt-get update
 RUN apt-get install -y curl
