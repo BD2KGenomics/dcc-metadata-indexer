@@ -1,5 +1,6 @@
 import boto3 as b
 import pytz as p
+import os
 from decimal import Decimal
 import datetime as dt
 
@@ -30,7 +31,7 @@ def calculate_compute_cost(start_time, end_time, instance_type, region_name, ins
             block = dt.datetime.strptime(e, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=p.UTC)
 
         # Set up infrastructure for making calls to aws, with the desired parameters.
-        client = b.client('ec2', region_name=region_name)
+        client = b.client('ec2', region_name=region_name,aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
         response = client.describe_spot_price_history(AvailabilityZone=availability_zone, MaxResults=999,
                                                       InstanceTypes=[str(instance_type)], StartTime=startDatetime,
                                                       EndTime=endDatetime,
