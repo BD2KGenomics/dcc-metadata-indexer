@@ -31,7 +31,11 @@ def calculate_compute_cost(start_time, end_time, instance_type, region_name, ins
             block = dt.datetime.strptime(e, "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=p.UTC)
 
         # Set up infrastructure for making calls to aws, with the desired parameters.
-        client = b.client('ec2', region_name=region_name,aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"], aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
+        client = b.client('ec2', region_name=region_name,
+                          aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+                          aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+                          config=b.boto3_config)
+        client.meta.events._unique_id_handlers['retry-config-ec2']['handler']._checker.__dict__['_max_attempts'] = 20
         response = client.describe_spot_price_history(AvailabilityZone=availability_zone, MaxResults=999,
                                                       InstanceTypes=[str(instance_type)], StartTime=startDatetime,
                                                       EndTime=endDatetime,
@@ -43,6 +47,11 @@ def calculate_compute_cost(start_time, end_time, instance_type, region_name, ins
 
             if (spot_price['Timestamp'] < startDatetime):
                 last_time_checked = spot_price
+                if (len(response["SpotPriceHistory"]) <= 1):
+                    delta = startDatetime - block
+                    minutes = float(delta.seconds) / float(60)
+                    rate = (float(minutes) / float(60)) * float(last_time_checked['SpotPrice'])
+                    price += Decimal(rate)
 
             elif ((spot_price['Timestamp'] >= startDatetime) and (spot_price['Timestamp'] < block)):
                 if ((startDatetime <= spot_price['Timestamp']) and (startDatetime >= last_time_checked['Timestamp'])):
