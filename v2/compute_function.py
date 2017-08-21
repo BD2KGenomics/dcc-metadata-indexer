@@ -33,8 +33,7 @@ def calculate_compute_cost(start_time, end_time, instance_type, region_name, ins
         # Set up infrastructure for making calls to aws, with the desired parameters.
         client = b.client('ec2', region_name=region_name,
                           aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-                          aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-                          config=b.boto3_config)
+                          aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"])
         client.meta.events._unique_id_handlers['retry-config-ec2']['handler']._checker.__dict__['_max_attempts'] = 20
         response = client.describe_spot_price_history(AvailabilityZone=availability_zone, MaxResults=999,
                                                       InstanceTypes=[str(instance_type)], StartTime=startDatetime,
