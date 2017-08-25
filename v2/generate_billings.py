@@ -1,13 +1,16 @@
-from datetime import datetime
-from active_alchemy import ActiveAlchemy
-from sqlalchemy import distinct, func
-from elasticsearch import Elasticsearch
-from decimal import Decimal
-import pytz
 import calendar
 import json
 import os
+from decimal import Decimal
+
+import pytz
 import sys
+from active_alchemy import ActiveAlchemy
+from datetime import datetime
+from elasticsearch import Elasticsearch
+from sqlalchemy import func
+
+from compute_function import calculate_compute_cost as calculta_spot_instance_cost
 
 db = ActiveAlchemy(os.environ['DATABASE_URL'])
 es_service = os.environ.get("ES_SERVICE", "localhost")
@@ -95,7 +98,7 @@ def get_previous_file_sizes (timeend, project):
                     {
                         "nested": {
                             "path": "specimen.samples.analysis",
-                            "query": {            
+                            "query": {
                                 "range": {
                                     "specimen.samples.analysis.timestamp": {
                                         "lt": timeendstring
@@ -103,7 +106,7 @@ def get_previous_file_sizes (timeend, project):
                                 }
                             }
                         }
-                    }    
+                    }
                 ]
 
             }
@@ -129,7 +132,7 @@ def get_previous_file_sizes (timeend, project):
                                     "field": "specimen.samples.analysis.workflow_outputs.file_size"
                                 }
                             }
-                        }                        
+                        }
                     }
                 }
             }
@@ -162,7 +165,7 @@ def get_months_uploads(project, timefrom, timetil):
                     {
                         "nested": {
                             "path": "specimen.samples.analysis",
-                            "query": {            
+                            "query": {
                                 "range": {
                                     "specimen.samples.analysis.timestamp": {
                                         "lt": timeendstring,
@@ -207,10 +210,10 @@ def get_months_uploads(project, timefrom, timetil):
                                         "sum": {
                                             "field": "specimen.samples.analysis.workflow_outputs.file_size"
                                         }
-                                    }                               
+                                    }
                                 }
                             }
-                        }                        
+                        }
                     }
                 }
             }
@@ -297,9 +300,18 @@ def make_search_filter_query(timefrom, timetil, project):
                                             "size": 9999
                                         },
                                         "aggs": {
-                                            "totaltime": {
-                                                "sum": {
-                                                    "field": "specimen.samples.analysis.timing_metrics.overall_walltime_seconds"
+                                            "start": {
+                                                "terms": {
+                                                    "field": "specimen.samples.analysis.timing_metrics.overall_start_time_utc",
+                                                    "size": 9999
+                                                },
+                                                "aggs": {
+                                                    "stop": {
+                                                        "terms": {
+                                                            "field": "specimen.samples.analysis.timing_metrics.overall_stop_time_utc",
+                                                            "size": 9999
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -332,9 +344,6 @@ def make_search_filter_query(timefrom, timetil, project):
 def get_datetime_from_es(timestr):
     return datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%S.%f").replace(tzinfo=pytz.UTC)
 
-def calculate_compute_cost(total_seconds, vm_cost_hr):
-    return Decimal(Decimal(total_seconds)/Decimal(SECONDS_IN_HR)*Decimal(vm_cost_hr)*Decimal(EXTRA_MONEY))
-
 def calculate_storage_cost(portion_month_stored, file_size_gb):
     return Decimal(portion_month_stored)*Decimal(file_size_gb)*Decimal(STORAGE_PRICE_GB_MONTH)*Decimal(EXTRA_MONEY)
 
@@ -343,59 +352,18 @@ def calculate_storage_cost(portion_month_stored, file_size_gb):
 def get_vm_string(host_metrics):
     return str(host_metrics.get("vm_region")) + str(host_metrics.get("vm_instance_type"))
 
-
-def make_bills(comp_aggregations, previous_month_bytes, portion_of_month, this_month_timestamps_sizes, curr_time,
-               seconds_in_month):
-    x=comp_aggregations
-    print(x)
-    instances = x["aggregations"]["filtered_nested_timestamps"]["filtered_range"]["vmtype"]["buckets"]
-    total_pricing = Decimal()
-    for instance in instances:
-        instanceType = instance["key"]
-        regions = instance["regions"]["buckets"]
-        for region in regions:
-            regionName = region["key"]
-            totalTime = region["totaltime"]["value"]
-            print(regionName, instanceType, totalTime, pricing[regionName+instanceType])
-            total_pricing += calculate_compute_cost(totalTime, pricing[regionName + instanceType])
-
-    # need to get the storage size for files completed before start of this month
-    storage_size_bytes = previous_month_bytes['aggregations']['filtered_nested_timestamps']['sum_sizes']['value']
-    storage_size_gb = Decimal(storage_size_bytes)/Decimal(BYTES_IN_GB)
-    total_pricing += Decimal(STORAGE_PRICE_GB_MONTH)*storage_size_gb*portion_of_month*Decimal(EXTRA_MONEY)
-
-
-    # calculate the money spent on storing workflow outputs which were uploaded during this month
-    this_month_timestamps = this_month_timestamps_sizes['aggregations']['filtered_nested_timestamps']['times'][
-        'buckets']
-    for ts_sum in this_month_timestamps:
-        time_string = ts_sum['key_as_string']
-        time = datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC)
-
-        timediff = (curr_time - time).total_seconds()
-        month_portion = Decimal(timediff)/Decimal(seconds_in_month)
-
-        storage_size_bytes = ts_sum['sum_sizes']['value']
-        storage_size_gb = Decimal(storage_size_bytes)/Decimal(BYTES_IN_GB)
-
-        cost_here = storage_size_gb * month_portion
-        total_pricing += cost_here
-
-    return total_pricing
-
-
 def get_compute_costs(comp_aggregations):
     #create total compute cost for an entire project for a month
-    instances = comp_aggregations["aggregations"]["filtered_nested_timestamps"]["filtered_range"]["vmtype"]["buckets"]
     compute_costs = Decimal(0)
-    for instance in instances:
-        instanceType = instance["key"]
-        regions = instance["regions"]["buckets"]
-        for region in regions:
-            regionName = region["key"]
-            totalTime = region["totaltime"]["value"]
-            print(regionName, instanceType, totalTime, pricing[regionName+instanceType])
-            compute_costs += calculate_compute_cost(totalTime, pricing[regionName + instanceType])
+    for jobs in comp_aggregations["aggregations"]["filtered_nested_timestamps"]["filtered_range"]["vmtype"]["buckets"]:
+        vm_type = jobs["key"]
+        for region in jobs["regions"]["buckets"]:
+            vm_region = region["key"]
+            for ran_object in region["start"]["buckets"]:
+                start_time = ran_object["key_as_string"]
+                stop_time = ran_object["stop"]["buckets"][0]["key_as_string"]
+                compute_costs += calculta_spot_instance_cost(str(start_time), str(stop_time), str(vm_type), str(vm_region))
+
     return compute_costs
 
 
@@ -415,7 +383,7 @@ def create_analysis_costs_json(this_month_comp_hits, bill_time_start, bill_time_
                         if analysis_end_time < bill_time_end and analysis_start_time >= bill_time_start:
                             host_metrics = analysis.get("host_metrics")
                             if host_metrics:
-                                cost = calculate_compute_cost(time, pricing.get(get_vm_string(host_metrics)))
+                                cost = calculta_spot_instance_cost(str(analysis_start_time),str(analysis_end_time) ,str(host_metrics.get("vm_instance_type")), str(host_metrics.get("vm_region")))
                                 analysis_costs.append(
                                     {
                                         "donor": donor.get("submitter_donor_id"),
@@ -427,11 +395,12 @@ def create_analysis_costs_json(this_month_comp_hits, bill_time_start, bill_time_
                                     }
                                 )
                                 analysis_cost_actual += cost
+
                         #Handle cost in case compute started last month and ended in current month
                         elif analysis_end_time < bill_time_end and analysis_end_time >= bill_time_start:
                             host_metrics = analysis.get("host_metrics")
                             if host_metrics:
-                                cost = calculate_compute_cost(time, pricing.get(get_vm_string(host_metrics)))
+                                cost = calculta_spot_instance_cost(str(analysis_start_time),str(analysis_end_time) ,str(host_metrics.get("vm_instance_type")), str(host_metrics.get("vm_region")))
                                 analysis_costs.append(
                                     {
                                         "donor": donor.get("submitter_donor_id"),
@@ -542,7 +511,6 @@ def generate_daily_reports(date):
     seconds_into_month = (timeend-monthstart).total_seconds()
     daysinmonth = calendar.monthrange(timeend.year, timeend.month)[1]
     portion_of_month = Decimal(seconds_into_month)/Decimal(daysinmonth*3600*24)
-
     for project in projects:
         print(project)
         file_size = get_previous_file_sizes(monthstart, project=project)
