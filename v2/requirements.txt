@@ -12,3 +12,4 @@ Active-Alchemy==1.0.0
 psycopg2==2.6.2
 pytz==2016.10
 PySocks==1.6.7
+boto3==1.4.4
