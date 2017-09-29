@@ -761,6 +761,11 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
+                         'normal_fusion_variant_calling': arrayMissingItems('fusion_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_fusion_variant_calling': arrayMissingItems('fusion_variant_calling',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
                          'normal_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
@@ -793,6 +798,11 @@ def createFlags(uuid_to_donor):
 
                          'normal_cnv_workflow_1_0_x': arrayMissingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_cnv_workflow_1_0_x': arrayMissingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
+                         'normal_fusion_workflow_0_2_x': arrayMissingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_fusion_workflow_0_2_x': arrayMissingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
@@ -834,6 +844,11 @@ def createFlags(uuid_to_donor):
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
+                         'normal_fusion_variant_calling': arrayContainingItems('fusion_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_fusion_variant_calling': arrayContainingItems('fusion_variant_calling',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
                          'normal_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
@@ -866,6 +881,11 @@ def createFlags(uuid_to_donor):
 
                          'normal_cnv_workflow_1_0_x': arrayContainingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_cnv_workflow_1_0_x': arrayContainingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.',
+                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                    json_object,submitter_specimen_types),
+
+                         'normal_fusion_workflow_0_2_x': arrayContainingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.', "^Normal - ", json_object,submitter_specimen_types),
+                         'tumor_fusion_workflow_0_2_x': arrayContainingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.',
                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
                                                                     json_object,submitter_specimen_types),
 
@@ -904,6 +924,11 @@ def createFlags(uuid_to_donor):
                         'tumor_cnv_variant_calling': len(flagsWithArrs["tumor_cnv_variant_calling"]) == 0 and len(flagsPresentWithArrs["tumor_cnv_variant_calling"]) > 0,
                         'normal_cnv_workflow_1_0_x': len(flagsWithArrs["normal_cnv_workflow_1_0_x"]) == 0 and len(flagsPresentWithArrs["normal_cnv_workflow_1_0_x"]) > 0,
                         'tumor_cnv_workflow_1_0_x': len(flagsWithArrs["tumor_cnv_workflow_1_0_x"]) == 0 and len(flagsPresentWithArrs["tumor_cnv_workflow_1_0_x"]) > 0,
+
+                        'normal_fusion_variant_calling': len(flagsWithArrs["normal_fusion_variant_calling"]) == 0 and len(flagsPresentWithArrs["normal_fusion_variant_calling"]) > 0,
+                        'tumor_fusion_variant_calling': len(flagsWithArrs["tumor_fusion_variant_calling"]) == 0 and len(flagsPresentWithArrs["tumor_fusion_variant_calling"]) > 0,
+                        'normal_fusion_workflow_0_2_x': len(flagsWithArrs["normal_fusion_workflow_0_2_x"]) == 0 and len(flagsPresentWithArrs["normal_fusion_workflow_0_2_x"]) > 0,
+                        'tumor_fusion_workflow_0_2_x': len(flagsWithArrs["tumor_fusion_workflow_0_2_x"]) == 0 and len(flagsPresentWithArrs["tumor_fusion_workflow_0_2_x"]) > 0,
 
                         'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
                         'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
