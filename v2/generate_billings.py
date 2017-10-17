@@ -525,7 +525,8 @@ def generate_daily_reports(date):
                                             this_months_files, timeend, daysinmonth*3600*24)
 
 
-        bill = Billing.query().filter(Billing.project == project).filter(func.extract('month', Billing.start_date) == monthstart.month).first()
+        bill = Billing.query().filter(Billing.project == project).filter(func.extract('month', Billing.start_date) == monthstart.month) \
+            .filter(func.extract('year', Billing.start_date) == monthstart.year).first()
         itemized_costs = {
             "itemized_compute_costs": analysis_compute_json,
             "itemized_storage_costs": analysis_storage_json
