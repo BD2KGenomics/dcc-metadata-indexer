@@ -501,7 +501,7 @@ def generate_daily_reports(date):
         projects = get_projects_list()
         for project in projects:
             bill = Billing.query().filter(func.extract('month', Billing.end_date) == getLastMonth(timeend.month)) \
-                .filter(func.extract('year', Billing.start_date) == monthstart.year).filter(Billing.closed_out is False) \
+                .filter(func.extract('year', Billing.end_date) == timeend.year).filter(Billing.closed_out is False) \
                 .filter(Billing.project == project).first()
             if bill:
                 bill.update(end_date=timeend, closed_out=True)
