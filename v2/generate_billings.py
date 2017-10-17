@@ -10,7 +10,7 @@ from datetime import datetime
 from elasticsearch import Elasticsearch
 from sqlalchemy import func
 
-from compute_function import calculate_compute_cost as calculta_spot_instance_cost
+from compute_function import calculate_compute_cost as calculate_spot_instance_cost
 
 db = ActiveAlchemy(os.environ['DATABASE_URL'])
 es_service = os.environ.get("ES_SERVICE", "localhost")
@@ -362,7 +362,7 @@ def get_compute_costs(comp_aggregations):
             for ran_object in region["start"]["buckets"]:
                 start_time = ran_object["key_as_string"]
                 stop_time = ran_object["stop"]["buckets"][0]["key_as_string"]
-                compute_costs += calculta_spot_instance_cost(str(start_time), str(stop_time), str(vm_type), str(vm_region))
+                compute_costs += calculate_spot_instance_cost(str(start_time), str(stop_time), str(vm_type), str(vm_region))
 
     return compute_costs
 
@@ -383,7 +383,7 @@ def create_analysis_costs_json(this_month_comp_hits, bill_time_start, bill_time_
                         if analysis_end_time < bill_time_end and analysis_start_time >= bill_time_start:
                             host_metrics = analysis.get("host_metrics")
                             if host_metrics:
-                                cost = calculta_spot_instance_cost(str(analysis_start_time),str(analysis_end_time) ,str(host_metrics.get("vm_instance_type")), str(host_metrics.get("vm_region")))
+                                cost = calculate_spot_instance_cost(str(analysis_start_time), str(analysis_end_time), str(host_metrics.get("vm_instance_type")), str(host_metrics.get("vm_region")))
                                 analysis_costs.append(
                                     {
                                         "donor": donor.get("submitter_donor_id"),
@@ -400,7 +400,7 @@ def create_analysis_costs_json(this_month_comp_hits, bill_time_start, bill_time_
                         elif analysis_end_time < bill_time_end and analysis_end_time >= bill_time_start:
                             host_metrics = analysis.get("host_metrics")
                             if host_metrics:
-                                cost = calculta_spot_instance_cost(str(analysis_start_time),str(analysis_end_time) ,str(host_metrics.get("vm_instance_type")), str(host_metrics.get("vm_region")))
+                                cost = calculate_spot_instance_cost(str(analysis_start_time), str(analysis_end_time), str(host_metrics.get("vm_instance_type")), str(host_metrics.get("vm_region")))
                                 analysis_costs.append(
                                     {
                                         "donor": donor.get("submitter_donor_id"),
