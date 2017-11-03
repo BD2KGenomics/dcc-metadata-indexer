@@ -42,8 +42,9 @@ def calculate_compute_cost(start_time, end_time, instance_type, region_name, ins
 
         last_time_checked = response
         price = 0
+        # Iterate in linear order of time, response returns [n, n-1, n-2, ..., 0]
         for spot_price in reversed(response['SpotPriceHistory']):
-
+            # Record of first spot history that qualifies for calculation.
             if (spot_price['Timestamp'] < startDatetime):
                 last_time_checked = spot_price
                 if (len(response["SpotPriceHistory"]) <= 1):
@@ -51,14 +52,18 @@ def calculate_compute_cost(start_time, end_time, instance_type, region_name, ins
                     minutes = float(delta.seconds) / float(60)
                     rate = (float(minutes) / float(60)) * float(last_time_checked['SpotPrice'])
                     price += Decimal(rate)
-
+            # Spot history post starting time
             elif ((spot_price['Timestamp'] >= startDatetime) and (spot_price['Timestamp'] < block)):
+                last_time_checked = last_time_checked['SpotPriceHistory'][-1] \
+                    if 'Timestamp' not in last_time_checked else last_time_checked
+                # Spot price change in between start time.
                 if ((startDatetime <= spot_price['Timestamp']) and (startDatetime >= last_time_checked['Timestamp'])):
                     delta = startDatetime - last_time_checked['Timestamp']
                     minutes = float(delta.seconds) / float(60)
                     rate = (float(minutes) / float(60)) * float(last_time_checked['SpotPrice'])
                     price += Decimal(rate)
                     last_time_checked = spot_price
+                # Consecutive calculator 1, 2, 3, ..., n.
                 elif ((startDatetime < last_time_checked['Timestamp']) and (
                     spot_price['Timestamp'] > last_time_checked['Timestamp'])):
                     delta = spot_price['Timestamp'] - last_time_checked['Timestamp']
@@ -66,6 +71,14 @@ def calculate_compute_cost(start_time, end_time, instance_type, region_name, ins
                     rate = (float(minutes) / float(60)) * float(last_time_checked['SpotPrice'])
                     price += Decimal(rate)
                     last_time_checked = spot_price
+                # Handles edge case, no record return from starting time.
+                elif ((startDatetime <= spot_price['Timestamp']) and (spot_price['Timestamp'] == last_time_checked['Timestamp'])):
+                    delta = last_time_checked['Timestamp'] - startDatetime
+                    minutes = float(delta.seconds) / float(60)
+                    rate = (float(minutes) / float(60)) * float(last_time_checked['SpotPrice'])
+                    price += Decimal(rate)
+                    last_time_checked = spot_price
+            # Closing calculation, ending time and last spot-price that qualifies for calculation.
             elif ((last_time_checked['Timestamp'] <= block) and (spot_price['Timestamp'] > block)):
                 delta = block - last_time_checked['Timestamp']
                 minutes = float(delta.seconds) / float(60)
