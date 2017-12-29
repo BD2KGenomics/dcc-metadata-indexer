@@ -11,6 +11,7 @@ import jsonlines, ast, json, luigi, ssl, argparse
 from elasticsearch import Elasticsearch
 from urllib2 import urlopen, Request
 import os
+from file_filters import filter_deleted_files
 
 es_service = os.environ.get("ES_SERVICE", "localhost")
 redwood_host = os.environ.get("REDWOOD_SERVER", "redwood.io")
@@ -162,7 +163,9 @@ with open("fb_index.jsonl", "w") as fb_index:
                  #TEST WORKFLOW CONCATENATION
                   workflow = workflow+':'+workflow_version #DELETE IF IT CRASHES
                   download_id = analys['bundle_uuid']
-                  for file in analys['workflow_outputs']:
+                  available_files = filter_deleted_files(analys['workflow_outputs'])
+                  print available_files
+                  for file in available_files:
                      #pull out file_type, title(file_path)
                      file_type = file['file_type']
                      title = file['file_path']
@@ -178,11 +181,23 @@ with open("fb_index.jsonl", "w") as fb_index:
                      indexing = str(indexing).replace("'",'"')
                      counter += 1
                      #add all stuff to dictionary
+
+                     print "\n".join(map(str, available_files))
+                     print "="*8
+                     try:
+                        file_id = bundle_uuid_filename_to_file_uuid[
+                            download_id+'_'+title]
+                     except KeyError:
+                        print "{} ({}) from Bundle {} ." \
+                              " Skipping file.".format(title,
+                                                       fileMd5sum or 'No Hash',
+                                                       download_id)
+                        continue
                      try:
                         udict = {'center_name': center_name, 'project': project, 
                         'program': program, 'donor': donor, 'specimen_type': specimen_type, 'analysis_type': analysis_type, 
                         'workflow': workflow, 'download_id': download_id, 'file_type': file_type, 'title': title, 
-                        'file_id':bundle_uuid_filename_to_file_uuid[download_id+'_'+title], 'experimentalStrategy': submitter_experimental_design,
+                        'file_id': file_id, 'experimentalStrategy': submitter_experimental_design,
                         'redwoodDonorUUID': redwoodDonorUUID, 'study':study, 'sampleId':sampleId, 'submittedSampleId':submittedSampleId,
                         'submittedDonorId': submittedDonorId, 'submittedSpecimenId':submittedSpecimenId,
                         'fileSize':fileSize, 'fileMd5sum':fileMd5sum, 'workflowVersion': workflow_version,
