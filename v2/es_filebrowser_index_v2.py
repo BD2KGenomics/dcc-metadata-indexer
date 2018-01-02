@@ -164,7 +164,6 @@ with open("fb_index.jsonl", "w") as fb_index:
                   workflow = workflow+':'+workflow_version #DELETE IF IT CRASHES
                   download_id = analys['bundle_uuid']
                   available_files = filter_deleted_files(analys['workflow_outputs'])
-                  print available_files
                   for file in available_files:
                      #pull out file_type, title(file_path)
                      file_type = file['file_type']
