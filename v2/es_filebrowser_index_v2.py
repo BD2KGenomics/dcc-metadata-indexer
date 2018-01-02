@@ -181,9 +181,6 @@ with open("fb_index.jsonl", "w") as fb_index:
                      indexing = str(indexing).replace("'",'"')
                      counter += 1
                      #add all stuff to dictionary
-
-                     print "\n".join(map(str, available_files))
-                     print "="*8
                      try:
                         file_id = bundle_uuid_filename_to_file_uuid[
                             download_id+'_'+title]
