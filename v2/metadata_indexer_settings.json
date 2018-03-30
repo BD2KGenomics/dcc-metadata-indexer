@@ -1,0 +1,17 @@
+{
+  "regex_presets": [
+    {
+      "preset_name": "default",
+      "normal": "^Normal - ",
+      "tumor": "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -"
+    }
+  ],
+  "flags": [
+    {
+      "workflow": "quay.io/ucsc_cgl/example_workflow_name",
+      "workflow_flag_prefix": "example_workflow_name",
+      "versions": ["1.2.x", "3.4.x"],
+      "filter_preset": "default"
+    }
+  ]
+}

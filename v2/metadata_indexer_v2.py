@@ -713,6 +713,86 @@ def arrayItemsWorkflow(workflow_name, workflow_version_regex, regex, items,submi
 
     return results
 
+
+MAIN_SPECIMEN_TYPES = {'normal', 'tumor'}
+
+
+class IndexerSettings:
+    def __init__(self, json_object, submitter_specimen_types):
+        with open('metadata_indexer_settings.json', 'r') as mif:
+            self.indexer_settings = {}
+            self.flags_with_arrs = {}
+            self.flags_present_with_arrs = {}
+            self.flags_with_str = {}
+            self.json_object = json_object
+            self.submitter_specimen_types = submitter_specimen_types
+            self.indexer_settings = json.load(mif)
+
+            self.regex_presets = {
+                                    fp['preset_name']: {
+                                            'normal': fp['normal'],
+                                            'tumor': fp['tumor']
+                                    } for fp in self.indexer_settings['regex_presets']
+            }
+
+            for flg in self.indexer_settings['flags']:
+                workflow_flag_infix = flg['workflow_flag_prefix'].replace(' ', '_')
+                filter_preset_name = flg['filter_preset']
+
+                for specimen_type in MAIN_SPECIMEN_TYPES:
+                    if 'versions' in flg.keys():
+                        self._add_item_workflow_to_lists(flg['versions'], specimen_type, workflow_flag_infix,
+                                                         filter_preset_name)
+                    else:
+                        self._add_item_to_lists(specimen_type, workflow_flag_infix, filter_preset_name)
+
+    def _add_item_to_lists(self, specimen_type, workflow_flag_infix, filter_preset_name):
+        """
+        Creates the flags for workflows with adds them to the flag lists. The flags are generated
+        using the main specimen type (usually Normal or Tumor), the workflow name, and the version number.
+
+        :param specimen_type: the main specimen type (usually Normal or Tumor)
+        :param workflow_flag_infix: (usually) the name of the workflow
+        :param filter_preset_name: the filter
+        :return:
+        """
+        flag_name = "{}_{}".format(specimen_type, workflow_flag_infix)
+        filter_regex = self.regex_presets[filter_preset_name][specimen_type]
+        self.flags_with_arrs[flag_name] = arrayMissingItems(flag_name, filter_regex,
+                                                            self.json_object, self.submitter_specimen_types)
+        self.flags_present_with_arrs[flag_name] = arrayContainingItems(flag_name, filter_regex,
+                                                                       self.json_object, self.submitter_specimen_types)
+        self.flags_with_str[flag_name] = len(self.flags_with_arrs[flag_name]) == 0 and \
+                                         len(self.flags_present_with_arrs[flag_name]) > 0
+
+    def _add_item_workflow_to_lists(self, versions, specimen_type, workflow_flag_infix, filter_preset_name):
+        """
+        Creates the flags for workflows with version numbers and adds them to the flag lists. First the, flags are named
+        using the main specimen type (usually Normal or Tumor), the workflow name, and the version number.
+
+
+        :param workflow_flag_infix:
+        :param versions:
+        :param specimen_type:
+        :param filter_preset_name:
+        :return:
+        """
+        version_list = [versions] if not isinstance(versions, list) else versions
+        for vrsn in version_list:
+            version_suffix = vrsn.replace(' ', '_')
+            flag_name = "{}_{}_{}".format(specimen_type, workflow_flag_infix, version_suffix)
+            filter_regex = self.regex_presets[filter_preset_name][specimen_type]
+            version_filter_regex = "\.".join(vrsn.split(' ')[:-1])
+            self.flags_with_arrs[flag_name] = arrayMissingItemsWorkflow(flag_name, version_filter_regex, filter_regex,
+                                                                        self.json_object, self.submitter_specimen_types)
+            self.flags_present_with_arrs[flag_name] = arrayContainingItemsWorkflow(flag_name, version_filter_regex,
+                                                                                   filter_regex, self.json_object,
+                                                                                   self.submitter_specimen_types)
+
+            self.flags_with_str[flag_name] = len(self.flags_with_arrs[flag_name]) == 0 and \
+                len(self.flags_present_with_arrs[flag_name]) > 0
+
+
 def createFlags(uuid_to_donor):
     """
     uuid_to_donor: dictionary that maps uuid with its json object.
@@ -734,8 +814,8 @@ def createFlags(uuid_to_donor):
                                                              json_object,submitter_specimen_types),
                          'normal_sequence_qc_report': arrayMissingItems('sequence_upload_qc_report', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_sequence_qc_report': arrayMissingItems('sequence_upload_qc_report',
-                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                             json_object,submitter_specimen_types),
+                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                       json_object,submitter_specimen_types),
 
                          'normal_alignment': arrayMissingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_alignment': arrayMissingItems('alignment',
@@ -743,68 +823,68 @@ def createFlags(uuid_to_donor):
                                                               json_object,submitter_specimen_types),
                          'normal_alignment_qc_report': arrayMissingItems('alignment_qc_report', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_alignment_qc_report': arrayMissingItems('alignment_qc_report',
-                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                              json_object,submitter_specimen_types),
+                                                                        "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                        json_object,submitter_specimen_types),
 
                          'normal_rna_seq_quantification': arrayMissingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rna_seq_quantification': arrayMissingItems('rna_seq_quantification',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                           "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                           json_object,submitter_specimen_types),
 
                          'normal_cnv_variant_calling': arrayMissingItems('cnv_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_cnv_variant_calling': arrayMissingItems('cnv_variant_calling',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                        "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                        json_object,submitter_specimen_types),
 
                          'normal_protect_prediction': arrayMissingItems('immuno_target_pipelines', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_protect_prediction': arrayMissingItems('immuno_target_pipelines',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                       json_object,submitter_specimen_types),
 
                          'normal_fusion_variant_calling': arrayMissingItems('fusion_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_fusion_variant_calling': arrayMissingItems('fusion_variant_calling',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                           "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                           json_object,submitter_specimen_types),
 
                          'normal_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rna_seq_cgl_workflow_3_0_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                       json_object,submitter_specimen_types),
 
                          'normal_rna_seq_cgl_workflow_3_1_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rna_seq_cgl_workflow_3_1_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                       json_object,submitter_specimen_types),
 
                          'normal_rna_seq_cgl_workflow_3_2_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.2\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rna_seq_cgl_workflow_3_2_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.2\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                       json_object,submitter_specimen_types),
 
                          'normal_rna_seq_cgl_workflow_3_3_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.3\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_rna_seq_cgl_workflow_3_3_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.3\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                       json_object,submitter_specimen_types),
 
                          'normal_protect_cgl_workflow_2_3_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_protect_cgl_workflow_2_3_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                       json_object,submitter_specimen_types),
 
                          'normal_protect_cgl_workflow_2_5_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_protect_cgl_workflow_2_5_x': arrayMissingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                       json_object,submitter_specimen_types),
 
                          'normal_cnv_workflow_1_0_x': arrayMissingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_cnv_workflow_1_0_x': arrayMissingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                               "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                               json_object,submitter_specimen_types),
 
                          'normal_fusion_workflow_0_2_x': arrayMissingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_fusion_workflow_0_2_x': arrayMissingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                                                                  "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                  json_object,submitter_specimen_types),
 
                          'normal_germline_variants': arrayMissingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
                          'tumor_somatic_variants': arrayMissingItems('somatic_variant_calling',
@@ -812,87 +892,87 @@ def createFlags(uuid_to_donor):
                                                                      json_object,submitter_specimen_types)}
 
         flagsPresentWithArrs = {'normal_sequence': arrayContainingItems('sequence_upload', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_sequence': arrayContainingItems('sequence_upload',
-                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                             json_object,submitter_specimen_types),
-                         'normal_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report',
-                                                             "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                             json_object,submitter_specimen_types),
+                                'tumor_sequence': arrayContainingItems('sequence_upload',
+                                                                       "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                       json_object,submitter_specimen_types),
+                                'normal_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_sequence_qc_report': arrayContainingItems('sequence_upload_qc_report',
+                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_alignment': arrayContainingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_alignment': arrayContainingItems('alignment',
-                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                              json_object,submitter_specimen_types),
-                         'normal_alignment_qc_report': arrayContainingItems('alignment_qc_report', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_alignment_qc_report': arrayContainingItems('alignment_qc_report',
-                                                              "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                              json_object,submitter_specimen_types),
+                                'normal_alignment': arrayContainingItems('alignment', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_alignment': arrayContainingItems('alignment',
+                                                                        "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                        json_object,submitter_specimen_types),
+                                'normal_alignment_qc_report': arrayContainingItems('alignment_qc_report', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_alignment_qc_report': arrayContainingItems('alignment_qc_report',
+                                                                                  "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                  json_object,submitter_specimen_types),
 
-                         'normal_rna_seq_quantification': arrayContainingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rna_seq_quantification': arrayContainingItems('rna_seq_quantification',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_rna_seq_quantification': arrayContainingItems('rna_seq_quantification', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_rna_seq_quantification': arrayContainingItems('rna_seq_quantification',
+                                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                     json_object,submitter_specimen_types),
 
-                         'normal_cnv_variant_calling': arrayContainingItems('cnv_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_cnv_variant_calling': arrayContainingItems('cnv_variant_calling',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_cnv_variant_calling': arrayContainingItems('cnv_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_cnv_variant_calling': arrayContainingItems('cnv_variant_calling',
+                                                                                  "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                  json_object,submitter_specimen_types),
 
-                         'normal_protect_prediction': arrayContainingItems('immuno_target_pipelines', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_protect_prediction': arrayContainingItems('immuno_target_pipelines',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_protect_prediction': arrayContainingItems('immuno_target_pipelines', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_protect_prediction': arrayContainingItems('immuno_target_pipelines',
+                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_fusion_variant_calling': arrayContainingItems('fusion_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_fusion_variant_calling': arrayContainingItems('fusion_variant_calling',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_fusion_variant_calling': arrayContainingItems('fusion_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_fusion_variant_calling': arrayContainingItems('fusion_variant_calling',
+                                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                     json_object,submitter_specimen_types),
 
-                         'normal_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_rna_seq_cgl_workflow_3_0_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.0\.',
+                                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_rna_seq_cgl_workflow_3_1_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rna_seq_cgl_workflow_3_1_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_rna_seq_cgl_workflow_3_1_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_rna_seq_cgl_workflow_3_1_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.1\.',
+                                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_rna_seq_cgl_workflow_3_2_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.2\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rna_seq_cgl_workflow_3_2_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.2\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_rna_seq_cgl_workflow_3_2_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.2\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_rna_seq_cgl_workflow_3_2_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.2\.',
+                                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_rna_seq_cgl_workflow_3_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.3\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_rna_seq_cgl_workflow_3_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.3\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_rna_seq_cgl_workflow_3_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.3\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_rna_seq_cgl_workflow_3_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/rnaseq-cgl-pipeline', '3\.3\.',
+                                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_protect_cgl_workflow_2_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_protect_cgl_workflow_2_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_protect_cgl_workflow_2_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_protect_cgl_workflow_2_3_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.3\.',
+                                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_protect_cgl_workflow_2_5_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_protect_cgl_workflow_2_5_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_protect_cgl_workflow_2_5_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_protect_cgl_workflow_2_5_x': arrayContainingItemsWorkflow('quay.io/ucsc_cgl/protect', '2\.5\.',
+                                                                                                 "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                                 json_object,submitter_specimen_types),
 
-                         'normal_cnv_workflow_1_0_x': arrayContainingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_cnv_workflow_1_0_x': arrayContainingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_cnv_workflow_1_0_x': arrayContainingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_cnv_workflow_1_0_x': arrayContainingItemsWorkflow('BD2KGenomics/dockstore_workflow_cnv', 'v*1\.0\.',
+                                                                                         "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                         json_object,submitter_specimen_types),
 
-                         'normal_fusion_workflow_0_2_x': arrayContainingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_fusion_workflow_0_2_x': arrayContainingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.',
-                                                                    "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                    json_object,submitter_specimen_types),
+                                'normal_fusion_workflow_0_2_x': arrayContainingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_fusion_workflow_0_2_x': arrayContainingItemsWorkflow('registry.hub.docker.com/ucsctreehouse/fusion', '0\.2\.',
+                                                                                            "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                                            json_object,submitter_specimen_types),
 
-                         'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
-                         'tumor_somatic_variants': arrayContainingItems('somatic_variant_calling',
-                                                                     "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
-                                                                     json_object,submitter_specimen_types)}
+                                'normal_germline_variants': arrayContainingItems('germline_variant_calling', "^Normal - ", json_object,submitter_specimen_types),
+                                'tumor_somatic_variants': arrayContainingItems('somatic_variant_calling',
+                                                                               "^Primary tumour - |^Recurrent tumour - |^Metastatic tumour - |^Xenograft - |^Cell line -",
+                                                                               json_object,submitter_specimen_types)}
 
         flagsWithStr = {'normal_sequence' : len(flagsWithArrs["normal_sequence"]) == 0 and len(flagsPresentWithArrs["normal_sequence"]) > 0,
                         'normal_sequence_qc_report' : len(flagsWithArrs["normal_sequence_qc_report"]) == 0 and len(flagsPresentWithArrs["normal_sequence_qc_report"]) > 0,
@@ -932,10 +1012,14 @@ def createFlags(uuid_to_donor):
 
                         'normal_germline_variants': len(flagsWithArrs["normal_germline_variants"]) == 0 and len(flagsPresentWithArrs["normal_germline_variants"]) > 0,
                         'tumor_somatic_variants': len(flagsWithArrs["tumor_somatic_variants"]) == 0 and len(flagsPresentWithArrs["tumor_somatic_variants"]) > 0}
-
         json_object['flags'] = flagsWithStr
         json_object['missing_items'] = flagsWithArrs
         json_object['present_items'] = flagsPresentWithArrs
+
+        flags_from_settings = IndexerSettings(json_object, submitter_specimen_types)
+        json_object['flags'].update(flags_from_settings.flags_with_str)
+        json_object['missing_items'].update(flags_from_settings.flags_with_arrs)
+        json_object['present_items'].update(flags_from_settings.flags_present_with_arrs)
 
 
 def dumpResult(result, filename, ES_file_name="elasticsearch.jsonl"):
